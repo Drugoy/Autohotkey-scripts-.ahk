@@ -1,0 +1,858 @@
+Content-Type: multipart/related; start=<op.mhtml.1338289949860.c3de034512625bfa@128.73.166.169>; boundary=----------9jsSBTCSvKgpkm5V3J2mCJ
+Content-Location: http://www.autohotkey.net/~Lexikos/VA/VA.html
+Subject: =?utf-8?Q?Vista=20Audio=20Control=20Function=20Reference?=
+MIME-Version: 1.0
+
+------------9jsSBTCSvKgpkm5V3J2mCJ
+Content-Disposition: inline; filename=VA.html
+Content-Type: text/html; charset=utf-8; name=VA.html
+Content-ID: <op.mhtml.1338289949860.c3de034512625bfa@128.73.166.169>
+Content-Location: http://www.autohotkey.net/~Lexikos/VA/VA.html
+Content-Transfer-Encoding: 8bit
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="Generator" content="XN-Docs v2.03 (http://ccgi.inspiration3.plus.com/ahk/xn-docs/)" />
+    <title>Vista Audio Control Function Reference</title>
+    <style type="text/css" media="all">
+/*<![CDATA[*/
+html {
+	color: #333;
+	background: #fff;
+	font: .9em Calibri, Arial, Helvetica, sans-serif;
+}
+body { margin: 0em;  min-width: 600px; }
+h1 {
+	margin: 0em;
+	color: #fff;
+	background: #333;
+	padding: .2em .5em;
+	border-bottom: 1px solid #000;
+}
+h1 a {
+	color: #fff !important;
+	background: inherit;
+	text-decoration: none;
+}
+h2 { border-bottom: 1px solid #ddd; }
+h3.command {
+	background: #09c;
+	padding: .7em;
+	color: #fff;
+	cursor: help;
+	letter-spacing: .1em;
+	font: bold 1.2em "Courier New", Courier, monospace;
+}
+a { color: #06c; }
+a:hover { color: #936; }
+table { font-size: 1em; }
+p.descr {
+	margin: 1.5em;
+	line-height: 1.5;
+}
+span.sub {
+	color: #666;
+	background: inherit;
+}
+p.descr span.sub:before { content: ">> "; }
+table.params span.sub {
+	font-size: .75em;
+	margin-right: .5em;
+}
+div#contents {
+	width: 200px;
+	float: right;
+	border-left: 1px dashed #ddd;
+	margin-top: 2em;
+	overflow: auto;
+	padding: 10px;
+}
+div#contents div { margin-left: 1em; }
+div#contents ul {
+	list-style: square;
+	padding-left: 1em;
+}
+div#contents *:first-child { margin-top: 0em; }
+div#page {
+  position: relative;
+  margin-left: 0px;
+  margin-right: 230px;
+	width: auto;
+}
+div#page > div:not(:target) { display: none; }
+div#page > div:target { display: block; }
+div.method {
+	background: #fefefe;
+	border: 1px solid #eee;
+	margin-bottom: 2em;
+	margin-left: 0.5em;
+	padding: 1em;
+}
+div.method *:first-child { margin-top: 0em; }
+div#end {
+	font-size: .9em;
+	margin-top: 1em;
+	border-top: 1px solid #000;
+	padding: 1em;
+	color: #fff;
+	background: #666;
+}
+div#end a { color: #fff; }
+span.vers {
+	font-size: .6em;
+	color: #ccc;
+	padding-left: .3em;
+}
+table.params {
+	font-size: 1em;
+	margin-left: 3em;
+}
+table.params th {
+	text-align: left;
+	background: #eee;
+	padding: .2em;
+}
+table.params td {
+	vertical-align: top;
+	padding: .2em 1em .2em .5em;
+	background: #fff;
+	border: 1px solid #f3f3f3;
+}
+table.params td:first-child { background: #f3f3f3 !important; }
+table.params tr.returns td { background: #f3f3f3; }
+table.params tr.returns td:first-child { background: #fff !important; }
+table.dataset { margin-left: 3em; }
+table.dataset th {
+	background: #eee;
+	text-align: left;
+	padding: .2em;
+}
+table.dataset td {
+	vertical-align: top;
+	padding: .2em 1em .2em .5em;
+}
+pre.code {
+	padding: 1em;
+	font-size: 1em;
+	border: 1px dotted #999;
+	background: #fff;
+	margin-left: 2em;
+	overflow: auto;
+}
+kbd { font: 1em "Courier New", Courier, monospace; }
+code, pre.code { font: .9em "Courier New", Courier, monospace; }
+pre.code em, code em {
+	color: #060;
+	font-style: normal;
+	font-weight: bold;
+}
+pre.code kbd, code kbd {
+	color: #c00;
+	font-weight: normal;
+}
+pre.code var, code var {
+	font-style: normal;
+	font-weight: bold;
+	color: #f80;
+}
+pre.code var.prc, code var.prc {
+	font-weight: normal;
+	color: #f00;
+	font-style: italic;
+}
+pre.code strong, code strong { color: #039; }
+pre.code strong.res, code strong.res { color: #800000; }
+@media print {
+	* {
+		background: none !important;
+		color: #000 !important;
+	}
+	p.descr span.sub, div#contents { display: none; }
+	div#page { width: 100%; }
+	div#page > div:not(:target) { display: block; }
+	table.params, pre.code { margin: 0em; }
+	div.method {
+		border: none;
+		margin: 1em 0em;
+		padding: 0em;
+	}
+	pre.code { overflow: visible; }
+}
+/*]]>*/
+    </style>
+    <script type="text/javascript">
+/*<![CDATA[*/
+function tabsetup() {
+var a = document.getElementById('contents').getElementsByTagName('a'), i;
+	tabswitch(window.location.hash);
+	for (i in a) { a[i].onclick = tabswitch; }
+}
+function tabswitch(e) {
+	var d = document.getElementById('page').getElementsByTagName('div'),
+		h = typeof(e) == 'string' ? e : this.hash, id = h ? h.slice(1) : '', i;
+	for (i = 0; i < d.length; i++) { if (d[i].className == 'method') { d[i].style.display = 'none'; } }
+	if (id) { document.getElementById(id).style.display = 'block'; }
+}
+if (window.attachEvent) { window.attachEvent('onload', tabsetup); }
+/*]]>*/
+    </script>
+  </head>
+  <body>
+    <h1>
+      <a href="http://www.autohotkey.com/forum/topic23792.html">Vista Audio Control Function Reference</a><span class="vers"> (version 2.1)</span>
+    </h1>
+    <div id="contents">
+      <div>
+        <h4>Master Controls</h4>
+        <ul>
+          <li>
+            <a href="#VA_GetMasterVolume">VA_GetMasterVolume</a>
+          </li>
+          <li>
+            <a href="#VA_SetMasterVolume">VA_SetMasterVolume</a>
+          </li>
+          <li>
+            <a href="#VA_GetMasterChannelCount">VA_GetMasterChannelCount</a>
+          </li>
+          <li>
+            <a href="#VA_GetMasterMute">VA_GetMasterMute</a>
+          </li>
+          <li>
+            <a href="#VA_SetMasterMute">VA_SetMasterMute</a>
+          </li>
+        </ul>
+        <h4>Subunit Controls</h4>
+        <ul>
+          <li>
+            <a href="#VA_GetVolume">VA_GetVolume</a>
+          </li>
+          <li>
+            <a href="#VA_SetVolume">VA_SetVolume</a>
+          </li>
+          <li>
+            <a href="#VA_GetChannelCount">VA_GetChannelCount</a>
+          </li>
+          <li>
+            <a href="#VA_GetMute">VA_GetMute</a>
+          </li>
+          <li>
+            <a href="#VA_SetMute">VA_SetMute</a>
+          </li>
+        </ul>
+        <h4>Advanced</h4>
+        <ul>
+          <li>
+            <a href="#VA_GetAudioEndpointVolume">VA_GetAudioEndpointVolume</a>
+          </li>
+          <li>
+            <a href="#VA_GetAudioMeter">VA_GetAudioMeter</a>
+          </li>
+          <li>
+            <a href="#VA_GetDevice">VA_GetDevice</a>
+          </li>
+          <li>
+            <a href="#VA_GetDeviceName">VA_GetDeviceName</a>
+          </li>
+          <li>
+            <a href="#VA_GetDevicePeriod">VA_GetDevicePeriod</a>
+          </li>
+          <li>
+            <a href="#VA_GetDeviceSubunit">VA_GetDeviceSubunit</a>
+          </li>
+          <li>
+            <a href="#VA_EnumSubunits">VA_EnumSubunits</a>
+          </li>
+          <li>
+            <a href="#VA_EnumSubunitsEx">VA_EnumSubunitsEx</a>
+          </li>
+          <li>
+            <a href="#VA_FindSubunit">VA_FindSubunit</a>
+          </li>
+          <li>
+            <a href="#VA_dB2Scalar">VA_dB2Scalar</a>
+          </li>
+          <li>
+            <a href="#VA_Scalar2dB">VA_Scalar2dB</a>
+          </li>
+        </ul>
+        <h4>Other</h4>
+        <ul>
+          <li>
+            <a href="#Interface%20Functions">Interface Functions</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <p class="descr"><br /><span class="sub">Browse through the topics in the contents list to the right.</span></p>
+    <div id="page">
+      <div class="method" id="VA_GetMasterVolume">
+        <h2>VA_GetMasterVolume</h2>
+        <p>Gets the master volume level of an audio endpoint device.</p>
+        <h3 class="command">VA_GetMasterVolume(channel, device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>A value between 0.0 and 100.0, inclusive.</td>
+          </tr>
+          <tr>
+            <td>channel</td>
+            <td><span class="sub">(optional)</span>The one-based index of the channel to retrieve.</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>Volume levels returned by this function follow the same curve as the Windows Vista Sound Mixer.</p>
+        <h4>Example</h4>
+        <pre class="code"><em>; Get the master volume of the default playback device.</em>
+volume := <strong>VA_GetMasterVolume</strong>()
+
+<em>; Get the volume of the first and second channels.</em>
+volume1 := <strong>VA_GetMasterVolume</strong>(1)
+volume2 := <strong>VA_GetMasterVolume</strong>(2)
+
+<em>; Get the master volume of a device by name.</em>
+lineout_volume := <strong>VA_GetMasterVolume</strong>(<kbd>""</kbd>, <kbd>"Line Out"</kbd>)
+
+<em>; Get the master volume of the default recording device.</em>
+recording_volume := <strong>VA_GetMasterVolume</strong>(<kbd>""</kbd>, <kbd>"capture"</kbd>)
+
+<strong>MsgBox</strong>, % <kbd>"Playback volume:`t"</kbd> volume
+        . <kbd>"`n  Channel 1:`t"</kbd> volume1
+        . <kbd>"`n  Channel 2:`t"</kbd> volume2
+        . <kbd>"`nLine Out volume:`t"</kbd> lineout_volume
+        . <kbd>"`nRecording volume:`t"</kbd> recording_volume
+        </pre>
+      </div>
+      <div class="method" id="VA_SetMasterVolume">
+        <h2>VA_SetMasterVolume</h2>
+        <p>Sets the master volume level of an audio endpoint device.</p>
+        <h3 class="command">VA_SetMasterVolume(vol, channel, device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>vol</td>
+            <td>A value between 0.0 and 100.0, inclusive.</td>
+          </tr>
+          <tr>
+            <td>channel</td>
+            <td><span class="sub">(optional)</span>The one-based index of the channel to adjust.</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>Volume levels set by this function follow the same curve as the Windows Vista Sound Mixer.</p>
+      </div>
+      <div class="method" id="VA_GetMasterChannelCount">
+        <h2>VA_GetMasterChannelCount</h2>
+        <p>Gets the number of channels an audio endpoint device has.</p>
+        <h3 class="command">VA_GetMasterChannelCount(device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+        <h4>Example</h4>
+        <pre class="code"><strong>Loop</strong> % <strong>VA_GetMasterChannelCount</strong>()
+    Message .= <kbd>"Channel "</kbd> <strong class="res">A_Index</strong> <kbd>": "</kbd> <strong>VA_GetMasterVolume</strong>(<strong class="res">A_Index</strong>) <kbd>"`n"</kbd>
+<strong>MsgBox</strong> %Message%</pre>
+      </div>
+      <div class="method" id="VA_GetMasterMute">
+        <h2>VA_GetMasterMute</h2>
+        <p>Gets the mute status of an audio endpoint device.</p>
+        <h3 class="command">VA_GetMasterMute(device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>True if the audio endpoint device is muted, otherwise false.</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+      </div>
+      <div class="method" id="VA_SetMasterMute">
+        <h2>VA_SetMasterMute</h2>
+        <p>Mutes or un-mutes an audio endpoint device.</p>
+        <h3 class="command">VA_SetMasterMute(mute, device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>mute</td>
+            <td>True to mute; false to un-mute.</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+      </div>
+      <div class="method" id="VA_GetVolume">
+        <h2>VA_GetVolume</h2>
+        <p>Gets the volume level of a subunit.</p>
+        <h3 class="command">VA_GetVolume(subunit_desc, channel, device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>A value between 0.0 and 100.0, inclusive.</td>
+          </tr>
+          <tr>
+            <td>subunit_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_FindSubunit">VA_FindSubunit</a>. Defaults to "1".</td>
+          </tr>
+          <tr>
+            <td>channel</td>
+            <td><span class="sub">(optional)</span>The one-based index of the channel to retrieve.</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>Volume levels returned by this function follow the same curve as the Sound applet in Control Panel, not the Sound Mixer.</p>
+        <h4>Example</h4>
+        <pre class="code"><em>; Note that subunit names are audio driver-specific.</em>
+<em>; The following will match "Line", "Line In", "Line Volume", etc.</em>
+linein_feedback := <strong>VA_GetVolume</strong>(<kbd>"Line"</kbd>)
+mic_feedback := <strong>VA_GetVolume</strong>(<kbd>"Mic"</kbd>, <kbd>""</kbd>, <kbd>"Line Out"</kbd>)
+<strong>MsgBox</strong>, % <kbd>"Line In feedback through default playback device: "</kbd> linein_feedback
+        . <kbd>"`nMicrophone feedback through Line Out: "</kbd> mic_feedback
+        . <kbd>"`n(Note: these may be muted.)"</kbd></pre>
+      </div>
+      <div class="method" id="VA_SetVolume">
+        <h2>VA_SetVolume</h2>
+        <p>Sets the volume level of a subunit.</p>
+        <h3 class="command">VA_SetVolume(vol, subunit_desc, channel, device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>vol</td>
+            <td>A value between 0.0 and 100.0, inclusive.</td>
+          </tr>
+          <tr>
+            <td>subunit_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_FindSubunit">VA_FindSubunit</a>. Defaults to "1".</td>
+          </tr>
+          <tr>
+            <td>channel</td>
+            <td><span class="sub">(optional)</span>The one-based index of the channel to retrieve.</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>Volume levels set by this function follow the same curve as the Sound applet in Control Panel, not the Sound Mixer.</p>
+      </div>
+      <div class="method" id="VA_GetChannelCount">
+        <h2>VA_GetChannelCount</h2>
+        <p>Gets the number of channels a subunit has.</p>
+        <h3 class="command">VA_GetChannelCount(subunit_desc, device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>subunit_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_FindSubunit">VA_FindSubunit</a>. Defaults to "1".</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+      </div>
+      <div class="method" id="VA_GetMute">
+        <h2>VA_GetMute</h2>
+        <p>Gets the mute status of a subunit.</p>
+        <h3 class="command">VA_GetMute(subunit_desc, device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>True if the subunit is muted, otherwise false.</td>
+          </tr>
+          <tr>
+            <td>subunit_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_FindSubunit">VA_FindSubunit</a>. Defaults to "1".</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+      </div>
+      <div class="method" id="VA_SetMute">
+        <h2>VA_SetMute</h2>
+        <p>Mutes or un-mutes a subunit.</p>
+        <h3 class="command">VA_SetMute(mute, subunit_desc, device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>mute</td>
+            <td>True to mute; false to un-mute.</td>
+          </tr>
+          <tr>
+            <td>subunit_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_FindSubunit">VA_FindSubunit</a>. Defaults to "1".</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+      </div>
+      <div class="method" id="VA_GetAudioEndpointVolume">
+        <h2>VA_GetAudioEndpointVolume</h2>
+        <p>Gets a pointer to the <a href="http://msdn2.microsoft.com/en-us/library/aa964574(VS.85).aspx">IAudioEndpointVolume</a> interface of an audio endpoint device.</p>
+        <h3 class="command">VA_GetAudioEndpointVolume(device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>Use <code><strong>ObjRelease</strong>(pointer)</code> to release the interface pointer when it is no longer needed.</p>
+      </div>
+      <div class="method" id="VA_GetAudioMeter">
+        <h2>VA_GetAudioMeter</h2>
+        <p>Gets a pointer to the <a href="http://msdn2.microsoft.com/en-us/library/aa964578(VS.85).aspx">IAudioMeterInformation</a> interface of an audio endpoint device.</p>
+        <h3 class="command">VA_GetAudioMeter(device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>device_desc</td>
+            <td><span class="sub">(optional)</span>See <a href="#VA_GetDevice">VA_GetDevice</a>. Defaults to "playback".</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>Use <code><strong>ObjRelease</strong>(pointer)</code> to release the interface pointer when it is no longer needed.</p>
+        <h4>Example</h4>
+        <pre class="code"><var class="prc">#SingleInstance</var>, Force
+MeterLength =<kbd> 30</kbd>
+
+audioMeter := <strong>VA_GetAudioMeter</strong>()
+
+<strong>VA_IAudioMeterInformation_GetMeteringChannelCount</strong>(audioMeter, channelCount)
+
+<em>; "The peak value for each channel is recorded over one device</em>
+<em>;  period and made available during the subsequent device period."</em>
+<strong>VA_GetDevicePeriod</strong>(<kbd>"capture"</kbd>, devicePeriod)
+
+<strong>Loop</strong>
+{
+    <em>; Get the peak value across all channels.</em>
+    <strong>VA_IAudioMeterInformation_GetPeakValue</strong>(audioMeter, peakValue)    
+    meter := <strong>MakeMeter</strong>(peakValue, MeterLength)
+    
+    <em>; Get the peak values of all channels.</em>
+    <strong>VarSetCapacity</strong>(peakValues, channelCount*4)
+    <strong>VA_IAudioMeterInformation_GetChannelsPeakValues</strong>(audioMeter, channelCount, &peakValues)
+    <strong>Loop</strong> %channelCount%
+        meter .= <kbd>"`n"</kbd> <strong>MakeMeter</strong>(<strong>NumGet</strong>(peakValues, <strong class="res">A_Index</strong>*4-4, <kbd>"float"</kbd>), MeterLength)
+
+    <strong>ToolTip</strong>, %meter%
+    <strong>Sleep</strong>, %devicePeriod%
+}
+
+<strong>MakeMeter</strong>(fraction, size)
+{
+    <strong>global</strong> MeterLength
+    <strong>Loop</strong> % fraction*size
+        meter .= <kbd>"|"</kbd>
+    <strong>Loop</strong> % (1-fraction)*size
+        meter .= <kbd>"."</kbd>
+    meter .= <kbd>"  "</kbd> fraction
+    <strong>return</strong> meter
+}</pre>
+      </div>
+      <div class="method" id="VA_GetDevice">
+        <h2>VA_GetDevice</h2>
+        <p>Gets a pointer to the <a href="http://msdn2.microsoft.com/en-us/library/ms679028(VS.85).aspx">IMMDevice</a> interface of an audio endpoint device.</p>
+        <h3 class="command">VA_GetDevice(device_desc)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>device_desc</td>
+            <td>device_id | device_number | ( friendly_name | 'playback' | 'capture' ) [ ':' index ]</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>Use <code><strong>ObjRelease</strong>(device)</code> to release the interface pointer when it is no longer needed.</p>
+        <p>If device_desc is a device pointer returned by a previous call to VA_GetDevice, it is returned as-is.  This behaviour is useful for other functions which accept a device_desc; these functions call VA_GetDevice internally.</p>
+        <h4>Examples</h4>
+        <pre class="code">device := <strong>VA_GetDevice</strong>(<kbd>"playback"</kbd>)      <em>; default playback device</em>
+device := <strong>VA_GetDevice</strong>(<kbd>"playback:1"</kbd>)    <em>; first playback device</em>
+device := <strong>VA_GetDevice</strong>(<kbd>"nvidia:2"</kbd>)      <em>; second device whose name contains "nvidia"</em>
+device := <strong>VA_GetDevice</strong>(3)               <em>; third device</em></pre>
+        <pre class="code"><strong>VA_IMMDevice_GetId</strong>(device, device_id)   <em>; get a device id from a device pointer</em>
+<em>;...</em>
+device := <strong>VA_GetDevice</strong>(device_id)       <em>; get a device pointer from an id</em></pre>
+      </div>
+      <div class="method" id="VA_GetDeviceName">
+        <h2>VA_GetDeviceName</h2>
+        <p>Gets the friendly name of an audio endpoint device.</p>
+        <h3 class="command">VA_GetDeviceName(device)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr>
+            <td>device</td>
+            <td>A pointer to an <a href="http://msdn2.microsoft.com/en-us/library/ms679028(VS.85).aspx">IMMDevice</a> interface.</td>
+          </tr>
+        </table>
+      </div>
+      <div class="method" id="VA_GetDevicePeriod">
+        <h2>VA_GetDevicePeriod</h2>
+        <p>Retrieves the length of the periodic interval separating successive processing passes by the audio engine.</p>
+        <h3 class="command">VA_GetDevicePeriod(device_desc, default_period, minimum_period)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>True on success, otherwise false.</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td>See <a href="#VA_GetDevice">VA_GetDevice</a>.</td>
+          </tr>
+          <tr>
+            <td>default_period</td>
+            <td><span class="sub">(out)</span> The default interval, in milliseconds.</td>
+          </tr>
+          <tr>
+            <td>minimum_period</td>
+            <td><span class="sub">(out)</span> The minimum interval, in milliseconds.</td>
+          </tr>
+        </table>
+      </div>
+      <div class="method" id="VA_GetDeviceSubunit">
+        <h2>VA_GetDeviceSubunit</h2>
+        <p>Finds a subunit of a device, given a device description.</p>
+        <h3 class="command">VA_GetDeviceSubunit(device_desc, subunit_desc, subunit_iid)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>A pointer to the requested interface of a matching subunit, or 0 if none were found.</td>
+          </tr>
+          <tr>
+            <td>device_desc</td>
+            <td>See <a href="#VA_GetDevice">VA_GetDevice</a>.</td>
+          </tr>
+          <tr>
+            <td>subunit_desc</td>
+            <td>See <a href="#VA_FindSubunit">VA_FindSubunit</a> (target_desc).</td>
+          </tr>
+          <tr>
+            <td>subunit_iid</td>
+            <td>See <a href="#VA_FindSubunit">VA_FindSubunit</a> (target_iid).</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>See <a href="#VA_FindSubunit">VA_FindSubunit</a>.</p>
+      </div>
+      <div class="method" id="VA_EnumSubunits">
+        <h2>VA_EnumSubunits</h2>
+        <p>Enumerates matching subunits of a device.</p>
+        <h3 class="command">VA_EnumSubunits(device, callback, target_name, target_iid)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>See <a href="#VA_EnumSubunitsEx">VA_EnumSubunitsEx</a>.</td>
+          </tr>
+          <tr>
+            <td>device</td>
+            <td>A pointer to an <a href="http://msdn2.microsoft.com/en-us/library/ms679028(VS.85).aspx">IMMDevice</a> interface.</td>
+          </tr>
+          <tr>
+            <td>callback</td>
+            <td>A callback accepting two parameters: part, interface.</td>
+          </tr>
+          <tr>
+            <td>target_name</td>
+            <td><span class="sub">(optional)</span>The full or partial friendly name of a subunit or subunits.</td>
+          </tr>
+          <tr>
+            <td>target_iid</td>
+            <td><span class="sub">(optional)</span>The ID of an interface which matching subunits must support.</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>See <a href="#VA_EnumSubunitsEx">VA_EnumSubunitsEx</a>.</p>
+      </div>
+      <div class="method" id="VA_EnumSubunitsEx">
+        <h2>VA_EnumSubunitsEx</h2>
+        <p>Enumerates matching subunits of a part (subunit or connector).</p>
+        <h3 class="command">VA_EnumSubunitsEx(part, data_flow, callback, target_name, target_iid)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>See Remarks.</td>
+          </tr>
+          <tr>
+            <td>part</td>
+            <td>A pointer to an <a href="http://msdn2.microsoft.com/en-us/library/ms679050(VS.85).aspx">IPart</a> interface.</td>
+          </tr>
+          <tr>
+            <td>data_flow</td>
+            <td>0 to enumerate incoming parts; 1 to enumerate outgoing parts.</td>
+          </tr>
+          <tr>
+            <td>callback</td>
+            <td>A callback accepting two parameters: part, interface.</td>
+          </tr>
+          <tr>
+            <td>target_name</td>
+            <td><span class="sub">(optional)</span>The full or partial friendly name of a subunit or subunits.</td>
+          </tr>
+          <tr>
+            <td>target_iid</td>
+            <td><span class="sub">(optional)</span>The ID of an interface which matching subunits must support.</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>The callback is called once for each matching subunit. The callback's first parameter is a pointer to the subunit (<a href="http://msdn2.microsoft.com/en-us/library/ms679050(VS.85).aspx">IPart</a>), while the second        parameter is a pointer to the required interface (or 0 if target_iid was omitted.) If the callback returns a non-zero value, enumeration is        halted and the value is passed on to the caller.</p>
+      </div>
+      <div class="method" id="VA_FindSubunit">
+        <h2>VA_FindSubunit</h2>
+        <p>Finds a subunit of a device, given a device pointer.</p>
+        <h3 class="command">VA_FindSubunit(device, target_desc, target_iid)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>If a matching subunit is found, the return value is a pointer to the requested interface. Otherwise, the return value is 0.</td>
+          </tr>
+          <tr>
+            <td>device</td>
+            <td>A pointer to an <a href="http://msdn2.microsoft.com/en-us/library/ms679028(VS.85).aspx">IMMDevice</a> interface.</td>
+          </tr>
+          <tr>
+            <td>target_desc</td>
+            <td>friendly_name | index | friendly_name:index</td>
+          </tr>
+          <tr>
+            <td>target_iid</td>
+            <td>An interface ID.</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>VA_FindSubunit requires a valid interface identifier. To retrieve a subunit by name alone, use <a href="#VA_EnumSubunits">VA_EnumSubunits</a> or <a href="#VA_EnumSubunitsEx">VA_EnumSubunitsEx</a>.</p>
+      </div>
+      <div class="method" id="VA_dB2Scalar">
+        <h2>VA_dB2Scalar</h2>
+        <p>Converts a decibel value to a scalar value.</p>
+        <h3 class="command">VA_dB2Scalar(dB, min_dB, max_dB)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>A value between 0.0 and 1.0.</td>
+          </tr>
+          <tr>
+            <td>dB</td>
+            <td>A decibel value.</td>
+          </tr>
+          <tr>
+            <td>min_dB</td>
+            <td>Minimum decibel value.</td>
+          </tr>
+          <tr>
+            <td>max_dB</td>
+            <td>Maximum decibel value.</td>
+          </tr>
+        </table>
+        <h4>Remarks</h4>
+        <p>The returned scalar value is usually consistent with values reported by the Sound applet in Control Panel, but not values reported by the Sound Mixer.</p>
+      </div>
+      <div class="method" id="VA_Scalar2dB">
+        <h2>VA_Scalar2dB</h2>
+        <p>Converts a scalar value to a decibel value.</p>
+        <h3 class="command">VA_Scalar2dB(s, min_dB, max_dB)</h3>
+        <h4>Parameters</h4>
+        <table class="params">
+          <tr class="returns">
+            <td>
+              <em>Returns</em>
+            </td>
+            <td>A decibel value.</td>
+          </tr>
+          <tr>
+            <td>s</td>
+            <td>A value between 0.0 and 1.0.</td>
+          </tr>
+          <tr>
+            <td>min_dB</td>
+            <td>Minimum decibel value.</td>
+          </tr>
+          <tr>
+            <td>max_dB</td>
+            <td>Maximum decibel value.</td>
+          </tr>
+        </table>
+      </div>
+      <div class="method" id="Interface Functions">
+        <h2>Interface Functions</h2>
+        <p>Functions with the naming pattern "VA_I<em>Interface</em>_<em>Function</em>" are direct equivalents of interface functions. These functions are defined under
+    INTERFACE WRAPPERS in VA.ahk. For syntax and usage, see <a href="http://msdn2.microsoft.com/en-us/library/ms679156(VS.85).aspx">Core Audio APIs in Windows Vista (Programming Reference)</a>.</p>
+        <h3 class="command">VA_I<em>Interface</em>_<em>Function</em></h3>
+        <h4>Remarks</h4>
+        <p>As of v2.0, interface wrappers for the following interfaces are included:
+          <ul>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/ms679028(VS.85).aspx">IMMDevice</a></li>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/ms678970(VS.85).aspx">IDeviceTopology</a></li>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/ms678851(VS.85).aspx">IConnector</a></li>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/ms679050(VS.85).aspx">IPart</a></li>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/ms679063(VS.85).aspx">IPartsList</a></li>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/aa964574(VS.85).aspx">IAudioEndpointVolume</a></li>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/ms679067(VS.85).aspx">IPerChannelDbLevel</a> (usable with <a href="http://msdn2.microsoft.com/en-us/library/ms678838(VS.85).aspx">IAudioVolumeLevel</a>)</li>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/ms678773(VS.85).aspx">IAudioMute</a></li>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/ms678718(VS.85).aspx">IAudioAutoGainControl</a></li>
+            <li><a href="http://msdn2.microsoft.com/en-us/library/aa964578(VS.85).aspx">IAudioMeterInformation</a></li>
+          </ul>
+        </p>
+      </div>
+    </div>
+    <div style="clear: both;"></div>
+    <div id="end">Copyright © Lexikos</div>
+  </body>
+</html>
+
+------------9jsSBTCSvKgpkm5V3J2mCJ--

@@ -1,0 +1,142 @@
+Versioning:
+    Main.Feature.Changes.Bugs
+
+Legend:
+==================
+    + Add
+    - Remove
+    ! Fix
+    * Change
+    ^ Update
+    % Test
+    & Enable
+    $ Disable
+==================
+
+commit d970b6b9bc4644e70dd4e0e63443031ddda7950f
+Author: RaptorX <graptorx@gmail.com>
+Date:   Fri Oct 5 10:30:14 2012 +0200
+
+    AHK-TK v0.8.1.1
+    
+    Changes:
+    
+    + Add Syntax highlighting for Scintilla Controls
+    
+    ! Fix debugging ternary
+    ! Fix getparams() function
+    ! Fix Status Bar to have info centered
+    ! Fix update() function on compiled version
+    ! Fix General hotkey lists clear all checkboxes if "Default" was selected
+    ! Fix General hotkey lists load default hotkey when re-opening GUI after "Default" was selected
+    
+    * Change update function to be part of scriptobj
+    * Change formatting
+    
+    Todo:
+    
+    + Add #ifwindow active functionality to hotkeys/hotstrings
+    
+    ! Fix Append to exported hotkeys/hotstrings function
+    ! Fix Live Code saving to empty file name
+    
+    * Change Disabled option hides List View child
+    * Conditional download of AHK_L backup
+
+commit ed7c43eab93a388ee11e80e1dd3b8f6478ac0b72
+Author: RaptorX <graptorx@gmail.com>
+Date:   Sat Sep 29 02:53:11 2012 +0200
+
+    AHK-TK v0.8
+    
+    Changes:
+    
+    + Add Syntax Highlighting
+    
+    ! Fix super globals
+    
+    * Change default keyword lists
+    * Change Scintilla Wrapper to new version
+    * Change SciLexer.dll to new version
+
+commit 5a0d7f2d678d28abc088fff8058152bc2b9d4bba
+Author: RaptorX <graptorx@gmail.com>
+Date:   Fri Sep 21 12:58:36 2012 +0200
+
+    AHK-TK v0.7.7.7
+    
+    Changes:
+    
+    + Add temporal key binding to suspend all hotkeys
+    + Add use last folder when opening a file in live code tab
+    
+    ! Fix check if file exist before hotkeys try to open
+    ! Fix check autohotkey version before starting up program
+    ! Fix ask for file name when saving for the first time in live code tab
+    
+    * Change run selected code hotkey to Ctrl + F5
+    
+    Todo:
+    
+    + Add #ifwindow active functionality to hotkeys/hotstrings
+    + Add Syntax highlighting for Scintilla Controls
+    
+    ! Fix General hotkey lists clear all checkboxes if "None" was selected
+    ! Fix General hotkey lists load default hotkey when re-opening GUI after "None" was selected
+    ! Fix Append to exported hotkeys/hotstrings function
+    
+    * Change Disabled option hides List View child
+    * Conditional download of AHK_L backup
+
+commit 85760ec12ded817927df4271121404343181c313
+Author: RaptorX <graptorx@gmail.com>
+Date:   Fri Jul 13 22:00:04 2012 +0200
+
+    AHK-TK v0.7.6.6
+    
+    Changes:
+    
+    + Screen Tools Preferences Gui
+    + Check if Autohotkey is installed instead of showing syntax error
+    
+    ! Fix GUI not showing because check for update was in progress
+    
+    * Minor code modifications
+    
+    Todo:
+    
+    + Add #ifwindow active functionality to hotkeys/hotstrings
+    + Add Syntax highlighting for Scintilla Controls
+    
+    ! Fix check if file exist before hotkeys try to open
+    ! Fix General hotkey lists clear all checkboxes if "None" was selected
+    ! Fix General hotkey lists load default hotkey when re-opening GUI after "None" was selected
+    ! Fix Append to exported hotkeys/hotstrings function
+    
+    * Change Disabled option hides List View child
+    * Conditional download of AHK_L backup
+
+commit da279b6ee070a5433787b5d15b6dbd7fe9642fb6
+Author: RaptorX <graptorx@gmail.com>
+Date:   Sun May 27 19:08:15 2012 +0200
+
+    AHK-TK v0.7.5.5
+    
+    Changes:
+    
+    * Changed README file
+    ! Fix Version not showing up in About GUI
+    
+    Todo:
+    
+    + Add Screen Tools Preferences
+    + Add #ifwindow active functionality to hotkeys/hotstrings
+    + Add Syntax highlighting for Scintilla Controls
+    
+    ! Fix check if file exist before hotkeys try to open
+    ! Fix General hotkey lists clear all checkboxes if "None" was selected
+    ! Fix General hotkey lists load default hotkey when re-opening GUI after "None" was selected
+    ! Fix Append to exported hotkeys/hotstrings function
+    
+    * Change Disabled option hides List View child
+    * Conditional download of AHK_L backup

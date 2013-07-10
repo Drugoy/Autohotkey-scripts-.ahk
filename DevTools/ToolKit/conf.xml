@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AHK-Toolkit version="0.8.1.1" alwaysontop="0">
+	<Options>
+		<Startup ssi="0" sww="0" smm="0" cfu="0">
+		</Startup>
+		<MainKey ctrl="0" alt="0" shift="0" win="0">Sleep</MainKey>
+		<SuspWndList></SuspWndList>
+		<Codet status="1" mode="1">
+			<Pastebin current="AutoHotkey.net">
+				<AutoHotkey private="0" nick="">
+				</AutoHotkey>
+				<PasteBin private="0" key="" expiration="1H">
+				</PasteBin>
+				<DPaste nick="">
+				</DPaste>
+				<Gist>
+				</Gist>
+			</Pastebin>
+			<History max="10">
+			</History>
+			<Keywords min="5">
+if exitapp gosub goto ifequal ifexist ifgreater ifgreaterorequal ifinstring ifless iflessorequal ifmsgbox ifnotequal ifnotexist ifnotinstring ifwinactive ifwinexist ifwinnotactive ifwinnotexist onexit setbatchlines settimer suspend static global local byref autotrim blockinput clipwait click control controlclick controlfocus controlget controlgetfocus controlgetpos controlgettext controlmove controlsend controlsendraw controlsettext coordmode critical detecthiddentext detecthiddenwindows driveget drivespacefree endrepeat envadd envdiv envget envmult envset envsub envupdate fileappend filecopy filecopydir filecreatedir filecreateshortcut filedelete filegetattrib filegetshortcut filegetsize filegettime filegetversion fileinstall filemove filemovedir fileread filereadline filerecycle filerecycleempty fileremovedir fileselectfile fileselectfolder filesetattrib filesettime formattime getkeystate groupactivate groupadd groupclose groupdeactivate gui guicontrol guicontrolget hideautoitwin hotkey imagesearch inidelete iniread iniwrite input inputbox keyhistory keywait listhotkeys listlines listvars mouseclick mouseclickdrag mousegetpos mousemove msgbox numget numset outputdebug pixelgetcolor pixelsearch postmessage regdelete registercallback regread regwrite reload runas runwait send sendevent sendinput sendmessage sendmode sendplay sendraw setcapslockstate setcontroldelay setdefaultmousespeed setenv setformat setkeydelay setmousedelay setnumlockstate setscrolllockstate setstorecapslockmode settitlematchmode setwindelay setworkingdir soundbeep soundget soundgetwavevolume soundplay soundset soundsetwavevolume splashimage splashtextoff splashtexton splitpath statusbargettext statusbarwait stringcasesense stringgetpos stringleft stringlen stringlower stringmid stringreplace stringright stringsplit stringtrimleft stringtrimright stringupper sysget thread tooltip transform traytip urldownloadtofile winactivate winactivatebottom winclose winget wingetactivestats wingetactivetitle wingetclass wingetpos wingettext wingettitle winhide winkill winmaximize winmenuselectitem winminimize winminimizeall winminimizeallundo winmove winrestore winset winsettitle winshow winwait winwaitactive winwaitclose winwaitnotactive abs acos asc asin atan ceil chr cos dllcall exp fileexist floor il_add il_create il_destroy instr islabel ln log lv_add lv_delete lv_deletecol lv_getcount lv_getnext lv_gettext lv_insert lv_insertcol lv_modify lv_modifycol lv_setimagelist mod onmessage round regexmatch regexreplace sb_seticon sb_setparts sb_settext sin sqrt strlen substr tan tv_add tv_delete tv_getchild tv_getcount tv_getnext tv_get tv_getparent tv_getprev tv_getselection tv_gettext tv_modify varsetcapacity winactive winexist allowsamelinecomments clipboardtimeout commentflag errorstdout escapechar hotkeyinterval hotkeymodifiertimeout hotstring include includeagain installkeybdhook installmousehook maxhotkeysperinterval maxmem maxthreads maxthreadsbuffer maxthreadsperhotkey noenv notrayicon singleinstance usehook winactivateforce shift lshift rshift alt lalt ralt lcontrol rcontrol ctrl lctrl rctrl lwin rwin appskey altdown altup shiftdown shiftup ctrldown ctrlup lwindown lwinup rwindown rwinup lbutton rbutton mbutton wheelup wheeldown xbutton1 xbutton2 joy1 joy2 joy3 joy4 joy5 joy6 joy7 joy8 joy9 joy10 joy11 joy12 joy13 joy14 joy15 joy16 joy17 joy18 joy19 joy20 joy21 joy22 joy23 joy24 joy25 joy26 joy27 joy28 joy29 joy30 joy31 joy32 joyx joyy joyz joyr joyu joyv joypov joyname joybuttons joyaxes joyinfo space tab enter escape backspace delete insert pgup pgdn printscreen ctrlbreak scrolllock capslock numlock numpad0 numpad1 numpad2 numpad3 numpad4 numpad5 numpad6 numpad7 numpad8 numpad9 numpadmult numpadadd numpadsub numpaddiv numpaddot numpaddel numpadins numpadclear numpadup numpaddown numpadleft numpadright numpadhome numpadend numpadpgup numpadpgdn numpadenter f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18 f19 f20 f21 f22 f23 f24 browser_back browser_forward browser_refresh browser_stop browser_search browser_favorites browser_home volume_mute volume_down volume_up media_next media_prev media_stop media_play_pause launch_mail launch_media launch_app1 launch_app2 a_ahkpath a_ahkversion a_appdata a_appdatacommon a_autotrim a_batchlines a_caretx a_carety a_computername a_controldelay a_cursor a_dd a_ddd a_dddd a_defaultmousespeed a_desktop a_desktopcommon a_detecthiddentext a_detecthiddenwindows a_endchar a_eventinfo a_exitreason a_formatfloat a_formatinteger a_gui a_guievent a_guicontrol a_guicontrolevent a_guiheight a_guiwidth a_guix a_guiy a_hour a_iconfile a_iconhidden a_iconnumber a_icontip a_index a_ipaddress1 a_ipaddress2 a_ipaddress3 a_ipaddress4 a_isadmin a_iscompiled a_issuspended a_keydelay a_language a_lasterror a_linefile a_linenumber a_loopfield a_loopfileattrib a_loopfiledir a_loopfileext a_loopfilefullpath a_loopfilelongpath a_loopfilename a_loopfileshortname a_loopfileshortpath a_loopfilesize a_loopfilesizekb a_loopfilesizemb a_loopfiletimeaccessed a_loopfiletimecreated a_loopfiletimemodified a_loopreadline a_loopregkey a_loopregname a_loopregsubkey a_loopregtimemodified a_loopregtype a_mday a_min a_mm a_mmm a_mmmm a_mon a_mousedelay a_msec a_mydocuments a_now a_nowutc a_numbatchlines a_ostype a_osversion a_priorhotkey a_programfiles a_programs a_programscommon a_screenheight a_screenwidth a_scriptdir a_scriptfullpath a_scriptname a_sec a_space a_startmenu a_startmenucommon a_startup a_startupcommon a_stringcasesense a_tab a_temp a_thisfunc a_thishotkey a_thislabel a_thismenu a_thismenuitem a_thismenuitempos a_tickcount a_timeidle a_timeidlephysical a_timesincepriorhotkey a_timesincethishotkey a_titlematchmode a_titlematchmodespeed a_username a_wday a_windelay a_windir a_workingdir a_yday a_year a_yweek a_yyyy clipboard clipboardall comspec errorlevel programfiles true false ltrim rtrim ahk_id ahk_pid ahk_class ahk_group processname minmax controllist statuscd filesystem setlabel alwaysontop mainwindow nomainwindow useerrorlevel altsubmit hscroll vscroll imagelist wantctrla wantf2 visfirst return wantreturn backgroundtrans minimizebox maximizebox sysmenu toolwindow exstyle check3 checkedgray readonly notab lastfound lastfoundexist alttab shiftalttab alttabmenu alttabandmenu alttabmenudismiss controllisthwnd hwnd deref pow bitnot bitand bitor bitxor bitshiftleft bitshiftright sendandmouse mousemouveoff hkey_local_machine hkey_users hkey_current_user hkey_classes_root hkey_current_config hklm hku hkcu hkcr hkcc reg_sz reg_expand_sz reg_multi_sz reg_dword reg_qword reg_binary reg_link reg_resource_list reg_full_resource_descriptor reg_resource_requirements_list reg_dword_big_endian regex rgb belownormal abovenormal xdigit alpha upper lower alnum topmost transparent transcolor redraw idlast togglecheck toggleenable nodefault nostandard deleteall noicon groupbox button checkbox dropdownlist ddl combobox statusbar treeview listbox listview datetime monthcal updown iconsmall sortdesc nosort nosorthdr hdr autosize range font resize owner nohide minimize maximize restore noactivate cancel destroy center margin owndialogs guiescape guiclose guisize guicontextmenu guidropfiles tabstop choosestring enabled disabled visible notimers interrupt priority waitclose OnClipboardChange OnGUIClose OnGUIEscape OnGUICancel</Keywords>
+		</Codet>
+		<CMDHelper global="1" sci="1" forum="1" tags="1">
+			<HelpKey ctrl="1" alt="0" shift="0" win="0">F1</HelpKey>
+			<TagsKey ctrl="1" alt="0" shift="0" win="0">F2</TagsKey>
+			<HelpPath online="1">C:\Program Files\AutoHotkey\AutoHotkey.chm</HelpPath>
+		</CMDHelper>
+		<LiveCode linewrap="1" highlighting="1" url="1" symbols="0" snplib="0">
+			<RCPaths current="L-Unicode">
+				<L-Ansi>
+				</L-Ansi>
+				<L-Unicode>C:\Program Files\AutoHotkey\AutoHotkey.exe</L-Unicode>
+				<Basic>
+				</Basic>
+				<IronAHK>
+				</IronAHK>
+			</RCPaths>
+			<SnippetLib current="Example Snippets">
+				<Group name="Example Snippets" count="4">
+					<Snippet title="Coord Saver">
+/*
+ *********************************************************************
+ * This script saves X and Y coordinates in a file when you click.   *
+ * It is very useful for quickly determining positions on the screen *
+ * or to record several x - y positions to be parsed later on by     *
+ * a macro which would click those positions automatically.          *
+ *                                                                   *
+ * Use the Right Mouse button or Esc to exit the application.        *
+ *********************************************************************
+ */
+
+CoordMode, Mouse, Screen
+s_file := a_desktop . "\coords.txt"         ; Change as desired
+
+Loop
+{
+    MouseGetPos, X, Y
+    ToolTip, x(%X%)`, y(%Y%)                ; Tooltip to make everything easier
+    Sleep 10
+}
+
+Esc::
+RButton::
+    ExitApp
+~LButton::FileAppend, %X%`,%Y%`n, %s_file%  ; Save coords to parse e.g. 300,400
+                    </Snippet>
+					<Snippet title="Schedule Shutdown">
+/*
+ *********************************************************************
+ * All Live Code scripts can make use the variables                  *
+ * 'sec' 'min' and 'hour'                                            *
+ * The following script schedules a shutdown on the specified time.  *
+ * Note that we need to divide by 1000 because the shutown command   *
+ * only accepts seconds while our variables return milliseconds.     *
+ *                                                                   *
+ * Also as we are dividing, time would return a decimal number       *
+ * so we need to get rid of the '.000000' before passing it to the   *
+ * shutdown command                                                  *
+ *********************************************************************
+ */
+
+Gui, add, Groupbox,w235 h50, Shutdown in:
+Gui, add, Edit, xp+10 yp+20 w25 vhh
+Gui, add, Text, x+5 yp+3, Hours
+Gui, add, Edit, x+10 yp-3 w25 vmm
+Gui, add, Text, x+5 yp+3, Minutes
+Gui, add, Edit, x+10 yp-3 w25 vss
+Gui, add, Text, x+5 yp+3, Seconds
+Gui, add, Text, x0 y+20 w260 0x10
+Gui, add, Button, x170 yp+5 w75 Default gGuiHandler, &amp;Schedule
+
+Gui, show, w255
+return
+
+GuiHandler:
+    Gui, submit
+    hh := !hh ? 0 : hh, mm := !mm ? 0 : mm,ss := !ss ? 0 : ss
+    time := regexreplace(time:=(hh*hour + mm*min + ss*sec)/1000, "\.\d+")
+    Run, %comspec% /c "Shutdown -s -t %time% -f"
+    ExitApp
+                    </Snippet>
+					<Snippet title="Text Control - Style Ref.">
+/*
+ *********************************************************************
+ * This Script is just a demostration of the styles that you can     *
+ * apply to text controls.                                           *
+ *                                                                   *
+ * To apply a style just write the code like this:                   *
+ * Gui, add, Text, [options] [style]                                 *
+ * Ex. Gui, add, Text, w50 h50 x20 y25 0x4                           *
+ *                                                                   *
+ * As you can see this opens tons of posibilities in your            *
+ * Gui Creation and with enough creativity you can create cool       *
+ * interfaces! Dont limit yourself to the defaults!                  *
+ *                                                                   *
+ * **Press Esc to close the Aplication.                              *
+ *********************************************************************
+ */
+
+; --[Main]------------------------------------------------------------------------
+
+0x4=
+(
+Specifies a rectangle filled with the current *window frame* color.
+This color is BLACK in the default color scheme.
+)
+0x5=
+(
+Specifies a rectangle filled with the current *screen background* color.
+This color is GRAY in the default color scheme.
+)
+0x6=
+(
+Specifies a rectangle filled with the current *window background* color.
+This color is WHITE in the default color scheme.
+)
+0x7=
+(
+Specifies a box with a frame drawn in the same color as the
+*window frames*. This color is BLACK in the default color scheme.
+)
+0x8=
+(
+Specifies a box with a frame drawn with the same color as the *screen
+background* (desktop). This color is GRAY in the default color scheme.
+)
+0x9=
+(
+Specifies a box with a frame drawn with the same color as the *window
+background*. This color is WHITE in the default color scheme.
+)
+0x10=
+(
+Draws the top and bottom edges of the static control using the
+EDGE_ETCHED edge style.
+)
+0x11=
+(
+Draws the left and right edges of the static control using the
+EDGE_ETCHED edge style.
+)
+0x12=
+(
+Draws the frame of the static control using the
+EDGE_ETCHED edge style.
+)
+0x1000=
+(
+Draws a half-sunken border around a static control.
+)
+
+Desc=
+(
+This Script is just a demostration of the styles that you can apply to Text controls.
+
+To apply a style just write the code like this: Gui, add, Text, [options] [style]
+Ex. Gui, add, Text, w50 h50 x20 y25 0x4
+
+As you can see this opens tons of posibilities in your Gui Creation and
+with enough creativity you can create cool interfaces!
+Dont limit yourself to the defaults!
+
+**Press Esc to close the Aplication
+)
+
+Gui, add, Text, w50 h50 x20 y25 0x4
+Gui, add, Text, wp hp y+32 0x5
+Gui, add, Text, wp hp y+32 0x6
+Gui, add, Text, wp hp y+32 0x7
+Gui, add, Text, wp hp y+32 0x8
+Gui, add, Text, x450 y25 wp hp 0x9
+Gui, add, Text, wp hp y+52 0x10
+Gui, add, Text, wp hp xp+20 y+12 0x11
+Gui, add, Text, wp hp xp-20 y+32 0x12
+Gui, add, Text, wp hp y+32 0x1000
+
+Gui, add, Groupbox, w420 h75 x10 y10,0x4
+Gui, add, Groupbox, wp hp,0x5
+Gui, add, Groupbox, wp hp,0x6
+Gui, add, Groupbox, wp hp,0x7
+Gui, add, Groupbox, wp hp,0x8
+Gui, add, Groupbox, x440 y10 wp hp,0x9
+Gui, add, Groupbox, wp hp,0x10
+Gui, add, Groupbox, wp hp,0x11
+Gui, add, Groupbox, wp hp,0x12
+Gui, add, Groupbox, wp hp,0x1000
+
+Gui, add, Text, x80 y35, %0x4%
+Gui, add, Text,y+60, %0x5%
+Gui, add, Text,y+55, %0x6%
+Gui, add, Text,y+55, %0x7%
+Gui, add, Text,y+55, %0x8%
+Gui, add, Text,x510 y35, %0x9%
+Gui, add, Text,y+60, %0x10%
+Gui, add, Text,y+55, %0x11%
+Gui, add, Text,y+55, %0x12%
+Gui, add, Text,y+60, %0x1000%
+; --[Description]-----------------------------------------------------------------
+Gui, add, Text, w750 x60 0x10
+Gui, add, Text, w850 h150 xp-50 yp+7 0x7
+Gui, add, Text, w840 hp-10 xp+5 yp+5 0x8
+Gui, add, Text, w800 xp+5 yp+5, %desc%
+Gui, add, Text, w50 h50 x+-150 yp+10 0x4
+Gui, add, Text, w50 h50 x+5 0x5
+Gui, add, Text, w50 h50 x670 y+5 0x7
+Gui, add, Text, w50 h50 x+5 0x6
+
+Gui show
+return
+
+Esc::
+GuiClose:
+    ExitApp
+                    </Snippet>
+					<Snippet title="Version Test">
+/*
+ *********************************************************************
+ * This Script is just a quick way to determine which version of     *
+ * Autohotkey is being used by the Live Code feature.                *
+ *                                                                   *
+ * It is meant as a way of checking that you set up the correct      *
+ * path to a different version of Autohotkey and that the program    *
+ * is accessing that path correctly.                                 *
+ *                                                                   *
+ *********************************************************************
+ */
+
+version := "AHK Version: " a_ahkversion
+unicode := "Supports Unicode: " (a_isunicode ? "Yes" : "No")
+Msgbox % version "`n" unicode
+                	</Snippet>
+					<Snippet title="Get Control Name">
+/*
+ *********************************************************************
+ * This Script allows you to see the name of the control under the   *
+ * mouse while at the same time copying the name to the clipboard    *
+ * for later use.                                                    *
+ *                                                                   *
+ * Use Ctrl + Esc to exit the app, the last control name will be     *
+ * still in clipboard.                                               *
+ *********************************************************************
+ */
+
+loop
+{
+mousegetpos,,,,ctrl
+tooltip % clipboard:=ctrl
+sleep 10
+}
+					</Snippet>
+					<Snippet title="Get Control Hwnd">
+/*
+ *********************************************************************
+ * This Script allows you to see the HWND of the control under the   *
+ * mouse while at the same time copying the HWND to the clipboard    *
+ * for later use.                                                    *
+ *                                                                   *
+ * Use Ctrl + Esc to exit the app, the last control HWND will be     *
+ * still in clipboard.                                               *
+ *********************************************************************
+ */
+
+loop
+{
+mousegetpos,,,,ctrl,2
+tooltip % clipboard:=ctrl
+sleep 10
+}
+					</Snippet>
+				</Group>
+			</SnippetLib>
+			<Keywords>
+				<Directives list="0">
+allowsamelinecomments clipboardtimeout commentflag errorstdout escapechar hotkeyinterval hotkeymodifiertimeout hotstring if iftimeout ifwinactive ifwinexist include includeagain installkeybdhook installmousehook keyhistory ltrim maxhotkeysperinterval maxmem maxthreads maxthreadsbuffer maxthreadsperhotkey menumaskkey noenv notrayicon persistent singleinstance usehook warn winactivateforce
+                </Directives>
+				<Commands list="1">
+autotrim blockinput clipwait control controlclick controlfocus controlget controlgetfocus controlgetpos controlgettext controlmove controlsend controlsendraw controlsettext coordmode critical detecthiddentext detecthiddenwindows drive driveget drivespacefree edit endrepeat envadd envdiv envget envmult envset envsub envupdate fileappend filecopy filecopydir filecreatedir filecreateshortcut filedelete filegetattrib filegetshortcut filegetsize filegettime filegetversion fileinstall filemove filemovedir fileread filereadline filerecycle filerecycleempty fileremovedir fileselectfile fileselectfolder filesetattrib filesettime formattime getkeystate groupactivate groupadd groupclose groupdeactivate gui guicontrol guicontrolget hideautoitwin hotkey if ifequal ifexist ifgreater ifgreaterorequal ifinstring ifless iflessorequal ifmsgbox ifnotequal ifnotexist ifnotinstring ifwinactive ifwinexist ifwinnotactive ifwinnotexist imagesearch inidelete iniread iniwrite input inputbox keyhistory keywait listhotkeys listlines listvars menu mouseclick mouseclickdrag mousegetpos mousemove msgbox outputdebug pixelgetcolor pixelsearch postmessage process progress random regdelete regread regwrite reload run runas runwait send sendevent sendinput sendmessage sendmode sendplay sendraw setbatchlines setcapslockstate setcontroldelay setdefaultmousespeed setenv setformat setkeydelay setmousedelay setnumlockstate setscrolllockstate setstorecapslockmode settitlematchmode setwindelay setworkingdir shutdown sort soundbeep soundget soundgetwavevolume soundplay soundset soundsetwavevolume splashimage splashtextoff splashtexton splitpath statusbargettext statusbarwait stringcasesense stringgetpos stringleft stringlen stringlower stringmid stringreplace stringright stringsplit stringtrimleft stringtrimright stringupper sysget thread tooltip transform traytip urldownloadtofile winactivate winactivatebottom winclose winget wingetactivestats wingetactivetitle wingetclass wingetpos wingettext wingettitle winhide winkill winmaximize winmenuselectitem winminimize winminimizeall winminimizeallundo winmove winrestore winset winsettitle winshow winwait winwaitactive winwaitclose winwaitnotactive fileencoding true false
+                </Commands>
+				<FlowControl list="2">
+break continue else exit exitapp gosub goto loop onexit pause repeat return settimer sleep suspend static global local byref while until for
+                </FlowControl>
+				<Functions list="3">
+abs acos asc asin atan ceil chr cos dllcall exp fileexist floor getkeystate numget numput registercallback il_add il_create il_destroy instr islabel isfunc ln log lv_add lv_delete lv_deletecol lv_getcount lv_getnext lv_gettext lv_insert lv_insertcol lv_modify lv_modifycol lv_setimagelist mod onmessage round regexmatch regexreplace sb_seticon sb_setparts sb_settext sin sqrt strlen substr tan tv_add tv_delete tv_getchild tv_getcount tv_getnext tv_get tv_getparent tv_getprev tv_getselection tv_gettext tv_modify varsetcapacity winactive winexist trim ltrim rtrim fileopen strget strput object isobject objinsert objremove objminindex objmaxindex objsetcapacity objgetcapacity objgetaddress objnewenum objaddref objrelease objclone _insert _remove _minindex _maxindex _setcapacity _getcapacity _getaddress _newenum _addref _release _clone comobjcreate comobjget comobjconnect comobjerror comobjactive comobjenwrap comobjunwrap comobjparameter comobjmissing comobjtype comobjvalue comobjarray
+                </Functions>
+				<BuiltInVars list="4">
+a_ahkpath a_ahkversion a_appdata a_appdatacommon a_autotrim a_batchlines a_caretx a_carety a_computername a_controldelay a_cursor a_dd a_ddd a_dddd a_defaultmousespeed a_desktop a_desktopcommon a_detecthiddentext a_detecthiddenwindows a_endchar a_eventinfo a_exitreason a_formatfloat a_formatinteger a_gui a_guievent a_guicontrol a_guicontrolevent a_guiheight a_guiwidth a_guix a_guiy a_hour a_iconfile a_iconhidden a_iconnumber a_icontip a_index a_ipaddress1 a_ipaddress2 a_ipaddress3 a_ipaddress4 a_isadmin a_iscompiled a_issuspended a_keydelay a_language a_lasterror a_linefile a_linenumber a_loopfield a_loopfileattrib a_loopfiledir a_loopfileext a_loopfilefullpath a_loopfilelongpath a_loopfilename a_loopfileshortname a_loopfileshortpath a_loopfilesize a_loopfilesizekb a_loopfilesizemb a_loopfiletimeaccessed a_loopfiletimecreated a_loopfiletimemodified a_loopreadline a_loopregkey a_loopregname a_loopregsubkey a_loopregtimemodified a_loopregtype a_mday a_min a_mm a_mmm a_mmmm a_mon a_mousedelay a_msec a_mydocuments a_now a_nowutc a_numbatchlines a_ostype a_osversion a_priorhotkey a_programfiles a_programs a_programscommon a_screenheight a_screenwidth a_scriptdir a_scriptfullpath a_scriptname a_sec a_space a_startmenu a_startmenucommon a_startup a_startupcommon a_stringcasesense a_tab a_temp a_thishotkey a_thismenu a_thismenuitem a_thismenuitempos a_tickcount a_timeidle a_timeidlephysical a_timesincepriorhotkey a_timesincethishotkey a_titlematchmode a_titlematchmodespeed a_username a_wday a_windelay a_windir a_workingdir a_yday a_year a_yweek a_yyyy clipboard clipboardall comspec programfiles a_thisfunc a_thislabel a_ispaused a_iscritical a_isunicode a_ptrsize errorlevel
+                </BuiltInVars>
+				<Keys list="5">
+shift lshift rshift alt lalt ralt control lcontrol rcontrol ctrl lctrl rctrl lwin rwin appskey altdown altup shiftdown shiftup ctrldown ctrlup lwindown lwinup rwindown rwinup lbutton rbutton mbutton wheelup wheeldown xbutton1 xbutton2 joy1 joy2 joy3 joy4 joy5 joy6 joy7 joy8 joy9 joy10 joy11 joy12 joy13 joy14 joy15 joy16 joy17 joy18 joy19 joy20 joy21 joy22 joy23 joy24 joy25 joy26 joy27 joy28 joy29 joy30 joy31 joy32 joyx joyy joyz joyr joyu joyv joypov joyname joybuttons joyaxes joyinfo space tab enter escape esc backspace bs delete del insert ins pgup pgdn home end up down left right printscreen ctrlbreak pause scrolllock capslock numlock numpad0 numpad1 numpad2 numpad3 numpad4 numpad5 numpad6 numpad7 numpad8 numpad9 numpadmult numpadadd numpadsub numpaddiv numpaddot numpaddel numpadins numpadclear numpadup numpaddown numpadleft numpadright numpadhome numpadend numpadpgup numpadpgdn numpadenter f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16 f17 f18 f19 f20 f21 f22 f23 f24 browser_back browser_forward browser_refresh browser_stop browser_search browser_favorites browser_home volume_mute volume_down volume_up media_next media_prev media_stop media_play_pause launch_mail launch_media launch_app1 launch_app2 blind click raw wheelleft wheelright
+                </Keys>
+				<Parameters list="6">
+ltrim rtrim join ahk_id ahk_pid ahk_class ahk_group processname minmax controllist statuscd filesystem setlabel alwaysontop mainwindow nomainwindow useerrorlevel altsubmit hscroll vscroll imagelist wantctrla wantf2 vis visfirst wantreturn backgroundtrans minimizebox maximizebox sysmenu toolwindow exstyle check3 checkedgray readonly notab lastfound lastfoundexist alttab shiftalttab alttabmenu alttabandmenu alttabmenudismiss controllisthwnd hwnd deref pow bitnot bitand bitor bitxor bitshiftleft bitshiftright sendandmouse mousemove mousemoveoff hkey_local_machine hkey_users hkey_current_user hkey_classes_root hkey_current_config hklm hku hkcu hkcr hkcc reg_sz reg_expand_sz reg_multi_sz reg_dword reg_qword reg_binary reg_link reg_resource_list reg_full_resource_descriptor caret reg_resource_requirements_list reg_dword_big_endian regex pixel mouse screen relative rgb low belownormal normal abovenormal high realtime between contains in is integer float number digit xdigit alpha upper lower alnum time date not or and topmost top bottom transparent transcolor redraw region id idlast count list capacity eject lock unlock label serial type status seconds minutes hours days read parse logoff close error single shutdown menu exit reload tray add rename check uncheck togglecheck enable disable toggleenable default nodefault standard nostandard color delete deleteall icon noicon tip click show edit progress hotkey text picture pic groupbox button checkbox radio dropdownlist ddl combobox statusbar treeview listbox listview datetime monthcal updown slider tab tab2 iconsmall tile report sortdesc nosort nosorthdr grid hdr autosize range xm ym ys xs xp yp font resize owner submit nohide minimize maximize restore noactivate na cancel destroy center margin owndialogs guiescape guiclose guisize guicontextmenu guidropfiles tabstop section wrap border top bottom buttons expand first lines number uppercase lowercase limit password multi group background bold italic strike underline norm theme caption delimiter flash style checked password hidden left right center section move focus hide choose choosestring text pos enabled disabled visible notimers interrupt priority waitclose unicode tocodepage fromcodepage yes no ok cancel abort retry ignore force on off all send wanttab monitorcount monitorprimary monitorname monitorworkarea pid base useunsetlocal useunsetglobal localsameasglobal
+                </Parameters>
+			</Keywords>
+			<Styles>
+				<Style name="Default" id="0" fgColor="000000" bgColor="FFFFFF" fName="" fStyle="0">
+				</Style>
+				<Style name="Comment Line" id="1" fgColor="008000" bgColor="FFFFFF" fName="" fStyle="0">
+				</Style>
+				<Style name="Comment Block" id="2" fgColor="008000" bgColor="FFFFFF" fName="" fStyle="1">
+				</Style>
+				<Style name="Escape Secuence" id="3" fgColor="FF0000" bgColor="FFFFFF" fName="" fStyle="0">
+				</Style>
+				<Style name="Syn Operator" id="4" fgColor="FF0000" bgColor="FFFFFF" fName="" fStyle="1">
+				</Style>
+				<Style name="Exp Operator" id="5" fgColor="0000FF" bgColor="FFFFFF" fName="" fStyle="1">
+				</Style>
+				<Style name="String" id="6" fgColor="808080" bgColor="FFFFFF" fName="" fStyle="2">
+				</Style>
+				<Style name="Number" id="7" fgColor="FF8000" bgColor="FFFFFF" fName="" fStyle="1">
+				</Style>
+				<Style name="Identifier" id="8" fgColor="000000" bgColor="FFFFFF" fName="" fStyle="0">
+				</Style>
+				<Style name="Label" id="9" fgColor="0080FF" bgColor="FFFFFF" fName="" fStyle="1">
+				</Style>
+				<Style name="Variables" id="10" fgColor="FF8000" bgColor="FFFFFF" fName="" fStyle="0">
+				</Style>
+				<Style name="Variable Delimiter" id="11" fgColor="FF8000" bgColor="FFFFFF" fName="" fStyle="3">
+				</Style>
+				<Style name="Error" id="12" fgColor="EE0000" bgColor="FF8080" fName="" fStyle="1">
+				</Style>
+				<!--Keywords -->
+				<Style name="Directives" id="13" fgColor="0000FF" bgColor="FFFFFF" fName="" fStyle="0">
+				</Style>
+				<Style name="Commands" id="14" fgColor="0000FF" bgColor="FFFFFF" fName="" fStyle="1">
+				</Style>
+				<Style name="Flow Control" id="15" fgColor="0000FF" bgColor="FFFFFF" fName="" fStyle="1">
+				</Style>
+				<Style name="Functions" id="16" fgColor="FF80FF" bgColor="FFFFFF" fName="" fStyle="0">
+				</Style>
+				<Style name="Built-in Variables" id="17" fgColor="FF8000" bgColor="FFFFFF" fName="" fStyle="3">
+				</Style>
+				<Style name="Keys and Buttons" id="18" fgColor="000000" bgColor="FFFFFF" fName="" fStyle="3">
+				</Style>
+				<Style name="Parameters" id="19" fgColor="408080" bgColor="FFFFFF" fName="" fStyle="0">
+				</Style>
+				<Style name="User Defined" id="20" fgColor="FF0000" bgColor="FFFFFF" fName="" fStyle="0">
+				</Style>
+			</Styles>
+		</LiveCode>
+		<ScrTools altdrag="0" prtscr="0">
+			<Imagebin current="Imageshack">
+				<Imagebin nick="">http://imagebin.org/index.php?page=add</Imagebin>
+				<Imageshack private="0" user="" pass="">http://www.imageshack.us/upload_api.php</Imageshack>
+			</Imagebin>
+		</ScrTools>
+	</Options>
+	<Hotkeys count="0">
+	</Hotkeys>
+	<Hotstrings count="0">
+	</Hotstrings>
+</AHK-Toolkit>

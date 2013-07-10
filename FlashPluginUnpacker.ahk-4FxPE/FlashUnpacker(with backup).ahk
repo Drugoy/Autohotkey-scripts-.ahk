@@ -39,7 +39,7 @@ Return
 Unpack:
 	Process, Close, plugin-container.exe
 	GoSub, Backup
-	Run, 7z.exe e `"%fileLongPath%`" -o`"%outputPath%`" CommonFiles\Plugins\*.dll, %ProgramW6432%\7-Zip ;, Hide
+	Run, 7z.exe e `"%fileLongPath%`" -o`"%outputPath%`" CommonFiles\Plugins\*.dll, % ((A_Is64bitOS) ? (ProgramW6432) : (A_ProgramFiles)) "\7-Zip" ;, Hide
 Return
 
 Backup:

@@ -14,6 +14,7 @@ GroupAdd, theGroup, Калькулятор ahk_class CalcFrame	; Калькул�
 GroupAdd, theGroup, Выполнить ahk_class #32770	; Выполнить.
 GroupAdd, theGroup, AnVir Task Manager ahk_class AnVirMainFrame	; AnVir TaskManager.
 GroupAdd, theGroup, Password Required ahk_class MozillaDialogClass	; Firefox'es master password prompt.
+GroupAdd, theGroup, ahk_class MediaPlayerClassicW	; Media Player Classic - Home Cinema.
 
 #IfWinActive ahk_group theGroup
 ^vk57::Send !{F4}

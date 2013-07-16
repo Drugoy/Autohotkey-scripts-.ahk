@@ -426,7 +426,7 @@ LaunchFileName:
 	If (ErrorLevel == ERROR)
 		MsgBox Well that didn't work. The following script would not start no matter how many times I tried to launch it.`n`n%SelectedFullPath%\%FileName%
 	Progress, Off
-Rturn
+Return
 
 ReloadFileName:
 	IfWinNotExist %FileName%

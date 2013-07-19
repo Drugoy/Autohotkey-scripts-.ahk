@@ -8,18 +8,18 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/ScriptManager.ahk/
 
 ;{ TODO:
 ; 1. Functions to control scripts:
-; 	a. Kill.
-; 	b. Restart.
-; 	c. Kill and re-run.
-; 	d. Pause/unpause.
-; 	e. Suspend/unsuspend.
-; 	f. Hide/restore scripts' tray icons.
+; 	a. Hide/restore scripts' tray icons.
 ; 2. GUIs:
-; 	a. Tray menu.
-; 	b. A hotkey menu.
-; 	c. Separate GUI window:
+; 	a. A hotkey menu.
+; 	b. Separate GUI window:
 ; 		C1. TreeView GUI for bookmarks.
 ; 		C2. A list for running scripts.
+;}
+
+;{ BLAME:
+; 1. suspendProcess() and resumeProcess() should better be a single function, but I don't know a way to get a suspension status of a process to let the script decide what operation to carry out.
+; 2. That might be (im)possible, but I don't yet know how to get the scripts' "suspend hotkeys" and "pause" states.
+; 3. I don't yet know if there is a way to get know about script's tray icon current state: is it possible? And if not - should there be some kind of internal storage for user's previous actions to take them into consideration?
 ;}
 
 ;{ Settings block.
@@ -67,22 +67,30 @@ restart(scriptPath)
 	Run, % """" A_AhkPath """ /restart """ scriptPath """"
 }
 
-pause(scriptPath)
+pause(pid)
 {
-	PostMessage, 0x111, 65403,,, % scriptPath
+	PostMessage, 0x111, 65403,,, ahk_pid %pid%
 }
 
-suspendHotkeys(scriptPath)
+suspendHotkeys(pid)
 {
-	PostMessage, 0x111, 65404,,, % scriptPath
+	PostMessage, 0x111, 65404,,, ahk_pid %pid%
 }
 
 suspendProcess(pid)
 {
-	; Probably incorrect
-	DllCall("DebugActiveProcessStop(" pid ")")
-	If ErrorLevel
-		DllCall("DebugActiveProcess(" pid ")")
+	If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, "Int", pid))
+		Return -1
+	DllCall("ntdll.dll\NtSuspendProcess", "Int", procHWND)
+	DllCall("CloseHandle", "Int", procHWND)
+}
+
+resumeProcess(pid)
+{
+	If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, "Int", pid))
+		Return -1
+	DllCall("ntdll.dll\NtResumeProcess", "Int", procHWND)
+	DllCall("CloseHandle", "Int", procHWND)
 }
 ;}
 

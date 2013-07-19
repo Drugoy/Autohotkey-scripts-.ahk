@@ -13,7 +13,7 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/ScriptManager.ahk/
 ; 	a. A hotkey menu.
 ; 	b. Separate GUI window:
 ; 		C1. TreeView GUI for bookmarks.
-; 		C2. A list for running scripts.
+; 		C2. ListView GUI for running scripts.
 ;}
 
 ;{ BLAME:
@@ -30,20 +30,54 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
 ;}
 
+;{ GUI test
+Menu, Tray, NoStandard
+Menu, Tray, Add, Manage Scripts, GuiShow	; Create a tray menu's menuitem and bind it to a label that opens main window.
+Menu, Tray, Default, Manage Scripts
+Menu, Tray, Add
+Menu, Tray, Standard
+
+; Add the main "ListView" element and define it's size, contents, and a label binding.
+Gui, Add, ListView, w800 r20 gMyListView, #|pID|Name|Path
+
+; Set the column sizes
+LV_ModifyCol(1, "20")
+LV_ModifyCol(2, "40")
+LV_ModifyCol(3, "300")
+LV_ModifyCol(4, "430")
+
+GuiShow:
+GoSub, scanMemoryForAhkProcesses
+Gui, Show, Center, Manage Scripts
+Return
+
+GuiClose:
+Gui, Hide
+Return
+
+MyListView:
+Return
+;}
+
 ;{ A subroutine to scan memory for running ahk scripts.
 scanMemoryForAhkProcesses:
-scriptNameArray := pidArray := scriptPathArray []	; Defining and clearing arrays.
+LV_Delete()	; Delete old contents from ListView.
+
+scriptNameArray := pidArray := scriptPathArray := []	; Defining and clearing arrays.
+listIndex := 0
 
 For Process In ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on "If RegExMatch" rules).
 {	; A list of accessible parameters related to the running processes: http://msdn.microsoft.com/en-us/library/windows/desktop/aa394372%28v=vs.85%29.aspx
 	; If (Process.ExecutablePath == A_AhkPath)	; This and the next line are the alternative to the If RegExMatch() below.
 	; 	Process.CommandLine := RegExReplace(Process.CommandLine, "i)^.*\\|\.ahk\W*") . ".ahk"
-	If RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script)	; Get scripts' paths.
-		scriptPathArray.Insert(scriptPath)
-	If RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)	; Get scripts' names.
+	If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script))
 	{
-		scriptNameArray.Insert(scriptName)	; Using contents of the "ScriptName" variable to fulfill our "scriptNamesArray" array.
+; msgbox %listIndex%|%Process.ProcessId%|%scriptName%|%scriptPath%
+		listIndex++
 		pidArray.Insert(Process.ProcessId)	; Using "ProcessId" param to fulfill our "pidsArray" array.
+		scriptNameArray.Insert(scriptName)	; Using contents of the "ScriptName" variable to fulfill our "scriptNamesArray" array.
+		scriptPathArray.Insert(scriptPath)
+		LV_Add("", listIndex, Process.ProcessId, scriptName, scriptPath)	; Fill the ListView with fresh data.
 	}
 }
 Return

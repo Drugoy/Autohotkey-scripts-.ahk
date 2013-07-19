@@ -83,7 +83,6 @@ suspendProcess(pid)
 	DllCall("DebugActiveProcessStop(" pid ")")
 	If ErrorLevel
 		DllCall("DebugActiveProcess(" pid ")")
-))
 }
 ;}
 

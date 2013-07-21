@@ -82,6 +82,7 @@ If !firstHit_EventFired	; The user hit PrintScreen - this is a first step.
 }
 Else	; User has to hit PrintScreen once again (for the 3rd time) to take a screenshot. I inteionally made not 2, but 3 steps required to take a screenshot: so you can take a screenshot of some event happening, for example, only when you hover something special.
 {
+	firstHit_EventFired :=
 	Gui 1: Destroy	; Hide the rectangular before screenshotting the area
 	Gosub, x1x2y1y2	; Make x1 < x2 and y1 < y2.
 	; Save a screenshot to a file.
@@ -110,7 +111,7 @@ Else	; User has to hit PrintScreen once again (for the 3rd time) to take a scree
 	WinClose, ahk_class ITmagesReady
 	WinWaitClose, ahk_class ITmagesReady,, 3
 	FileDelete, %imgTempPath%	; Delete the file. Remove that line if you'd like to keep the screenshot (but be aware, that it will get overwritten if you'll screenshot another area.
-	x1 := x2 := x3 := y1 := y2 := y3 := firstHit_EventFired :=
+	x1 := x2 := x3 := y1 := y2 := y3 :=
 }
 Return
 

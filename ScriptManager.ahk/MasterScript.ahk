@@ -12,9 +12,8 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/ScriptManager.ahk/
 ; 2. GUIs:
 ; 	a. A hotkey menu.
 ; 	b. Separate GUI window:
-; 		b1. TreeView GUI for bookmarks.
-; 		b2. ListView GUI for running scripts.
-;			b2a. Make buttons work.
+; 		b1. Add TreeView GUI for bookmarks.
+; 		b2. Think of improvements over ListView GUI for running scripts.
 ;}
 
 ;{ BLAME:
@@ -73,25 +72,35 @@ Return
 MyListView:
 Return
 
+#IfWinActive Manage Scripts ahk_class AutoHotkeyGUI
+Delete::
 Kill:
+	kill(getPIDsOfSelectedRows())
 Return
+#IfWinActive
 
-killNreload:
+KillNreload:
+	killNreload(getPIDsOfSelectedRows())
 Return
 
 Restart:
+	restart(getPIDsOfSelectedRows())
 Return
 
 Pause:
+	pause(getPIDsOfSelectedRows())
 Return
 
 SuspendHotkeys:
+	suspendHotkeys(getPIDsOfSelectedRows())
 Return
 
 SuspendProcess:
+	suspendProcess(getPIDsOfSelectedRows())
 Return
 
 ResumeProcess:
+	resumeProcess(getPIDsOfSelectedRows())
 Return
 ;}
 
@@ -101,12 +110,12 @@ F5::
 scanMemoryForAhkProcesses:
 	If listIndex	; If we previously retrieved data at least once.
 	{	; Backing up old data for later comparison.
-		scriptNameArrayOld := scriptNameArray
-		pidArrayOld := pidArray
-		scriptPathArrayOld := scriptPathArray
+		Global scriptNameArrayOld := scriptNameArray
+		Global pidArrayOld := pidArray
+		Global scriptPathArrayOld := scriptPathArray
 	}
 	
-	scriptNameArray := [], pidArray := [], scriptPathArray := []	; Defining and clearing arrays.
+	Global scriptNameArray := [], Global pidArray := [], Global scriptPathArray := []	; Defining and clearing arrays.
 	listIndex := 0
 	
 	For Process In ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on "If RegExMatch" rules).
@@ -119,9 +128,8 @@ scanMemoryForAhkProcesses:
 			pidArray.Insert(Process.ProcessId)	; Using "ProcessId" param to fulfill our "pidsArray" array.
 			scriptNameArray.Insert(scriptName)	; The first RegExMatch outputs to "scriptName" variable, who's contents we use to fulfill our "scriptNamesArray" array.
 			scriptPathArray.Insert(scriptPath)	; The second RegExMatch outputs to "scriptPath" variable, who's contents we use to fulfill our "scriptPathArray" array.
-		If !(pidArrayOld[listIndex] == Process.ProcessId)
-			LV_Insert(listIndex, "", listIndex, Process.ProcessId, scriptName, scriptPath)	; Fill the ListView with the freshely retrieved data.
-	; }
+			If !(pidArrayOld[listIndex] == Process.ProcessId)
+				LV_Insert(listIndex, "", listIndex, Process.ProcessId, scriptName, scriptPath)	; Fill the ListView with the freshely retrieved data.
 		}
 	}
 	Loop	; Remove listed dead scripts from the list.
@@ -135,47 +143,109 @@ scanMemoryForAhkProcesses:
 ;}
 
 ;{ Functions to control scripts.
-kill(pid)
+
+getSelectedRowsNumbers()
 {
-	Process, Close, % pid
+	Loop, % LV_GetCount("Selected")
+	{
+		If !RowNumber
+			selectedRowsNumbers := rowNumber := LV_GetNext(rowNumber)
+		Else
+			selectedRowsNumbers := selectedRowsNumbers "|" . rowNumber := LV_GetNext(rowNumber)
+	}
+	Return selectedRowsNumbers
+}
+
+getPIDsOfSelectedRows()	; That function outputs selected rows' process IDs as a string of PIDs separated by pipes.
+{
+	selectedRowsNumbers := getSelectedRowsNumbers()
+	Loop, Parse, selectedRowsNumbers, |
+	{
+		LV_GetText(pidOfSelectedRow, A_LoopField, 2)	; Column #2 contains PIDs.
+		selectedRowsPIDs ? (selectedRowsPIDs . "|" . pidOfSelectedRow) : (pidOfSelectedRow)
+		If !selectedRowsPIDs
+			selectedRowsPIDs := pidOfSelectedRow
+		Else
+			selectedRowsPIDs := selectedRowsPIDs . "|" . pidOfSelectedRow
+	}
+	Return selectedRowsPIDs
+}
+
+getScriptsPathsOfselectedRowsNumbers(selectedRowsNumbers)
+{
+	selectedRowsNumbers := getSelectedRowsNumbers()
+	Loop, Parse, selectedRowsNumbers, |
+	{
+		If (A_Index == 1)
+			selectedRowsScriptsPaths := scriptPathArrayOld[A_LoopField]
+		Else
+			selectedRowsScriptsPaths := selectedRowsScriptsPaths . "|" scriptPathArrayOld[A_LoopField]
+	}
+	Return selectedRowsScriptsPaths
+}
+
+kill(pidOrPIDsSeparatedByPipes)	; Accepts a PID or a bunch of PIDs separated by pipes ("|").
+{
+	Loop, Parse, pidOrPIDsSeparatedByPipes, |
+		Process, Close, % A_LoopField
+	GoSub, scanMemoryForAhkProcesses
 	NoTrayOrphans()
 }
 
-killNreload(pid, scriptPath)
+killNreload(pidOrPIDsSeparatedByPipes)
 {
-	kill(pid)
-	Run, % """" A_AhkPath """ """ scriptPath """"
+	scriptsPaths := getScriptsPathsOfselectedRowsNumbers(pidOrPIDsSeparatedByPipes)
+	kill(pidOrPIDsSeparatedByPipes)
+	NoTrayOrphans()
+	Loop, Parse, scriptsPaths, |
+		Run, % """" A_AhkPath """ """ A_LoopField """"
+	GoSub, scanMemoryForAhkProcesses
 }
 
-restart(scriptPath)
+restart(pidOrPIDsSeparatedByPipes)
 {
-	Run, % """" A_AhkPath """ /restart """ scriptPath """"
+	scriptsPaths := getScriptsPathsOfselectedRowsNumbers(pidOrPIDsSeparatedByPipes)
+	Loop, Parse, scriptsPaths, |
+		Run, % """" A_AhkPath """ /restart """ A_LoopField """"
+	GoSub, scanMemoryForAhkProcesses
 }
 
-pause(pid)
+pause(pidOrPIDsSeparatedByPipes)
 {
-	PostMessage, 0x111, 65403,,, ahk_pid %pid%
+	Loop, Parse, pidOrPIDsSeparatedByPipes, |
+		PostMessage, 0x111, 65403,,, ahk_pid %A_LoopField%
+	GoSub, scanMemoryForAhkProcesses
 }
 
-suspendHotkeys(pid)
+suspendHotkeys(pidOrPIDsSeparatedByPipes)
 {
-	PostMessage, 0x111, 65404,,, ahk_pid %pid%
+	Loop, Parse, pidOrPIDsSeparatedByPipes, |
+		PostMessage, 0x111, 65404,,, ahk_pid %A_LoopField%
+	GoSub, scanMemoryForAhkProcesses
 }
 
-suspendProcess(pid)
+suspendProcess(pidOrPIDsSeparatedByPipes)
 {
-	If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, "Int", pid))
-		Return -1
-	DllCall("ntdll.dll\NtSuspendProcess", "Int", procHWND)
-	DllCall("CloseHandle", "Int", procHWND)
+	Loop, Parse, pidOrPIDsSeparatedByPipes, |
+	{
+		If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, "Int", A_LoopField))
+			Return -1
+		DllCall("ntdll.dll\NtSuspendProcess", "Int", procHWND)
+		DllCall("CloseHandle", "Int", procHWND)
+	}
+	GoSub, scanMemoryForAhkProcesses
 }
 
-resumeProcess(pid)
+resumeProcess(pidOrPIDsSeparatedByPipes)
 {
-	If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, "Int", pid))
-		Return -1
-	DllCall("ntdll.dll\NtResumeProcess", "Int", procHWND)
-	DllCall("CloseHandle", "Int", procHWND)
+	Loop, Parse, pidOrPIDsSeparatedByPipes, |
+	{
+		If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, "Int", A_LoopField))
+			Return -1
+		DllCall("ntdll.dll\NtResumeProcess", "Int", procHWND)
+		DllCall("CloseHandle", "Int", procHWND)
+	}
+	GoSub, scanMemoryForAhkProcesses
 }
 ;}
 

@@ -29,18 +29,57 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 #SingleInstance, force
 DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
 memoryScanInterval := 1000	; Specify a value in milliseconds.
+startFolder := "C:\Program Files\AutoHotkey"
 ;}
 
-;{ GUI test
+;{ GUI
+	;{ Tray menu.
 Menu, Tray, NoStandard
 Menu, Tray, Add, Manage Scripts, GuiShow	; Create a tray menu's menuitem and bind it to a label that opens main window.
 Menu, Tray, Default, Manage Scripts
 Menu, Tray, Add
 Menu, Tray, Standard
+	;}
+; Add tabbed interface
+Gui, Add, Tab2, x0 y0 Choose1, Manage files|Manage processes
+; { Create folder icons.
+ImageListID := IL_Create(5)
+Loop 5	; Below omits the DLL's path so that it works on Windows 9x too:
+	IL_Add(ImageListID, "shell32.dll", A_Index)
+; }
+		;{ Tab #1: 'Manage files'
+Gui, Tab, Manage files
+Gui, Add, Text, x85 y27, Choose a folder:
+Gui, Add, Button, x270 y21 gBookmarkSelected, Bookmark selected
+Gui, Add, TreeView, AltSubmit x0 y+0 w269 h400 r20 +Resize gUpdateListView ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.
+AddSubFoldersToTree(startFolder)
 
-; Gui, Add, ControlType [, Options, Text]
+AddSubFoldersToTree(Folder, ParentItemID = 0)
+{
+    ; This function adds to the TreeView all subfolders in the specified folder.
+    ; It also calls itself recursively to gather nested folders to any depth.
+    Loop %Folder%\*.*, 2  ; Retrieve all of Folder's sub-folders.
+        AddSubFoldersToTree(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon4"))
+}
+Gui, Add, ListView, x+0 w550 h400 r20 +Resize +Grid gMyListView, Name|Size (bytes)|Created|Modified
+; UpdateListView:
+	Loop, %startFolder%\*.ahk	; This should be replaced with smth like A_SelectedFolder (selected in TreeView).
+	{
+		FormatTime, LoopFiletimeCreated, %A_LoopFileTimeCreated%, HH:mm:ss dd.MM.yyyy
+		FormatTime, LoopFileTimeModified, %A_LoopFileTimeModified%, HH:mm:ss dd.MM.yyyy
+		LV_Add("", A_LoopFileName, A_LoopFileSize, LoopFiletimeCreated, LoopFileTimeModified)
+	}
+; Return
+; Set the column sizes
+LV_ModifyCol(1, "250")
+LV_ModifyCol(2, "66")
+LV_ModifyCol(3, "115")
+LV_ModifyCol(4, "115")	
+		;}
+		;{ Tab #2: 'Manage processes'
+Gui, Tab, Manage processes
 ; Add buttons to trigger functions.
-Gui, Add, Button, x0 y0 gKill, Kill
+Gui, Add, Button, x2 y21 gKill, Kill
 Gui, Add, Button, x+0 gkillNreload, Kill and reload
 Gui, Add, Button, x+0 gRestart, Restart
 Gui, Add, Button, x+0 gPause, (Un) pause
@@ -49,35 +88,44 @@ Gui, Add, Button, x+0 gSuspendProcess, Suspend process
 Gui, Add, Button, x+0 gResumeProcess, Resume process
 
 ; Add the main "ListView" element and define it's size, contents, and a label binding.
-Gui, Add, ListView, x0 y+0 w720 h400 r20 +Resize gMyListView, #|pID|Name|Path
+Gui, Add, ListView, x0 y+0 w720 h400 r20 +Resize +Grid gMyListView, #|pID|Name|Path
 
 ; Set the column sizes
 LV_ModifyCol(1, "20")
 LV_ModifyCol(2, "40")
 LV_ModifyCol(3, "220")
 LV_ModifyCol(4, "430")
+		;}
 
 GuiShow:
-Gui, +Resize +MinSize525x225
-Gui, Show, w1000 h700 Center, Manage Scripts
-GoSub, scanMemoryForAhkProcesses
-SetTimer, scanMemoryForAhkProcesses, %memoryScanInterval%
+	Gui, +Resize +MinSize525x225
+	Gui, Show, w1000 h700 Center, Manage Scripts
+	GoSub, scanMemoryForAhkProcesses
+	SetTimer, scanMemoryForAhkProcesses, %memoryScanInterval%
 Return
 
 GuiClose:
-Gui, Hide
-SetTimer, scanMemoryForAhkProcesses, Off
+	Gui, Hide
+	SetTimer, scanMemoryForAhkProcesses, Off
 Return
-
+	;{ G-Labels of buttons on the "Manage files" tab.
+UpdateListView:	; TreeView's G-label that should trigger ListView update.
+; GuiControlGet, FocusedControl, FocusV
+; Msgbox A_Gui: '%A_Gui%'`nA_GuiControl: '%A_GuiControl%'`nA_GuiEvent: '%A_GuiEvent%'`nFocusedControl: '%FocusedControl%'
+Return
+BookmarkSelected:
+Return
+	;}
+	;{ G-Labels of buttons on the "Manage processes" tab.
 MyListView:
 Return
 
 #IfWinActive Manage Scripts ahk_class AutoHotkeyGUI
 Delete::
+#IfWinActive
 Kill:
 	kill(getPIDsOfSelectedRows())
 Return
-#IfWinActive
 
 KillNreload:
 	killNreload(getPIDsOfSelectedRows())
@@ -102,6 +150,7 @@ Return
 ResumeProcess:
 	resumeProcess(getPIDsOfSelectedRows())
 Return
+	;}
 ;}
 
 ;{ A subroutine to scan memory for running ahk scripts.
@@ -117,7 +166,7 @@ scanMemoryForAhkProcesses:
 	
 	Global scriptNameArray := [], Global pidArray := [], Global scriptPathArray := []	; Defining and clearing arrays.
 	listIndex := 0
-	
+	GuiControl, -Redraw, MyListView
 	For Process In ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on "If RegExMatch" rules).
 	{	; A list of accessible parameters related to the running processes: http://msdn.microsoft.com/en-us/library/windows/desktop/aa394372%28v=vs.85%29.aspx
 		; If (Process.ExecutablePath == A_AhkPath)	; This and the next line are the alternative to the If RegExMatch() below.
@@ -138,6 +187,7 @@ scanMemoryForAhkProcesses:
 		If !deadRow
 			Break
 	}
+	GuiControl, +Redraw, MyListView
 	Return
 #IfWinActive
 ;}
@@ -250,7 +300,7 @@ resumeProcess(pidOrPIDsSeparatedByPipes)
 ;}
 
 ;{ NoTrayOrphans() - a function to remove tray icons of dead processes.
-NoTrayOrphans()	
+NoTrayOrphans()
 {
 	TrayInfo:= TrayIcons(sExeName,"ahk_class Shell_TrayWnd","ToolbarWindow32" . GetTrayBar()) "`n"
 		. TrayIcons(sExeName,"ahk_class NotifyIconOverflowWindow","ToolbarWindow321")
@@ -335,13 +385,13 @@ GetTrayBar()
 		ControlGet, hWnd, hWnd,, ToolbarWindow32%A_Index%, ahk_class Shell_TrayWnd
 		If Not hWnd
 			Break
-		Else If	hWnd = %hChild%
+		Else If hWnd = %hChild%
 		{
 			idxTB := A_Index
 			Break
 		}
 	}
-	Return	idxTB
+	Return idxTB
 }
 
 StrX(H, BS = "", ES = "", Tr = 1, ByRef OS = 1)

@@ -18,6 +18,7 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/ScriptManager.ahk/
 ; 5. Improve TreeView.
 ;	a. It should load all disks' root folders (and their sub-folders) + folders specified by user (that info should also get stored to settings).
 ;	b. TreeView should always only load folder's contents + contents of it's sub-folders. And load more, when user selected a deeper folder.
+; 6. Teach F5 and 'DeleteSelected' to properly refresh 'FileList' ListView.
 ;}
 
 ;{ BLAME:
@@ -33,10 +34,16 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 #SingleInstance, force
 DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
 memoryScanInterval := 1000	; Specify a value in milliseconds.
-startFolder := "C:\Program Files\AutoHotkey"
+SplitPath, A_AhkPath,, startFolder
+; startFolder := "C:\Program Files\AutoHotkey"
 ;}
 
-;{ GUI
+;{ GUI Create
+	;{ Create folder icons.
+ImageListID := IL_Create(5)	; ICON
+Loop 5	; Below omits the DLL's path so that it works on Windows 9x too:	; ICON
+	IL_Add(ImageListID, "shell32.dll", A_Index)	; ICON
+	;}
 	;{ Tray menu.
 Menu, Tray, NoStandard
 Menu, Tray, Add, Manage Scripts, GuiShow	; Create a tray menu's menuitem and bind it to a label that opens main window.
@@ -44,19 +51,16 @@ Menu, Tray, Default, Manage Scripts
 Menu, Tray, Add
 Menu, Tray, Standard
 	;}
-; Add tabbed interface
-Gui, Add, Tab2, x0 y0 Choose1 +Theme -Background, Manage files|Manage processes
-; { Create folder icons.
-ImageListID := IL_Create(5)	; ICON
-Loop 5	; Below omits the DLL's path so that it works on Windows 9x too:	; ICON
-	IL_Add(ImageListID, "shell32.dll", A_Index)	; ICON
-; }
+	;{ Add tabbed interface
+Gui, Add, Tab2, x0 y0 Choose1 +Theme -Background gTabSwitch, Manage files|Manage processes
 		;{ Tab #1: 'Manage files'
 Gui, Tab, Manage files
 Gui, Add, Text, x85 y27, Choose a folder:
-Gui, Add, Button, x270 y21 gBookmarkSelected, Bookmark selected
+Gui, Add, Button, x270 y21 gRunSelected, Run selected
+Gui, Add, Button, x+0 gBookmarkSelected, Bookmark selected
+Gui, Add, Button, x+0 gDeleteSelected, Delete selected
 ; Folder list (left pane).
-Gui, Add, TreeView, AltSubmit x0 y+0 w269 h400 r20 +Resize gFolderList vFolderList ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.	; ICON
+Gui, Add, TreeView, AltSubmit x0 y+0 w269 h400 r20 +Resize gFolderTree vFolderTree ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.	; ICON
 AddSubFoldersToTree(startFolder)
 
 AddSubFoldersToTree(Folder, ParentItemID = 0)
@@ -67,25 +71,25 @@ AddSubFoldersToTree(Folder, ParentItemID = 0)
 		AddSubFoldersToTree(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon4"))	; ICON
 }
 ; File list (right pane).
-Gui, Add, ListView, x+0 w700 h400 r20 +Resize +Grid gFileList vFileList, Name|Size (bytes)|Created|Modified
+Gui, Add, ListView, AltSubmit x+0 w700 h400 r20 +Resize +Grid gFileList vFileList, Name|Size (bytes)|Created|Modified
 ; Set the column sizes
-LV_ModifyCol(1, "365")
-LV_ModifyCol(2, "100")
-LV_ModifyCol(3, "115")
-LV_ModifyCol(4, "115")
+LV_ModifyCol(1, "395")
+LV_ModifyCol(2, "66")
+LV_ModifyCol(3, "117")
+LV_ModifyCol(4, "117")
 
 Gui, Add, Text, x0 y+0, Bookmarked scripts:
 
 ; Bookmarks (bottom pane).
-Gui, Add, ListView, x0 y+0 w969 h200 +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
+Gui, Add, ListView, AltSubmit x0 y+0 w969 h200 +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
 ; ADD FILEREAD/FILECREATE/REFRESH
 ; Set the column sizes
 LV_ModifyCol(1, "20")
-LV_ModifyCol(2, "165")
-LV_ModifyCol(3, "450")
-LV_ModifyCol(4, "100")
-LV_ModifyCol(5, "115")
-LV_ModifyCol(6, "115")
+LV_ModifyCol(2, "185")
+LV_ModifyCol(3, "479")
+LV_ModifyCol(4, "47")
+LV_ModifyCol(5, "117")
+LV_ModifyCol(6, "117")
 
 ; Status Bar.
 Gui, Add, StatusBar
@@ -103,80 +107,117 @@ Gui, Add, Button, x+0 gSuspendProcess, Suspend process
 Gui, Add, Button, x+0 gResumeProcess, Resume process
 
 ; Add the main "ListView" element and define it's size, contents, and a label binding.
-Gui, Add, ListView, x0 y+0 w720 h400 r20 +Resize +Grid gProcessList vProcessList, #|pID|Name|Path
+Gui, Add, ListView, AltSubmit x0 y+0 w969 h612 r20 +Resize +Grid gProcessList vProcessList, #|pID|Name|Path
 
 ; Set the column sizes
 LV_ModifyCol(1, "20")
 LV_ModifyCol(2, "40")
 LV_ModifyCol(3, "220")
 LV_ModifyCol(4, "430")
+GoSub, GuiShow
+Return
 		;}
+	;}
+;}
+
+;{ GUI Actions
 	;{ G-Labels of main GUI.
 GuiShow:
+	firstRun++
+	If (activeTab == 2)
+		activeTab := ""
 	Gui, +Resize +MinSize525x225
-	Gui, Show, w1000 h700 Center, Manage Scripts
-	; This line should better be triggered only if tab #1 is currently active.
-	GoSub, BookmarksList
-	; These 2 lines should better be triggered only if tab #2 is currently active.
-	GoSub, scanMemoryForAhkProcesses
-	SetTimer, scanMemoryForAhkProcesses, %memoryScanInterval%
+	Gui, Show, w968 h678 Center, Manage Scripts
+	If (firstRun == 1)
+	{
+		updateList := 1
+		GoSub, FolderTree	; Won't be needed if I manage to create a proper FileTree monitoring folders.
+		updateList := 1
+		GoSub, BookmarksList
+	}
+	If ((firstRun != 1) && (activeTab != 1))
+		SetTimer, ProcessList, %memoryScanInterval%
 Return
 
 GuiClose:
 	Gui, Hide
-	; This line should better be triggered if tab #2 is currently inactive.
-	SetTimer, scanMemoryForAhkProcesses, Off
+	SetTimer, ProcessList, Off
+Return
+
+TabSwitch:
+	ControlGet, activeTab, Tab,, SysTabControl321
+	If (activeTab == 2)
+		SetTimer, ProcessList, %memoryScanInterval%
+	Else
+	{
+		If (firstRun != 1)
+			SetTimer, ProcessList, Off
+		GoSub, BookmarksList
+	}
 Return
 	;}
-	;{ G-Labels of buttons on the "Manage files" tab.
-FolderList:	; TreeView's G-label that should trigger ListView update.
-	If A_GuiEvent <> S	; i.e. an event other than "select new tree item".
-		Return	; Do nothing.
+	;{ Tab #1: gLabels of [Tree/List]Views.
+		;{ FolderTree
+FolderTree:	; TreeView's G-label that should trigger ListView update.
+	Gui, TreeView, FolderTree
+	Global activeControl := A_ThisLabel
+	SetTimer, ProcessList, Off
 	; Otherwise, populate the ListView with the contents of the selected folder.
-	; First determine the full path of the selected folder:
-	TV_GetText(SelectedItemText, A_EventInfo)
-	ParentID := A_EventInfo
-	Loop	; Build the full path to the selected folder.
+	If (A_GuiEvent == "S") || (updateList == 1)	; If user selected a tree item.
 	{
-		ParentID := TV_GetParent(ParentID)
-		If !ParentID	; No more ancestors.
-			Break
-		TV_GetText(ParentText, ParentID)
-		SelectedItemText = %ParentText%\%SelectedItemText%
+		updateList := ""
+		TV_GetText(selectedItemText, A_EventInfo)	; Determine the full path of the selected folder:
+		ParentID := A_EventInfo
+		If ParentID
+			savedParentID := ParentID
+		ParentID := ((A_EventInfo) ? (A_EventInfo) : (savedParentID))
+		Loop	; Build the full path to the selected folder.
+		{
+			ParentID := TV_GetParent(ParentID)
+			If !ParentID	; No more ancestors.
+				Break
+			TV_GetText(ParentText, ParentID)
+			SelectedItemText = %ParentText%\%selectedItemText%
+		}
+		selectedFullPath := startFolder "\" selectedItemText
+		Gui, ListView, FileList	; Put the files into the ListView:
+		LV_Delete()	; Delete old data.
+		GuiControl, -Redraw, FileList	; Improve performance by disabling redrawing during load.
+		FileCount := TotalSize := 0	; Init prior to loop below.
+		Loop %selectedFullPath%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
+		{
+			FormatTime, created, %A_LoopFileTimeCreated%, dd.MM.yyyy (HH:mm:ss)
+			FormatTime, modified, %A_LoopFileTimeModified%, dd.MM.yyyy (HH:mm:ss)
+			LV_Add("", A_LoopFileName, A_LoopFileSize, created, modified)
+			FileCount++
+			TotalSize += A_LoopFileSize
+		}
+		GuiControl, +Redraw, FileList
+		
+		; Update the three parts of the status bar to show info about the currently selected folder:
+		SB_SetText(FileCount . " files", 1)
+		SB_SetText(Round(TotalSize / 1024, 1) . " KB", 2)
+		SB_SetText(selectedFullPath, 3)
 	}
-	SelectedFullPath = %startFolder%\%SelectedItemText%
-Gui, ListView, FileList
-	; Put the files into the ListView:
-	LV_Delete()	; Clear all rows.
-	GuiControl, -Redraw, FileList	; Improve performance by disabling redrawing during load.
-	FileCount = 0	; Init prior to loop below.
-	TotalSize = 0
-	Loop %SelectedFullPath%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
-	{
-		FormatTime, created, %A_LoopFileTimeCreated%, HH:mm:ss dd.MM.yyyy
-		FormatTime, modified, %A_LoopFileTimeModified%, HH:mm:ss dd.MM.yyyy
-		LV_Add("", A_LoopFileName, A_LoopFileSize, created, modified)
-		FileCount++
-		TotalSize += A_LoopFileSize
-	}
-	GuiControl, +Redraw, FileList
-	
-	; Update the three parts of the status bar to show info about the currently selected folder:
-	SB_SetText(FileCount . " files", 1)
-	SB_SetText(Round(TotalSize / 1024, 1) . " KB", 2)
-	SB_SetText(SelectedFullPath, 3)
 Return
-; #IfWinActive Manage Scripts ahk_class AutoHotkeyGUI
-; F5::
-; #IfWinActive
+		;}
+		;{ FileList
+FileList:
+	Global activeControl := A_ThisLabel
+	SetTimer, ProcessList, Off
+Return
+		;}
+		;{ BookmarksList
 BookmarksList:
-	; Show a list of bookmarked scripts and thier data.
-	A_IndexMy := modified := bookmarksToDelete := nBookmarks := bookmarks :=
-	Gui, ListView, BookmarksList
-	GuiControl, -Redraw, BookmarksList	; Improve performance by disabling redrawing during load.
-	LV_Delete()	; Clear all rows.
-	IfNotExist, Settings.ini
+	Global activeControl := A_ThisLabel
+	SetTimer, ProcessList, Off
+	If !(updateList == 1) || If !FileExist("Settings.ini")	; Don't redraw the 'BookmarksList' ListView's contents if we don't have a pass key or we don't have any bookmarks file yet.
 		Return
+	; Show a list of bookmarked scripts and thier data.
+	A_IndexMy := nBookmarks := bookmarks := updateList := ""
+	GuiControl, -Redraw, BookmarksList	; Improve performance by disabling redrawing during load.
+	Gui, ListView, BookmarksList
+	LV_Delete()	; Clear all rows.
 	IniRead, bookmarks, Settings.ini, Bookmarks, list
 	If bookmarks
 	{
@@ -184,7 +225,7 @@ BookmarksList:
 		{
 			IfInString, bookmarks, ||
 			{
-				modified := 1
+				bookmarksModified := 1
 				StringReplace, bookmarks, bookmarks, ||, |, All
 			}
 			Else
@@ -200,14 +241,14 @@ BookmarksList:
 				SplitPath, thisBookmark, name	; Get file's name from it's path.
 				FileGetSize, size, %thisBookmark%, K	; Get file's size.
 				FileGetTime, created, %thisBookmark%, C	; Get file's creation date.
-				FormatTime, created, %created%, HH:mm:ss dd.MM.yyyy	; Transofrm creation date into a readable format.
+				FormatTime, created, %created%, dd.MM.yyyy (HH:mm:ss)	; Transofrm creation date into a readable format.
 				FileGetTime, modified, %thisBookmark%	; Get file's last modification date.
-				FormatTime, modified, %modified%, HH:mm:ss dd.MM.yyyy	; Transofrm creation date into a readable format.
+				FormatTime, modified, %modified%, dd.MM.yyyy (HH:mm:ss)	; Transofrm creation date into a readable format.
 				LV_Insert(A_IndexMy, "", A_IndexMy, name, thisBookmark, size " KB", created, modified)	; Add the listitem.
 			}
 			Else	; If the file doesn't exist - remove that bookmark.
 			{
-				modified := 1
+				bookmarksModified := 1
 				If !bookmarksToDelete
 					bookmarksToDelete := A_IndexMy
 				Else
@@ -215,7 +256,7 @@ BookmarksList:
 			}
 		}
 	}
-	If modified
+	If bookmarksModified
 	{
 		If bookmarksToDelete
 		{
@@ -226,34 +267,108 @@ BookmarksList:
 		}
 		StringReplace, bookmarks, bookmarks, ||, |, All
 		IniWrite, %bookmarks%, Settings.ini, Bookmarks, list
+		bookmarksToDelete := bookmarksModified := ""
 	}
 	GuiControl, +Redraw, BookmarksList
+	If (deleteBookmarks == 1)
+	{
+		deleteBookmarks := ""
+		updateList := 1
+		GoSub, BookmarksList
+	}
 Return
+		;}
+	;}
+	;{ Tab #1: gLabels of buttons.
+RunSelected:
+	If (activeControl == "FileList")
+	{
+		Gui, ListView, FileList
+		selected := selectedFullPath "\" getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
+		StringReplace, selected, selected, |, |%selectedFullPath%\
+	}
+	Else If (activeControl == "BookmarksList")
+	{
+		Gui, ListView, BookmarksList
+		selected := getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
+	}
+	run(selected)
+Return
+
 BookmarkSelected:	; G-Label of "Bookmark selected" button.
 	Gui, ListView, FileList
 	IfNotExist, Settings.ini
 		FileAppend, [Settings]`n`n[Bookmarks]`n, Settings.ini, UTF-16
 	selected := getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
 	IniRead, bookmarks, Settings.ini, Bookmarks, list
-	selected := SelectedFullPath "\" selected
-	StringReplace, selected, selected, |, |%SelectedFullPath%\
+	selected := selectedFullPath "\" selected
+	StringReplace, selected, selected, |, |%selectedFullPath%\
 	If bookmarks
 		bookmarks .= "|" . selected
 	Else
 		bookmarks .= selected
 	IniWrite, %bookmarks%, Settings.ini, Bookmarks, list
+	updateList := 1
 	GoSub, BookmarksList
 Return
-FileList:
+
+DeleteSelected:
+	If !(activeControl == "ProcessList")
+		Gui, ListView, %activeControl%
+	If (activeControl == "BookmarksList")
+	{
+		bookmarksToDelete := getSelectedRowsNumbers()
+		deleteBookmarks := updateList := bookmarksModified := 1
+		GoSub, %activeControl%
+	}
+	Else If (activeControl == "FolderTree")
+	{
+		
+	}
+	Else If (activeControl == "FileList")
+	{
+		
+	}
 Return
 	;}
-	;{ G-Labels of buttons on the "Manage processes" tab.
+	;{ Tab #2: gLabels of ListView.
 ProcessList:
-Return
-
-#IfWinActive Manage Scripts ahk_class AutoHotkeyGUI
-Delete::
-#IfWinActive
+	Global activeControl := A_ThisLabel
+	If listIndex	; If we previously retrieved data at least once.
+	{	; Backing up old data for later comparison.
+		; Global scriptNameArrayOld := scriptNameArray
+		Global pidArrayOld := pidArray
+		; Global scriptPathArrayOld := scriptPathArray
+	}
+	
+	Global scriptNameArray := [], Global pidArray := [], Global scriptPathArray := []	; Defining and clearing arrays.
+	listIndex := 0
+	Gui, ListView, ProcessList
+	; GuiControl, -Redraw, ProcessList	; Improve performance by disabling redrawing during load.
+	For Process In ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on "If RegExMatch" rules).
+	{	; A list of accessible parameters related to the running processes: http://msdn.microsoft.com/en-us/library/windows/desktop/aa394372%28v=vs.85%29.aspx
+		; If (Process.ExecutablePath == A_AhkPath)	; This and the next line are the alternative to the If RegExMatch() below.
+		; 	Process.CommandLine := RegExReplace(Process.CommandLine, "i)^.*\\|\.ahk\W*") . ".ahk"
+		If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
+		{
+			listIndex++
+			pidArray.Insert(Process.ProcessId)	; Using "ProcessId" param to fulfill our "pidsArray" array.
+			scriptNameArray.Insert(scriptName)	; The first RegExMatch outputs to "scriptName" variable, who's contents we use to fulfill our "scriptNamesArray" array.
+			scriptPathArray.Insert(scriptPath)	; The second RegExMatch outputs to "scriptPath" variable, who's contents we use to fulfill our "scriptPathArray" array.
+			If !(pidArrayOld[listIndex] == Process.ProcessId)
+				LV_Insert(listIndex, "", listIndex, Process.ProcessId, scriptName, scriptPath)	; Fill the ListView with the freshely retrieved data.
+		}
+	}
+	Loop	; Remove listed dead scripts from the list.
+	{
+		deadRow := LV_Delete(listIndex + 1)
+		If !deadRow
+			Break
+	}
+	; GuiControl, +Redraw, ProcessList
+	Return
+	;}
+	;{ Tab #2: gLabels of buttons.
 Kill:
 	Gui, ListView, ProcessList
 	kill(getPIDsOfSelectedRows())
@@ -291,49 +406,47 @@ Return
 	;}
 ;}
 
-;{ A subroutine to scan memory for running ahk scripts.
+;{ HOTKEYS
 #IfWinActive Manage Scripts ahk_class AutoHotkeyGUI
+
 F5::
-scanMemoryForAhkProcesses:
-	If listIndex	; If we previously retrieved data at least once.
-	{	; Backing up old data for later comparison.
-		Global scriptNameArrayOld := scriptNameArray
-		Global pidArrayOld := pidArray
-		Global scriptPathArrayOld := scriptPathArray
-	}
-	
-	Global scriptNameArray := [], Global pidArray := [], Global scriptPathArray := []	; Defining and clearing arrays.
-	listIndex := 0
-	Gui, ListView, ProcessList
-	; GuiControl, -Redraw, ProcessList
-	For Process In ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on "If RegExMatch" rules).
-	{	; A list of accessible parameters related to the running processes: http://msdn.microsoft.com/en-us/library/windows/desktop/aa394372%28v=vs.85%29.aspx
-		; If (Process.ExecutablePath == A_AhkPath)	; This and the next line are the alternative to the If RegExMatch() below.
-		; 	Process.CommandLine := RegExReplace(Process.CommandLine, "i)^.*\\|\.ahk\W*") . ".ahk"
-		If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
-		{
-			listIndex++
-			pidArray.Insert(Process.ProcessId)	; Using "ProcessId" param to fulfill our "pidsArray" array.
-			scriptNameArray.Insert(scriptName)	; The first RegExMatch outputs to "scriptName" variable, who's contents we use to fulfill our "scriptNamesArray" array.
-			scriptPathArray.Insert(scriptPath)	; The second RegExMatch outputs to "scriptPath" variable, who's contents we use to fulfill our "scriptPathArray" array.
-			If !(pidArrayOld[listIndex] == Process.ProcessId)
-				LV_Insert(listIndex, "", listIndex, Process.ProcessId, scriptName, scriptPath)	; Fill the ListView with the freshely retrieved data.
-		}
-	}
-	Loop	; Remove listed dead scripts from the list.
+	ControlGet, activeTab, Tab,, SysTabControl321
+; msgbox activeTab: '%activeTab%'`nactiveControl: '%activeControl%'
+	If (activeTab == 1)
 	{
-		deadRow := LV_Delete(listIndex + 1)
-		If !deadRow
-			Break
+		updateList := 1
+		If (activeControl == "BookmarksList") || (activeControl == "FolderTree")
+			GoSub, %activeControl%
+		Else
+			GoSub, FolderTree
 	}
-	; GuiControl, +Redraw, ProcessList
-	Return
+	Else
+		Gosub, ProcessList
+Return
+
+Delete::
+; Msgbox A_Gui: '%A_Gui%'`nA_GuiControl: '%A_GuiControl%'`nA_GuiEvent: '%A_GuiEvent%'`nA_GuiControlEvent: '%A_GuiControlEvent%'`nA_EventInfo: '%A_EventInfo%'
+	ControlGet, activeTab, Tab,, SysTabControl321
+	If (activeTab == 1)
+		GoSub, DeleteSelected
+	Else If (activeTab == 2)
+		Gosub, Kill
+Return
+
+Esc::
+	ControlGet, activeTab, Tab,, SysTabControl321
+	If (activeTab == 1) || (activeControl == "FolderTree")
+	{
+		updateList := 1	
+		GoSub, %activeControl%
+	}
+Return
+
 #IfWinActive
 ;}
-
-;{ Functions to control scripts.
-
-getSelectedRowsNumbers()
+;{ FUNCTIONS
+	;{ Functions to gather data.
+getSelectedRowsNumbers()	; Usable by all ListViews.
 {
 	Loop, % LV_GetCount("Selected")
 	{
@@ -345,12 +458,16 @@ getSelectedRowsNumbers()
 	Return selectedRowsNumbers
 }
 
-getScriptsNamesOfSelectedFiles(selectedRowsNumbers)
+getScriptsNamesOfSelectedFiles(selectedRowsNumbers)	; Usable by all ListViews.
 {
-	Gui, ListView, FileList
 	Loop, Parse, selectedRowsNumbers, |
 	{
-		LV_GetText(selectedFileScriptName, A_LoopField, 1)	; Column #1 contains files' names.
+		If (activeControl == "FileList")
+			LV_GetText(selectedFileScriptName, A_LoopField, 1)	; Column #1 contains files' names.
+		Else If (activeControl == "BookmarksList")
+			LV_GetText(selectedFileScriptName, A_LoopField, 3)	; Column #3 in 'BookmarksList' ListView contains full paths of the scripts.
+		Else If (activeControl == "ProcessList")
+			LV_GetText(selectedFileScriptName, A_LoopField, 4)	; Column #4 in 'ProcessList' ListView contains full paths of the scripts.
 		If !selectedFilesScriptNames
 			selectedFilesScriptNames := selectedFileScriptName
 		Else
@@ -359,10 +476,9 @@ getScriptsNamesOfSelectedFiles(selectedRowsNumbers)
 	Return selectedFilesScriptNames
 }
 
-getPIDsOfSelectedRows()	; That function outputs selected rows' process IDs as a string of PIDs separated by pipes.
+getPIDsOfSelectedRows()	; Usable by 'ProcessList' ListView. That function outputs selected rows' process IDs as a string of PIDs separated by pipes.
 {
 	selectedRowsNumbers := getSelectedRowsNumbers()
-	Gui, ListView, ProcessList
 	Loop, Parse, selectedRowsNumbers, |
 	{
 		LV_GetText(pidOfSelectedRow, A_LoopField, 2)	; Column #2 contains PIDs.
@@ -374,7 +490,7 @@ getPIDsOfSelectedRows()	; That function outputs selected rows' process IDs as a 
 	Return selectedRowsPIDs
 }
 
-getScriptsPathsOfSelectedProcesses(selectedRowsNumbers)
+getScriptsPathsOfSelectedProcesses(selectedRowsNumbers)	; Usable by 'ProcessList' ListView.
 {
 	selectedRowsNumbers := getSelectedRowsNumbers()
 	Loop, Parse, selectedRowsNumbers, |
@@ -386,12 +502,18 @@ getScriptsPathsOfSelectedProcesses(selectedRowsNumbers)
 	}
 	Return selectedRowsScriptsPaths
 }
+	;}
+	;{ Functions of process control
+run(pathOrPathsSeparatedByPipes)
+{
+	Loop, Parse, pathOrPathsSeparatedByPipes, |
+		Run, % """" A_AhkPath """ """ A_LoopField """"
+}
 
 kill(pidOrPIDsSeparatedByPipes)	; Accepts a PID or a bunch of PIDs separated by pipes ("|").
 {
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 		Process, Close, % A_LoopField
-	GoSub, scanMemoryForAhkProcesses
 	NoTrayOrphans()
 }
 
@@ -402,29 +524,26 @@ killNreload(pidOrPIDsSeparatedByPipes)
 	NoTrayOrphans()
 	Loop, Parse, scriptsPaths, |
 		Run, % """" A_AhkPath """ """ A_LoopField """"
-	GoSub, scanMemoryForAhkProcesses
 }
 
 restart(pidOrPIDsSeparatedByPipes)
 {
 	scriptsPaths := getScriptsPathsOfSelectedProcesses(pidOrPIDsSeparatedByPipes)
-	Loop, Parse, scriptsPaths, |
-		Run, % """" A_AhkPath """ /restart """ A_LoopField """"
-	GoSub, scanMemoryForAhkProcesses
+	; Loop, Parse, scriptsPaths, |
+	; 	Run, % """" A_AhkPath """ /restart """ A_LoopField """"
+	run(scriptsPaths)
 }
 
 pause(pidOrPIDsSeparatedByPipes)
 {
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 		PostMessage, 0x111, 65403,,, ahk_pid %A_LoopField%
-	GoSub, scanMemoryForAhkProcesses
 }
 
 suspendHotkeys(pidOrPIDsSeparatedByPipes)
 {
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 		PostMessage, 0x111, 65404,,, ahk_pid %A_LoopField%
-	GoSub, scanMemoryForAhkProcesses
 }
 
 suspendProcess(pidOrPIDsSeparatedByPipes)
@@ -436,7 +555,6 @@ suspendProcess(pidOrPIDsSeparatedByPipes)
 		DllCall("ntdll.dll\NtSuspendProcess", "Int", procHWND)
 		DllCall("CloseHandle", "Int", procHWND)
 	}
-	GoSub, scanMemoryForAhkProcesses
 }
 
 resumeProcess(pidOrPIDsSeparatedByPipes)
@@ -448,11 +566,9 @@ resumeProcess(pidOrPIDsSeparatedByPipes)
 		DllCall("ntdll.dll\NtResumeProcess", "Int", procHWND)
 		DllCall("CloseHandle", "Int", procHWND)
 	}
-	GoSub, scanMemoryForAhkProcesses
 }
-;}
-
-;{ NoTrayOrphans() - a function to remove tray icons of dead processes.
+	;}
+	;{ NoTrayOrphans() - a function to remove tray icons of dead processes.
 NoTrayOrphans()	
 {
 	TrayInfo:= TrayIcons(sExeName,"ahk_class Shell_TrayWnd","ToolbarWindow32" . GetTrayBar()) "`n"
@@ -466,6 +582,7 @@ NoTrayOrphans()
 			RemoveTrayIcon(ProcesshWnd, ProcessuID)
 	}
 }
+
 RemoveTrayIcon(hWnd, uID, nMsg = 0, hIcon = 0, nRemove = 2)
 {
 	NumPut(VarSetCapacity(ni,444,0), ni)
@@ -476,6 +593,7 @@ RemoveTrayIcon(hWnd, uID, nMsg = 0, hIcon = 0, nRemove = 2)
 	NumPut(hIcon, ni, 20)
 	Return DllCall("shell32\Shell_NotifyIconA", "Uint", nRemove, "Uint", &ni)
 }
+
 TrayIcons(sExeName, traywindow, control)
 {
 	DetectHiddenWindows, On
@@ -529,6 +647,7 @@ TrayIcons(sExeName, traywindow, control)
 	DllCall("CloseHandle", "Uint", hProc)
 	Return sTrayIcons
 }
+
 GetTrayBar()
 {
 	ControlGet, hParent, hWnd,, TrayNotifyWnd1, ahk_class Shell_TrayWnd
@@ -551,4 +670,5 @@ StrX(H, BS = "", ES = "", Tr = 1, ByRef OS = 1)
 {
 	Return (SP := InStr(H, BS, 0, OS)) && (L := InStr(H, ES, 0, SP + StrLen(BS))) && (OS := L + StrLen(ES)) ? SubStr(H, SP := Tr ? SP + StrLen(BS) : SP, (Tr ? L : L + StrLen(ES)) -SP) : ""
 }
+	;}
 ;}

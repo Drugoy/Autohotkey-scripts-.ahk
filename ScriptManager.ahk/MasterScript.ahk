@@ -18,7 +18,6 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/ScriptManager.ahk/
 ; 5. Improve TreeView.
 ;	a. It should load all disks' root folders (and their sub-folders) + folders specified by user (that info should also get stored to settings).
 ;	b. TreeView should always only load folder's contents + contents of it's sub-folders. And load more, when user selected a deeper folder.
-; 6. Teach F5 and 'DeleteSelected' to properly refresh 'FileList' ListView.
 ;}
 
 ;{ BLAME:
@@ -52,7 +51,7 @@ Menu, Tray, Add
 Menu, Tray, Standard
 	;}
 	;{ Add tabbed interface
-Gui, Add, Tab2, x0 y0 Choose1 +Theme -Background gTabSwitch, Manage files|Manage processes
+Gui, Add, Tab2, AltSubmit x0 y0 Choose1 +Theme -Background gTabSwitch vactiveTab, Manage files|Manage processes	; AltSubmit here is needed to make variable 'activeTab' get active tab's number, not name.
 		;{ Tab #1: 'Manage files'
 Gui, Tab, Manage files
 Gui, Add, Text, x85 y27, Choose a folder:
@@ -63,18 +62,11 @@ Gui, Add, Button, x+0 gDeleteSelected, Delete selected
 Gui, Add, TreeView, AltSubmit x0 y+0 w269 h400 r20 +Resize gFolderTree vFolderTree ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.	; ICON
 AddSubFoldersToTree(startFolder)
 
-AddSubFoldersToTree(Folder, ParentItemID = 0)
-{
-	; This function adds to the TreeView all subfolders in the specified folder.
-	; It also calls itself recursively to gather nested folders to any depth.
-	Loop %Folder%\*.*, 2	; Retrieve all of Folder's sub-folders.
-		AddSubFoldersToTree(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon4"))	; ICON
-}
 ; File list (right pane).
 Gui, Add, ListView, AltSubmit x+0 w700 h400 r20 +Resize +Grid gFileList vFileList, Name|Size (bytes)|Created|Modified
 ; Set the column sizes
-LV_ModifyCol(1, "395")
-LV_ModifyCol(2, "66")
+LV_ModifyCol(1, "385")
+LV_ModifyCol(2, "76")
 LV_ModifyCol(3, "117")
 LV_ModifyCol(4, "117")
 
@@ -82,12 +74,11 @@ Gui, Add, Text, x0 y+0, Bookmarked scripts:
 
 ; Bookmarks (bottom pane).
 Gui, Add, ListView, AltSubmit x0 y+0 w969 h200 +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
-; ADD FILEREAD/FILECREATE/REFRESH
 ; Set the column sizes
 LV_ModifyCol(1, "20")
 LV_ModifyCol(2, "185")
-LV_ModifyCol(3, "479")
-LV_ModifyCol(4, "47")
+LV_ModifyCol(3, "450")
+LV_ModifyCol(4, "76")
 LV_ModifyCol(5, "117")
 LV_ModifyCol(6, "117")
 
@@ -114,6 +105,10 @@ LV_ModifyCol(1, "20")
 LV_ModifyCol(2, "40")
 LV_ModifyCol(3, "220")
 LV_ModifyCol(4, "430")
+Gui, Submit, NoHide
+token := 1
+GoSub, FolderTree
+GoSub, BookmarksList
 GoSub, GuiShow
 Return
 		;}
@@ -123,19 +118,9 @@ Return
 ;{ GUI Actions
 	;{ G-Labels of main GUI.
 GuiShow:
-	firstRun++
-	If (activeTab == 2)
-		activeTab := ""
-	Gui, +Resize +MinSize525x225
+	Gui, +Resize +MinSize474x225
 	Gui, Show, w968 h678 Center, Manage Scripts
-	If (firstRun == 1)
-	{
-		updateList := 1
-		GoSub, FolderTree	; Won't be needed if I manage to create a proper FileTree monitoring folders.
-		updateList := 1
-		GoSub, BookmarksList
-	}
-	If ((firstRun != 1) && (activeTab != 1))
+	If (activeTab == 2)
 		SetTimer, ProcessList, %memoryScanInterval%
 Return
 
@@ -145,32 +130,32 @@ GuiClose:
 Return
 
 TabSwitch:
-	ControlGet, activeTab, Tab,, SysTabControl321
-	If (activeTab == 2)
-		SetTimer, ProcessList, %memoryScanInterval%
+	Gui, Submit, NoHide
+	If (activeTab == 1)
+		SetTimer, ProcessList, Off
 	Else
-	{
-		If (firstRun != 1)
-			SetTimer, ProcessList, Off
-		GoSub, BookmarksList
-	}
+		SetTimer, ProcessList, %memoryScanInterval%
 Return
 	;}
 	;{ Tab #1: gLabels of [Tree/List]Views.
 		;{ FolderTree
 FolderTree:	; TreeView's G-label that should trigger ListView update.
-	Gui, TreeView, FolderTree
 	Global activeControl := A_ThisLabel
-	SetTimer, ProcessList, Off
-	; Otherwise, populate the ListView with the contents of the selected folder.
-	If (A_GuiEvent == "S") || (updateList == 1)	; If user selected a tree item.
+	If (A_GuiEvent == "") || (A_GuiEvent == "Normal") || (A_GuiEvent == "S")	; In case of script's initialization, user's left click or keyboard selection - (re)fill the 'FileList' listview.
 	{
-		updateList := ""
+		If (A_GuiEvent == "Normal")	; If user left clicked anything in the TreeView.
+		{
+			If (A_EventInfo != 0)	; If he clicked an empty space at right from a folder's name.
+				TV_Modify(A_EventInfo, "Select")	; Forcefully select that line.
+			Else If (A_EventInfo == 0)	; If he clicked an empty space (not the one at right from a folder's name).
+				TV_Modify(0)	; Remove selection and thus make 'FileList' ListView show the root folder's contents.
+		}
+		Gui, TreeView, FolderTree
+		Global activeControl := A_ThisLabel
 		TV_GetText(selectedItemText, A_EventInfo)	; Determine the full path of the selected folder:
 		ParentID := A_EventInfo
-		If ParentID
-			savedParentID := ParentID
-		ParentID := ((A_EventInfo) ? (A_EventInfo) : (savedParentID))
+		If memorizePath	; Variable 'memorizePath' is used as a token: if it returns true - then we shall use old path to the folder as the current one (otherwise the default path would be used).
+			memorizePath := selectedFullPath
 		Loop	; Build the full path to the selected folder.
 		{
 			ParentID := TV_GetParent(ParentID)
@@ -180,20 +165,24 @@ FolderTree:	; TreeView's G-label that should trigger ListView update.
 			SelectedItemText = %ParentText%\%selectedItemText%
 		}
 		selectedFullPath := startFolder "\" selectedItemText
+		If memorizePath
+			selectedFullPath := memorizePath
+		If (A_GuiEvent == "") && !token
+			Return
 		Gui, ListView, FileList	; Put the files into the ListView:
 		LV_Delete()	; Delete old data.
 		GuiControl, -Redraw, FileList	; Improve performance by disabling redrawing during load.
-		FileCount := TotalSize := 0	; Init prior to loop below.
+		token := memorizePath := FileCount := TotalSize := 0	; Init prior to loop below.
 		Loop %selectedFullPath%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
 		{
 			FormatTime, created, %A_LoopFileTimeCreated%, dd.MM.yyyy (HH:mm:ss)
 			FormatTime, modified, %A_LoopFileTimeModified%, dd.MM.yyyy (HH:mm:ss)
-			LV_Add("", A_LoopFileName, A_LoopFileSize, created, modified)
+			LV_Add("", A_LoopFileName, Round(A_LoopFileSize / 1024, 1) . " KB", created, modified)
 			FileCount++
 			TotalSize += A_LoopFileSize
 		}
 		GuiControl, +Redraw, FileList
-		
+	
 		; Update the three parts of the status bar to show info about the currently selected folder:
 		SB_SetText(FileCount . " files", 1)
 		SB_SetText(Round(TotalSize / 1024, 1) . " KB", 2)
@@ -203,34 +192,25 @@ Return
 		;}
 		;{ FileList
 FileList:
-	Global activeControl := A_ThisLabel
-	SetTimer, ProcessList, Off
+	If (A_GuiEvent == "Normal") || (A_GuiEvent == "RightClick")
+		Global activeControl := A_ThisLabel
 Return
 		;}
 		;{ BookmarksList
 BookmarksList:
-	Global activeControl := A_ThisLabel
-	SetTimer, ProcessList, Off
-	If !(updateList == 1) || If !FileExist("Settings.ini")	; Don't redraw the 'BookmarksList' ListView's contents if we don't have a pass key or we don't have any bookmarks file yet.
+	If (A_GuiEvent == "Normal") || (A_GuiEvent == "*") || (bookmarksModified == 1)
+		Global activeControl := A_ThisLabel
+	If !((A_GuiEvent == "*") || (bookmarksModified == 1)) || !FileExist("Settings.ini")	; Filter events out: (re)fill the listview only if the script just started, or we added/removed (a) bookmark(s). And don't fill anything if we have no bookmarks at all.
 		Return
-	; Show a list of bookmarked scripts and thier data.
-	A_IndexMy := nBookmarks := bookmarks := updateList := ""
-	GuiControl, -Redraw, BookmarksList	; Improve performance by disabling redrawing during load.
+	If bookmarksModified	; That variable is used as token for adding and deleting bookmarks.
+		GoSub, BookmarksModified	; First update the bookmarks file, and only then fill the listview.
+	A_IndexMy := nBookmarks := bookmarks := token := ""
+	; GuiControl, -Redraw, BookmarksList	; Improve performance by disabling redrawing during load.
 	Gui, ListView, BookmarksList
 	LV_Delete()	; Clear all rows.
 	IniRead, bookmarks, Settings.ini, Bookmarks, list
 	If bookmarks
 	{
-		Loop ; Remove double pipes.
-		{
-			IfInString, bookmarks, ||
-			{
-				bookmarksModified := 1
-				StringReplace, bookmarks, bookmarks, ||, |, All
-			}
-			Else
-				Break
-		}
 		StringSplit, bookmarks, bookmarks, |
 		While (A_IndexMy < bookmarks0)
 		{
@@ -239,12 +219,12 @@ BookmarksList:
 			IfExist, %thisBookmark%	; Define whether the previously bookmared file exists.
 			{	; If the file exists - display it in the list.
 				SplitPath, thisBookmark, name	; Get file's name from it's path.
-				FileGetSize, size, %thisBookmark%, K	; Get file's size.
+				FileGetSize, size, %thisBookmark%	; Get file's size.
 				FileGetTime, created, %thisBookmark%, C	; Get file's creation date.
 				FormatTime, created, %created%, dd.MM.yyyy (HH:mm:ss)	; Transofrm creation date into a readable format.
 				FileGetTime, modified, %thisBookmark%	; Get file's last modification date.
 				FormatTime, modified, %modified%, dd.MM.yyyy (HH:mm:ss)	; Transofrm creation date into a readable format.
-				LV_Insert(A_IndexMy, "", A_IndexMy, name, thisBookmark, size " KB", created, modified)	; Add the listitem.
+				LV_Insert(A_IndexMy, "", A_IndexMy, name, thisBookmark, Round(size / 1024, 1) . " KB", created, modified)	; Add the listitem.
 			}
 			Else	; If the file doesn't exist - remove that bookmark.
 			{
@@ -256,26 +236,29 @@ BookmarksList:
 			}
 		}
 	}
+	; GuiControl, +Redraw, BookmarksList
 	If bookmarksModified
+		GoSub, BookmarksModified
+Return
+
+BookmarksModified:
+	If bookmarksToDelete
 	{
-		If bookmarksToDelete
-		{
-			Loop, Parse, bookmarks, |
-				If (!RegExMatch(bookmarksToDelete, "\b" A_Index "\b"))
-					nBookmarks .= (StrLen(nBookmarks) ? "|" : "") A_LoopField
-			bookmarks := nBookmarks
-		}
-		StringReplace, bookmarks, bookmarks, ||, |, All
-		IniWrite, %bookmarks%, Settings.ini, Bookmarks, list
-		bookmarksToDelete := bookmarksModified := ""
+		Loop, Parse, bookmarks, |
+			If (!RegExMatch(bookmarksToDelete, "\b" A_Index "\b"))
+				nBookmarks .= (StrLen(nBookmarks) ? "|" : "") A_LoopField
+		bookmarks := nBookmarks
 	}
-	GuiControl, +Redraw, BookmarksList
-	If (deleteBookmarks == 1)
+	Loop ; Remove double pipes.
 	{
-		deleteBookmarks := ""
-		updateList := 1
-		GoSub, BookmarksList
+		IfInString, bookmarks, ||
+			StringReplace, bookmarks, bookmarks, ||, |, All
+		Else
+			Break
 	}
+	IniWrite, %bookmarks%, Settings.ini, Bookmarks, list
+	bookmarksToDelete := bookmarksModified := ""
+	GoSub, BookmarksList
 Return
 		;}
 	;}
@@ -285,7 +268,7 @@ RunSelected:
 	{
 		Gui, ListView, FileList
 		selected := selectedFullPath "\" getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
-		StringReplace, selected, selected, |, |%selectedFullPath%\
+		StringReplace, selected, selected, |, |%selectedFullPath%\, All
 	}
 	Else If (activeControl == "BookmarksList")
 	{
@@ -296,51 +279,61 @@ RunSelected:
 Return
 
 BookmarkSelected:	; G-Label of "Bookmark selected" button.
-	Gui, ListView, FileList
 	IfNotExist, Settings.ini
 		FileAppend, [Settings]`n`n[Bookmarks]`n, Settings.ini, UTF-16
+	Gui, ListView, FileList
 	selected := getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
 	IniRead, bookmarks, Settings.ini, Bookmarks, list
 	selected := selectedFullPath "\" selected
-	StringReplace, selected, selected, |, |%selectedFullPath%\
+	StringReplace, selected, selected, |, |%selectedFullPath%\, All
+	StringReplace, selected, selected, \\, \, All
 	If bookmarks
 		bookmarks .= "|" . selected
 	Else
 		bookmarks .= selected
 	IniWrite, %bookmarks%, Settings.ini, Bookmarks, list
-	updateList := 1
+	bookmarksModified := 1
 	GoSub, BookmarksList
 Return
 
 DeleteSelected:
-	If !(activeControl == "ProcessList")
+	If (activeControl == "BookmarksList") || (activeControl == "FileList")
 		Gui, ListView, %activeControl%
 	If (activeControl == "BookmarksList")
 	{
 		bookmarksToDelete := getSelectedRowsNumbers()
-		deleteBookmarks := updateList := bookmarksModified := 1
+		bookmarksModified := 1
 		GoSub, %activeControl%
-	}
-	Else If (activeControl == "FolderTree")
-	{
-		
 	}
 	Else If (activeControl == "FileList")
 	{
-		
+		Msgbox, 1, Confirmation required, Are you sure want to delete the selected file(s)?
+		IfMsgBox, OK
+		{
+			selected := getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
+			selected := selectedFullPath "\" selected
+			StringReplace, selected, selected, |, |%selectedFullPath%\, All
+			Loop, Parse, selected, |
+				FileDelete, %A_LoopField%
+			memorizePath := 1	; This is used as a token.
+			GoSub, FolderTree
+		}
 	}
+	; Else If (activeControl == "FolderTree")
+	; {
+	; 	Msgbox, 1, Confirmation required, Are you sure want to delete the selected file(s)?
+	; 	IfMsgBox, OK
+	; 	{
+	; 		
+	; 	}
+	; }
 Return
 	;}
 	;{ Tab #2: gLabels of ListView.
 ProcessList:
 	Global activeControl := A_ThisLabel
 	If listIndex	; If we previously retrieved data at least once.
-	{	; Backing up old data for later comparison.
-		; Global scriptNameArrayOld := scriptNameArray
 		Global pidArrayOld := pidArray
-		; Global scriptPathArrayOld := scriptPathArray
-	}
-	
 	Global scriptNameArray := [], Global pidArray := [], Global scriptPathArray := []	; Defining and clearing arrays.
 	listIndex := 0
 	Gui, ListView, ProcessList
@@ -409,24 +402,8 @@ Return
 ;{ HOTKEYS
 #IfWinActive Manage Scripts ahk_class AutoHotkeyGUI
 
-F5::
-	ControlGet, activeTab, Tab,, SysTabControl321
-; msgbox activeTab: '%activeTab%'`nactiveControl: '%activeControl%'
-	If (activeTab == 1)
-	{
-		updateList := 1
-		If (activeControl == "BookmarksList") || (activeControl == "FolderTree")
-			GoSub, %activeControl%
-		Else
-			GoSub, FolderTree
-	}
-	Else
-		Gosub, ProcessList
-Return
-
 Delete::
-; Msgbox A_Gui: '%A_Gui%'`nA_GuiControl: '%A_GuiControl%'`nA_GuiEvent: '%A_GuiEvent%'`nA_GuiControlEvent: '%A_GuiControlEvent%'`nA_EventInfo: '%A_EventInfo%'
-	ControlGet, activeTab, Tab,, SysTabControl321
+	; ControlGet, activeTab, Tab,, SysTabControl321
 	If (activeTab == 1)
 		GoSub, DeleteSelected
 	Else If (activeTab == 2)
@@ -434,12 +411,13 @@ Delete::
 Return
 
 Esc::
-	ControlGet, activeTab, Tab,, SysTabControl321
-	If (activeTab == 1) || (activeControl == "FolderTree")
+	If (activeControl == "BookmarksList") || (activeControl == "FileList") || (activeControl == "ProcessList")
 	{
-		updateList := 1	
-		GoSub, %activeControl%
+		Gui, ListView, %activeControl%
+		LV_Modify(0, "-Select")
 	}
+	Else If (activeControl == "FolderTree")
+		TV_Modify(0)
 Return
 
 #IfWinActive
@@ -450,7 +428,7 @@ getSelectedRowsNumbers()	; Usable by all ListViews.
 {
 	Loop, % LV_GetCount("Selected")
 	{
-		If !RowNumber
+		If !rowNumber
 			selectedRowsNumbers := rowNumber := LV_GetNext(rowNumber)
 		Else
 			selectedRowsNumbers .= "|" rowNumber := LV_GetNext(rowNumber)
@@ -503,7 +481,7 @@ getScriptsPathsOfSelectedProcesses(selectedRowsNumbers)	; Usable by 'ProcessList
 	Return selectedRowsScriptsPaths
 }
 	;}
-	;{ Functions of process control
+	;{ Functions of process control.
 run(pathOrPathsSeparatedByPipes)
 {
 	Loop, Parse, pathOrPathsSeparatedByPipes, |
@@ -568,8 +546,17 @@ resumeProcess(pidOrPIDsSeparatedByPipes)
 	}
 }
 	;}
+	;{ Fulfill 'TreeView' GUI.
+AddSubFoldersToTree(Folder, ParentItemID = 0)
+{
+	; This function adds to the TreeView all subfolders in the specified folder.
+	; It also calls itself recursively to gather nested folders to any depth.
+	Loop %Folder%\*.*, 2	; Retrieve all of Folder's sub-folders.
+		AddSubFoldersToTree(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon4"))
+}
+	;}
 	;{ NoTrayOrphans() - a function to remove tray icons of dead processes.
-NoTrayOrphans()	
+NoTrayOrphans()
 {
 	TrayInfo:= TrayIcons(sExeName,"ahk_class Shell_TrayWnd","ToolbarWindow32" . GetTrayBar()) "`n"
 		. TrayIcons(sExeName,"ahk_class NotifyIconOverflowWindow","ToolbarWindow321")

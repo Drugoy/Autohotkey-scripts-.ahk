@@ -89,16 +89,17 @@ SB_SetParts(60, 85)
 		;{ Tab #2: 'Manage processes'
 Gui, Tab, Manage processes
 ; Add buttons to trigger functions.
-Gui, Add, Button, x2 y21 gKill, Kill
-Gui, Add, Button, x+0 gkillNreload, Kill and reload
-Gui, Add, Button, x+0 gRestart, Restart
+Gui, Add, Button, x2 y21 gExit, Exit
+Gui, Add, Button, x+0 gKill, Kill
+Gui, Add, Button, x+0 gkillNreexecute, Kill and re-execute
+Gui, Add, Button, x+0 gReload, Reload
 Gui, Add, Button, x+0 gPause, (Un) pause
 Gui, Add, Button, x+0 gSuspendHotkeys, (Un) suspend hotkeys
 Gui, Add, Button, x+0 gSuspendProcess, Suspend process
 Gui, Add, Button, x+0 gResumeProcess, Resume process
 
 ; Add the main "ListView" element and define it's size, contents, and a label binding.
-Gui, Add, ListView, AltSubmit x0 y+0 w969 h612 r20 +Resize +Grid gProcessList vProcessList, #|pID|Name|Path
+Gui, Add, ListView, x0 y+0 w969 h612 r20 +Resize +Grid gProcessList vProcessList, #|pID|Name|Path
 
 ; Set the column sizes
 LV_ModifyCol(1, "20")
@@ -134,7 +135,10 @@ TabSwitch:
 	If (activeTab == 1)
 		SetTimer, ProcessList, Off
 	Else
+	{
+		GoSub, ProcessList
 		SetTimer, ProcessList, %memoryScanInterval%
+	}
 Return
 	;}
 	;{ Tab #1: gLabels of [Tree/List]Views.
@@ -362,19 +366,24 @@ ProcessList:
 	Return
 	;}
 	;{ Tab #2: gLabels of buttons.
+Exit:
+	Gui, ListView, ProcessList
+	exit(getPIDsOfSelectedRows())
+Return
+
 Kill:
 	Gui, ListView, ProcessList
 	kill(getPIDsOfSelectedRows())
 Return
 
-KillNreload:
+killNreexecute:
 	Gui, ListView, ProcessList
-	killNreload(getPIDsOfSelectedRows())
+	killNreexecute(getPIDsOfSelectedRows())
 Return
 
-Restart:
+Reload:
 	Gui, ListView, ProcessList
-	restart(getPIDsOfSelectedRows())
+	reload(getPIDsOfSelectedRows())
 Return
 
 Pause:
@@ -485,31 +494,44 @@ getScriptsPathsOfSelectedProcesses(selectedRowsNumbers)	; Usable by 'ProcessList
 run(pathOrPathsSeparatedByPipes)
 {
 	Loop, Parse, pathOrPathsSeparatedByPipes, |
-		Run, % """" A_AhkPath """ """ A_LoopField """"
+		Run, "%A_AhkPath%" "%A_LoopField%"
+}
+
+exit(pidOrPIDsSeparatedByPipes)
+{
+	Loop, Parse, pidOrPIDsSeparatedByPipes, |
+		PostMessage, 0x111, 65307,,, ahk_pid %A_LoopField%
+	NoTrayOrphans()
 }
 
 kill(pidOrPIDsSeparatedByPipes)	; Accepts a PID or a bunch of PIDs separated by pipes ("|").
 {
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
-		Process, Close, % A_LoopField
+		Process, Close, %A_LoopField%
 	NoTrayOrphans()
 }
 
-killNreload(pidOrPIDsSeparatedByPipes)
+killNreexecute(pidOrPIDsSeparatedByPipes)
 {
 	scriptsPaths := getScriptsPathsOfSelectedProcesses(pidOrPIDsSeparatedByPipes)
 	kill(pidOrPIDsSeparatedByPipes)
 	NoTrayOrphans()
 	Loop, Parse, scriptsPaths, |
-		Run, % """" A_AhkPath """ """ A_LoopField """"
+		Run, "%A_AhkPath%" "%A_LoopField%"
 }
 
-restart(pidOrPIDsSeparatedByPipes)
+; reload(pidOrPIDsSeparatedByPipes)
+; {
+; 	scriptsPaths := getScriptsPathsOfSelectedProcesses(pidOrPIDsSeparatedByPipes)
+; 	; Loop, Parse, scriptsPaths, |
+; 	; 	Run, % """" A_AhkPath """ /restart """ A_LoopField """"
+; 	run(scriptsPaths)
+; }
+
+reload(pidOrPIDsSeparatedByPipes)
 {
-	scriptsPaths := getScriptsPathsOfSelectedProcesses(pidOrPIDsSeparatedByPipes)
-	; Loop, Parse, scriptsPaths, |
-	; 	Run, % """" A_AhkPath """ /restart """ A_LoopField """"
-	run(scriptsPaths)
+	Loop, Parse, pidOrPIDsSeparatedByPipes, |
+		PostMessage, 0x111, 65303,,, ahk_pid %A_LoopField%
 }
 
 pause(pidOrPIDsSeparatedByPipes)
@@ -562,23 +584,12 @@ NoTrayOrphans()
 		. TrayIcons(sExeName,"ahk_class NotifyIconOverflowWindow","ToolbarWindow321")
 	Loop, Parse, TrayInfo, `n
 	{
-		ProcessName:= StrX(A_Loopfield, "| Process: ", " |")
-		ProcesshWnd:= StrX(A_Loopfield, "| hWnd: ", " |")
+		ProcessName := StrX(A_Loopfield, "| Process: ", " |")
+		ProcesshWnd := StrX(A_Loopfield, "| hWnd: ", " |")
 		ProcessuID := StrX(A_Loopfield, "| uID: ", " |")
 		If !ProcessName && ProcesshWnd
 			RemoveTrayIcon(ProcesshWnd, ProcessuID)
 	}
-}
-
-RemoveTrayIcon(hWnd, uID, nMsg = 0, hIcon = 0, nRemove = 2)
-{
-	NumPut(VarSetCapacity(ni,444,0), ni)
-	NumPut(hWnd, ni, 4)
-	NumPut(uID, ni, 8)
-	NumPut(1|2|4, ni, 12)
-	NumPut(nMsg, ni, 16)
-	NumPut(hIcon, ni, 20)
-	Return DllCall("shell32\Shell_NotifyIconA", "Uint", nRemove, "Uint", &ni)
 }
 
 TrayIcons(sExeName, traywindow, control)
@@ -642,20 +653,28 @@ GetTrayBar()
 	Loop
 	{
 		ControlGet, hWnd, hWnd,, ToolbarWindow32%A_Index%, ahk_class Shell_TrayWnd
-		If Not hWnd
-			Break
-		Else If	hWnd = %hChild%
-		{
+		If (hWnd == hChild)
 			idxTB := A_Index
+		If !hWnd || (hWnd == hChild)
 			Break
-		}
 	}
-	Return	idxTB
+	Return idxTB
 }
 
 StrX(H, BS = "", ES = "", Tr = 1, ByRef OS = 1)
 {
 	Return (SP := InStr(H, BS, 0, OS)) && (L := InStr(H, ES, 0, SP + StrLen(BS))) && (OS := L + StrLen(ES)) ? SubStr(H, SP := Tr ? SP + StrLen(BS) : SP, (Tr ? L : L + StrLen(ES)) -SP) : ""
+}
+
+RemoveTrayIcon(hWnd, uID, nMsg = 0, hIcon = 0, nRemove = 2)
+{
+	NumPut(VarSetCapacity(ni,444,0), ni)
+	NumPut(hWnd, ni, 4)
+	NumPut(uID, ni, 8)
+	NumPut(1|2|4, ni, 12)
+	NumPut(nMsg, ni, 16)
+	NumPut(hIcon, ni, 20)
+	Return DllCall("shell32\Shell_NotifyIconA", "Uint", nRemove, "Uint", &ni)
 }
 	;}
 ;}

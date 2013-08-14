@@ -26,6 +26,8 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
 memoryScanInterval := 1000	; Specify a value in milliseconds.
 SplitPath, A_AhkPath,, startFolder
+rememberPosAndSize := 1	; 1 = Make script's window remember it's position and size between window's closures. 0 = always open 800x600 on the center of the screen.
+storePosAndSize := 1	; 1 = Make script store info (into the "Settings.ini" file) about it's window's size and position between script's closures. 0 = do not store that info in the Settings.ini.
 ; startFolder := "C:\Program Files\AutoHotkey"
 ;}
 
@@ -101,11 +103,15 @@ token := 1
 GoSub, FolderTree
 GoSub, BookmarksList
 SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
-IniRead, sw_W, Settings.ini, Script's window, sizeW, 800
-IniRead, sw_H, Settings.ini, Script's window, sizeH, 600
-IniRead, sw_X, Settings.ini, Script's window, posX, % (UARight - sw_W) / 2
-IniRead, sw_Y, Settings.ini, Script's window, posY, % (UABottom - sw_H) / 2
-; Msgbox, sw_X: '%sw_X%'`nsw_Y: '%sw_Y%'`nsw_W: '%sw_W%'`nsw_H: '%sw_H%'`n
+If storePosAndSize
+{
+	IniRead, sw_W, Settings.ini, Script's window, sizeW, 800
+	IniRead, sw_H, Settings.ini, Script's window, sizeH, 600
+	IniRead, sw_X, Settings.ini, Script's window, posX, % (UARight - sw_W) / 2
+	IniRead, sw_Y, Settings.ini, Script's window, posY, % (UABottom - sw_H) / 2
+}
+Else
+	sizeW := 800, sizeH := 600, posX := (UARight - sw_W) / 2, posY := (UABottom - sw_H) / 2
 GoSub, GuiShow
 Return
 		;}
@@ -159,7 +165,8 @@ GuiSize:	; Expand or shrink the ListView in response to the user's resizing of t
 Return
 
 GuiClose:
-	WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
+	If storePosAndSize || rememberPosAndSize
+		WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
 	Gui, Hide
 	SetTimer, ProcessList, Off
 Return
@@ -185,14 +192,17 @@ Return
 
 ExitApp:
 	Gosub, GuiClose
-	If sw_X > 0
-		IniWrite, %sw_X%, Settings.ini, Script's window, posX
-	If sw_Y > 0
-		IniWrite, %sw_Y%, Settings.ini, Script's window, posY
-	If sw_W > 0
-		IniWrite, %sw_W%, Settings.ini, Script's window, sizeW
-	If sw_H > 0
-		IniWrite, %sw_H%, Settings.ini, Script's window, sizeH
+	If storePosAndSize
+	{
+		If sw_X > 0
+			IniWrite, %sw_X%, Settings.ini, Script's window, posX
+		If sw_Y > 0
+			IniWrite, %sw_Y%, Settings.ini, Script's window, posY
+		If sw_W > 0
+			IniWrite, %sw_W%, Settings.ini, Script's window, sizeW
+		If sw_H > 0
+			IniWrite, %sw_H%, Settings.ini, Script's window, sizeH
+	}
 	ExitApp
 	;}
 	;{ Tab #1: gLabels of [Tree/List]Views.

@@ -9,21 +9,13 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/ScriptManager.ahk/
 ;{ TODO:
 ; 1. Functions to control scripts:
 ; 	a. Hide/restore scripts' tray icons.
-; 2. GUIs:
-; 	a. A hotkey menu.
-;	b. Make GUIs resizable.
-;	c. Let user configure columns and memorize their order. (?) - not sure about that.
-; 3. Add a hotkey to kill and execute all the scripts from bookmarks list.
-; 4. Icons.
-; 5. Improve TreeView.
+; 2. Add more icons.
+; 3. Improve TreeView.
 ;	a. It should load all disks' root folders (and their sub-folders) + folders specified by user (that info should also get stored to settings).
 ;	b. TreeView should always only load folder's contents + contents of it's sub-folders. And load more, when user selected a deeper folder.
-;}
-
-;{ BLAME:
-; 1. suspendProcess() and resumeProcess() should better be a single function, but I don't know a way to get a suspension status of a process to let the script decide what operation to carry out.
-; 2. That might be (im)possible, but I don't yet know how to get the scripts' "suspend hotkeys" and "pause" states.
-; 3. I don't yet know if there is a way to get know about script's tray icon current state: is it possible? And if not - should there be some kind of internal storage for user's previous actions to take them into consideration?
+; 4. [If possible:] Combine suspendProcess() and resumeProcess() into a single function.
+;	This might be helpful: http://www.autohotkey.com/board/topic/41725-how-do-i-disable-a-script-from-a-different-script/#entry287262
+; 5. [If possible:] Add more scripts' info to ProcessList: hotkey suspend state, script's pause state.
 ;}
 
 ;{ Settings block.
@@ -39,6 +31,7 @@ SplitPath, A_AhkPath,, startFolder
 
 ;{ GUI Create
 	;{ Create folder icons.
+OnExit, ExitApp
 ImageListID := IL_Create(5)	; ICON
 Loop 5	; Below omits the DLL's path so that it works on Windows 9x too:	; ICON
 	IL_Add(ImageListID, "shell32.dll", A_Index)	; ICON
@@ -51,36 +44,34 @@ Menu, Tray, Add
 Menu, Tray, Standard
 	;}
 	;{ Add tabbed interface
-Gui, Add, Tab2, AltSubmit x0 y0 Choose1 +Theme -Background gTabSwitch vactiveTab, Manage files|Manage processes	; AltSubmit here is needed to make variable 'activeTab' get active tab's number, not name.
+Gui, Add, Tab2, AltSubmit x0 y0 w568 h46 Choose1 +Theme -Background gTabSwitch vactiveTab, Manage files|Manage processes	; AltSubmit here is needed to make variable 'activeTab' get active tab's number, not name.
 		;{ Tab #1: 'Manage files'
 Gui, Tab, Manage files
-Gui, Add, Text, x85 y27, Choose a folder:
-Gui, Add, Button, x270 y21 gRunSelected, Run selected
+Gui, Add, Text, x26 y26, Choose a folder:
+Gui, Add, Button, x301 y21 gRunSelected, Run selected
 Gui, Add, Button, x+0 gBookmarkSelected, Bookmark selected
 Gui, Add, Button, x+0 gDeleteSelected, Delete selected
 ; Folder list (left pane).
-Gui, Add, TreeView, AltSubmit x0 y+0 w269 h400 r20 +Resize gFolderTree vFolderTree ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.	; ICON
+Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.	; ICON
 AddSubFoldersToTree(startFolder)
 
 ; File list (right pane).
-Gui, Add, ListView, AltSubmit x+0 w700 h400 r20 +Resize +Grid gFileList vFileList, Name|Size (bytes)|Created|Modified
-; Set the column sizes
-LV_ModifyCol(1, "385")
-LV_ModifyCol(2, "76")
-LV_ModifyCol(3, "117")
-LV_ModifyCol(4, "117")
+Gui, Add, ListView, AltSubmit x+0 +Resize +Grid gFileList vFileList HwndFileListHwnd, Name|Size (bytes)|Created|Modified
 
-Gui, Add, Text, x0 y+0, Bookmarked scripts:
+; Set the column sizes
+LV_ModifyCol(2, 76)
+LV_ModifyCol(3, 117)
+LV_ModifyCol(4, 117)
+
+Gui, Add, Text, vtextBS, Bookmarked scripts:
 
 ; Bookmarks (bottom pane).
-Gui, Add, ListView, AltSubmit x0 y+0 w969 h200 +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
+Gui, Add, ListView, AltSubmit +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
 ; Set the column sizes
-LV_ModifyCol(1, "20")
-LV_ModifyCol(2, "185")
-LV_ModifyCol(3, "450")
-LV_ModifyCol(4, "76")
-LV_ModifyCol(5, "117")
-LV_ModifyCol(6, "117")
+LV_ModifyCol(1, 20)
+LV_ModifyCol(4, 76)
+LV_ModifyCol(5, 117)
+LV_ModifyCol(6, 117)
 
 ; Status Bar.
 Gui, Add, StatusBar
@@ -99,17 +90,22 @@ Gui, Add, Button, x+0 gSuspendProcess, Suspend process
 Gui, Add, Button, x+0 gResumeProcess, Resume process
 
 ; Add the main "ListView" element and define it's size, contents, and a label binding.
-Gui, Add, ListView, x0 y+0 w969 h612 r20 +Resize +Grid gProcessList vProcessList, #|pID|Name|Path
-
+Gui, Add, ListView, x0 y+0 +Resize +Grid gProcessList vProcessList, #|PID|Name|Path
 ; Set the column sizes
-LV_ModifyCol(1, "20")
-LV_ModifyCol(2, "40")
-LV_ModifyCol(3, "220")
-LV_ModifyCol(4, "430")
+LV_ModifyCol(1, 20)
+LV_ModifyCol(2, 40)
+
+; Startup labels executions.
 Gui, Submit, NoHide
 token := 1
 GoSub, FolderTree
 GoSub, BookmarksList
+SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
+IniRead, sw_W, Settings.ini, Script's window, sizeW, 800
+IniRead, sw_H, Settings.ini, Script's window, sizeH, 600
+IniRead, sw_X, Settings.ini, Script's window, posX, % (UARight - sw_W) / 2
+IniRead, sw_Y, Settings.ini, Script's window, posY, % (UABottom - sw_H) / 2
+; Msgbox, sw_X: '%sw_X%'`nsw_Y: '%sw_Y%'`nsw_W: '%sw_W%'`nsw_H: '%sw_H%'`n
 GoSub, GuiShow
 Return
 		;}
@@ -119,13 +115,51 @@ Return
 ;{ GUI Actions
 	;{ G-Labels of main GUI.
 GuiShow:
-	Gui, +Resize +MinSize474x225
-	Gui, Show, w968 h678 Center, Manage Scripts
+	Gui, +Resize +MinSize566x225
+	Gui, Show, % "x" . sw_X . " y" . sw_Y . " w" . sw_W " h" . sw_H , Manage Scripts
 	If (activeTab == 2)
 		SetTimer, ProcessList, %memoryScanInterval%
 Return
 
+GuiSize:	; Expand or shrink the ListView in response to the user's resizing of the window.
+	If !(A_EventInfo == 1)
+	{	; The window has been resized or maximized. Resize GUI items to match the window's size.
+		workingAreaHeight := A_GuiHeight - 86
+		GuiControl, -Redraw, activeTab
+		GuiControl, -Redraw, textBS
+		GuiControl, -Redraw, FileList
+		GuiControl, -Redraw, FolderTree
+		GuiControl, -Redraw, BookmarksList
+		GuiControl, -Redraw, ProcessList
+		GuiControl, Move, FolderTree, % " h" . (workingAreaHeight * 0.677)
+		ControlGetPos,, FT_yCoord, FT_Width, FT_Height,, ahk_id %FolderTreeHwnd%
+		GuiControl, Move, textBS, % "x0 y" . (FT_yCoord + FT_Height - 30)
+		GuiControl, Move, FileList, % "w" . (A_GuiWidth - FT_Width + 30) . " h" . (workingAreaHeight * 0.677)
+		Gui, ListView, FileList
+		LV_ModifyCol(1, A_GuiWidth - (FT_Width + 330))
+		GuiControl, Move, BookmarksList, % "x0 y" . (FT_yCoord + FT_Height - 17) . "w" . (A_GuiWidth + 1) . " h" . (8 + workingAreaHeight * 0.323)
+		Gui, ListView, BookmarksList
+		LV_ModifyCol(2, (A_GuiWidth - 349) * 0.35)
+		LV_ModifyCol(3, (A_GuiWidth - 349) * 0.65)
+		GuiControl, Move, ProcessList, % "w" . (A_GuiWidth + 1) . " h" . (workingAreaHeight + 20)
+		Gui, ListView, ProcessList
+		LV_ModifyCol(3, (A_GuiWidth - 78) * 0.3)
+		LV_ModifyCol(4, (A_GuiWidth - 78) * 0.7)
+		GuiControl, +Redraw, activeTab
+		If (activeTab == 1)
+		{
+			GuiControl, +Redraw, textBS
+			GuiControl, +Redraw, FileList
+			GuiControl, +Redraw, FolderTree
+			GuiControl, +Redraw, BookmarksList
+		}
+		Else
+			GuiControl, +Redraw, ProcessList
+	}
+Return
+
 GuiClose:
+	WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
 	Gui, Hide
 	SetTimer, ProcessList, Off
 Return
@@ -133,13 +167,33 @@ Return
 TabSwitch:
 	Gui, Submit, NoHide
 	If (activeTab == 1)
+	{
 		SetTimer, ProcessList, Off
+		GuiControl, +Redraw, activeTab
+		GuiControl, +Redraw, textBS
+		GuiControl, +Redraw, FileList
+		GuiControl, +Redraw, FolderTree
+		GuiControl, +Redraw, BookmarksList
+	}
 	Else
 	{
 		GoSub, ProcessList
 		SetTimer, ProcessList, %memoryScanInterval%
+		GuiControl, +Redraw, ProcessList
 	}
 Return
+
+ExitApp:
+	Gosub, GuiClose
+	If sw_X > 0
+		IniWrite, %sw_X%, Settings.ini, Script's window, posX
+	If sw_Y > 0
+		IniWrite, %sw_Y%, Settings.ini, Script's window, posY
+	If sw_W > 0
+		IniWrite, %sw_W%, Settings.ini, Script's window, sizeW
+	If sw_H > 0
+		IniWrite, %sw_H%, Settings.ini, Script's window, sizeH
+	ExitApp
 	;}
 	;{ Tab #1: gLabels of [Tree/List]Views.
 		;{ FolderTree
@@ -283,8 +337,6 @@ RunSelected:
 Return
 
 BookmarkSelected:	; G-Label of "Bookmark selected" button.
-	IfNotExist, Settings.ini
-		FileAppend, [Settings]`n`n[Bookmarks]`n, Settings.ini, UTF-16
 	Gui, ListView, FileList
 	selected := getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
 	IniRead, bookmarks, Settings.ini, Bookmarks, list

@@ -1,34 +1,103 @@
 ﻿;{ SilentScreenshotter by Drugoy
 ; This script makes *.png screenshots of the specified area and uploads it to itmages.ru and stores the URL to the uploaded image into the clipboard.
 ; Requirements:
-; 1. Download and install ITmages util for Windows from https://itmages.ru/info/tools
-; 2. Download optipng.exe from http://optipng.sourceforge.net/
+; 1. 'Optipng' utility (that is boundled along with this script if the script is compiled) can be downloaded from here: http://optipng.sourceforge.net/
+; 2. Some very basic .ahk knowledge for one-time script configuration.
 ; How to use:
-; 0. Edit the paths used by the script (at the top of the code), 'original.itmages.exe' should point at 'itmage.exe' not 'original.itmages.exe'.
+; 0. Configure the settings.
 ; 1. Run the script.
-; 2. Set cursor at any corner of the area you'd like to take a screenshot of, hit PrintScreen, set cursor to the opposite corner and hit PrintScreen again
-; The area between those two points will get into a screenshot, then saved to a temporary file as a *.png image, then it will get optimized (lossless reduction of file's size), then will get uploaded to itmages.ru, then the direct URL to the image will get stored into your clipboard and then the file will get deleted from your disk.
+; 2. a. Set cursor at any corner of the area you'd like to take a screenshot of.
+;	 b. Hit PrintScreen.
+;	 c. Set cursor to the opposite corner.
+;	 d. Hit PrintScreen again to lock the area to be screenshotted.
+;	 e. Hit PrintScreen once again to finally take the screenshot.
+; Before step "2e" - you may cancel screenshotting process by hitting Escape button.
 ;}
-;{ Settings
-RegRead, Temp, HKCU,  Environment, Temp	; Read registry to get the path to the system environment variable "Temp".
-If ErrorLevel	; If there is no env.var. "Temp".
-	RegRead, Temp, HKCU,  Environment, Tmp	; Look for env.var. "tmp" instead.
-imgTempPath := Temp "\quickScreenshot.png"	; Path to temporary save screenshot to.
-ITmagesUtilPath := "C:\Program Files (x86)\ITmages\original.itmages.exe"	; Path to ITmages.exe.
-optipngPath := A_ScriptDir . "\optipng.exe"	; Path to optipng.exe.
-outputAs := 1	; 1 = copy to clipboard, 2 = open in browser.
-#SingleInstance force
+;{ Initialization before settings
+#SingleInstance, Off
+SetWorkingDir, %A_ScriptDir%
+FileInstall, %A_ScriptDir%\optipng.exe, %A_ScriptDir%\optipng.exe
 CoordMode, Mouse, Screen
 SetBatchLines, -1
-; ListLines, Off
+RegRead, Temp, HKCU, Environment, Temp	; Read registry to get the path to the system environment variable "Temp".
+If ErrorLevel	; If there is no env.var. "Temp".
+	RegRead, Temp, HKCU, Environment, Tmp	; Look for env.var. "tmp" instead.
 ;}
+;{ Settings
+If A_IsCompiled
+{
+	IfNotExist, settings.ini
+	{
+		IniWrite,
+		(
+; UNCOMMENT LINES TO MAKE THEM GET READ
+; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
+imgurClientID=
+; Specify path and screenshot's name.
+;imgPath=`%Temp`%\
+; Specify locally saved image's name.
+;imgName=`%A_Now`%
+; Specify desired file format (most of common formats are supported).
+;imgExtension=.png
+; Use values from 0 to 7 to specify the compression level: 0 = no compression, 7 = max compression. Compression is always lossless, but works only for PNG.
+;optimizePNG=7
+; Specify path to "optipng.exe" if you would like to use it.
+;optipngPath=`%A_ScriptDir`%\optipng.exe
+; 1 = copy to clipboard; else = the image's URL will be opened in browser.
+;clipURL=1
+; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
+;tempScreenshot=1
+		), settings.ini, settings
+	}
+	IniRead, imgPath, settings.ini, settings, imgPath, % Temp . "\"
+	IniRead, imgName, settings.ini, settings, imgName, % A_Now
+	IniRead, imgExtension, settings.ini, settings, imgExtension, .png
+	IniRead, optimizePNG, settings.ini, settings, optimizePNG, 7
+	IniRead, optipngPath, settings.ini, settings, optipngPath, % A_ScriptDir . "\optipng.exe"
+	IniRead, clipURL, settings.ini, settings, clipURL, 1
+	IniRead, tempScreenshot, settings.ini, settings, tempScreenshot, 1
+	IniRead, imgurClientID, settings.ini, settings, imgurClientID
+}
+Else
+{
+	imgPath := Temp . "\"	; Specify path and screenshot's name.
+	imgName := A_Now	; Specify locally saved image's name.
+	imgExtension := ".png"	; Specify desired file format (most of common formats are supported).
+	optimizePNG := 7	; Use values from 0 to 7 to specify the compression level: 0 = no compression, 7 = max compression. Compression is always lossless, but works only for PNG.
+	optipngPath := A_ScriptDir . "\optipng.exe"	; Specify path to "optipng.exe" if you would like to use it.
+	clipURL := 1	; 1 = copy to clipboard; 0 = the image's URL will be opened in browser.
+	tempScreenshot := 1	; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
+	imgurClientID := ""	; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
+	; ListLines, Off	; Uncomment this if the script is fully working for you and you'd like to save a bit of RAM by sacrificing script's self-debugging ability.
+}
+;}
+Global imgurClientID, clipURL, tempScreenshot
+imgPath .= imgName . imgExtension
+
+If %0% != 0	; Usually %0% contains the number of command line parameters, but when the user drag'n'drops files onto the script - each of the dropped file gets sent to script as a separate command line parameter, so %0% contains the number of dropped files.
+{
+	Loop, %0%
+	{
+		GivenPath := %A_Index%
+		Loop %GivenPath%, 1
+			fileLongPath := A_LoopFileLongPath
+		If (A_Index == 1)
+			upload(fileLongPath)
+		Else
+			upload(fileLongPath, 1)
+	}
+}
+multipleInstances := OtherInstance()
+If multipleInstances
+	ExitApp
+Return
 
 $Esc::	; Escape hotkey is used in this script to cancel screenshot area selection.
 	If firstHit_EventFired
 	{
 		Gdip_DisposeImage(pBitmap)
 		Gdip_Shutdown(pToken)
-		firstHit_EventFired :=
+		firstHit_EventFired := ""
 		Gui 1: Destroy
 	}
 	Else
@@ -65,7 +134,7 @@ If !firstHit_EventFired	; The user hit PrintScreen - this is a first step.
 			Gdip_DeleteGraphics(G)
 		}
 		Sleep 20	; This pause is used to redraw the rectangular less frequently in order to consume less CPU resources. You may adjust the value (it's in miliseconds).
-		If GetKeyState("PrintScreen","P") || GetKeyState("LButton", "P") || (cancel := GetKeyState("Escape", "P"))	; User can hit Esc to cancel the selection at any time. User might want to finish the area selection with Left Mouse Button click or with hitting PrintScreen again. This is a second step: here we finish drawing the rectangular.
+		If GetKeyState("PrintScreen", "P") || GetKeyState("LButton", "P") || (cancel := GetKeyState("Escape", "P"))	; User can hit Esc to cancel the selection at any time. User might want to finish the area selection with Left Mouse Button click or with hitting PrintScreen again. This is a second step: here we finish drawing the rectangular.
 		{
 			KeyWait, PrintScreen
 			If cancel
@@ -73,7 +142,7 @@ If !firstHit_EventFired	; The user hit PrintScreen - this is a first step.
 				Gdip_DisposeImage(pBitmap)
 				Gdip_Shutdown(pToken)
 				Gui 1: Destroy
-				cancel := firstHit_EventFired :=
+				cancel := firstHit_EventFired := ""
 			}
 			Break
 		}
@@ -82,36 +151,20 @@ If !firstHit_EventFired	; The user hit PrintScreen - this is a first step.
 }
 Else	; User has to hit PrintScreen once again (for the 3rd time) to take a screenshot. I inteionally made not 2, but 3 steps required to take a screenshot: so you can take a screenshot of some event happening, for example, only when you hover something special.
 {
-	firstHit_EventFired :=
+	firstHit_EventFired := ""
 	Gui 1: Destroy	; Hide the rectangular before screenshotting the area
 	Gosub, x1x2y1y2	; Make x1 < x2 and y1 < y2.
 	; Save a screenshot to a file.
 	pBitmap := Gdip_BitmapFromScreen(x1 "|" y1 "|" x2-x1 "|" y2-y1)
-	Gdip_SaveBitmapToFile(pBitmap, imgTempPath, 100)
-	While !FileExist(imgTempPath)	; Wait until the file gets actually created (otherwise the script will execute the next part too fast).
+	Gdip_SaveBitmapToFile(pBitmap, imgPath, 100)
+	While !FileExist(imgPath)	; Wait until the file gets actually created (otherwise the script will execute the next part too fast).
 		Sleep 25
 	Gdip_DisposeImage(pBitmap)	; Clean after self.
 	Gdip_Shutdown(pToken)
-	RunWait, % optipngPath " -o7 -i0 -nc -nb -q -clobber " imgTempPath,, Hide	; Run png optimizator.
-	Run, %ITmagesUtilPath% %imgTempPath%,, Min	; Run ITMages util to upload the screenshot
-	WinWait, ahk_class ITmagesLogin,, 3
-	If ErrorLevel
-	{
-		Msgbox failed to run the %ITmagesUtilPath%. Firewall? Antivirus? Not enough rights?
-		Process, close, original.itmages.exe
-	}
-	ControlClick, Button7, ahk_class ITmagesLogin
-	WinWait, ahk_class ITmagesReady,, 3
-	If ErrorLevel
-	{
-		Msgbox failed to upload the screenshot. Check your internet connection and firewall.
-		Process, close, original.itmages.exe
-	}
-	ControlClick, % "Button" outputAs, ahk_class ITmagesReady
-	WinClose, ahk_class ITmagesReady
-	WinWaitClose, ahk_class ITmagesReady,, 3
-	FileDelete, %imgTempPath%	; Delete the file. Remove that line if you'd like to keep the screenshot (but be aware, that it will get overwritten if you'll screenshot another area.
-	x1 := x2 := x3 := y1 := y2 := y3 :=
+	If optimizePNG	; Run png optimizator if user chose to do so.
+		RunWait, %optipngPath% -o%optimizePNG% -i0 -nc -nb -q -clobber %imgPath%,, Hide
+	upload(imgPath)
+	x1 := x2 := x3 := y1 := y2 := y3 := ""
 }
 Return
 
@@ -127,4 +180,50 @@ Swap(ByRef a, ByRef b)	; A function to exchange values of two variables without 
 	a ^= b
 	b ^= a
 	a ^= b
+}
+
+upload(input, inputtedMultipleFiles = 0)	; Upload to Imgur using it's API.
+{
+	http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+	img := ComObjCreate("WIA.ImageFile")
+	img.LoadFile(input)
+	ip := ComObjCreate("WIA.ImageProcess")
+	data := img.filedata.binarydata
+	http.Open("POST", "https://api.imgur.com/3/upload")
+	http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
+	http.Send(data)
+	imgURL := http.ResponseText
+	If RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?jpg|jpeg|png|gif|apng|tiff|tif|bmp|pdf|xcf)""}", Match)
+    	imgURL := "https://" RegExReplace(Match1, "\\/", "/")
+	If clipURL	; If user configured the script to save the image's URL and he screenshotted something (not drag'n'dropped multiple files)
+	{
+		If !inputtedMultipleFiles	; Only 1 file to be uploaded.
+			ClipBoard := imgURL
+		Else	; Multiple files got drag'n'dropped, so links should be separated with a space.
+			Clipboard .= A_Space . imgURL
+	}
+	Else	; Otherwise - open it in the browser.
+		Run, %imgURL%
+	If tempScreenshot && (%0% == 0)	; User specified to delete the local screenshot's file after uploading it.
+		FileDelete, %input%
+	If (%0% == 0) && clipURL
+		Return imgURL
+}
+
+OtherInstance()
+{
+	DetectHiddenWindows, On
+	WinGet, wins, List, ahk_class AutoHotkey
+	Loop, %wins%
+	{
+		WinGetTitle, win, % "ahk_id " wins%A_Index%
+		If (RegExReplace(win, "^(.*) - AutoHotkey v[0-9\.]+$", "$1") == A_ScriptFullPath)
+		{
+			WinGet, wpid, PID, % "ahk_id " wins%A_Index%
+			If (wpid != DllCall("GetCurrentProcessId"))
+				Return wpid
+		}
+	}
+	DetectHiddenWindows, Off
+	Return 0
 }

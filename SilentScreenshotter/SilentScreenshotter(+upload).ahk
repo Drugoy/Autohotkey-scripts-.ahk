@@ -7,17 +7,18 @@
 ; https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/SilentScreenshotter/
 
 ; Requirements:
-; 1. 'Optipng' utility (that is boundled along with this script if the script is compiled) can be downloaded from here: http://optipng.sourceforge.net/
+; 1. 'Optipng' utility: it is boundled along with this script if the script is compiled, or can be downloaded from here: http://optipng.sourceforge.net/
 ; 2. Some very basic .ahk knowledge for one-time script configuration.
 ; How to use:
 ; 0. Configure the settings.
-; 1. Run the script.
-; 2. a. Set cursor at any corner of the area you'd like to take a screenshot of.
+; 1. Obtain ClientID here https://api.imgur.com/oauth2/addclient
+; 2. Run the script.
+; 3. a. Set cursor at any corner of the area you'd like to take a screenshot of.
 ;	 b. Hit PrintScreen.
 ;	 c. Set cursor to the opposite corner.
 ;	 d. Hit PrintScreen again to lock the area to be screenshotted.
 ;	 e. Hit PrintScreen once again to finally take the screenshot.
-; Before step "2e" - you may cancel screenshotting process by hitting Escape button.
+; Before step "3e" - you may cancel screenshotting process by hitting Escape button.
 ;}
 ;{ Initialization before settings
 #SingleInstance, Off
@@ -49,7 +50,7 @@ imgurClientID=
 ;optimizePNG=7
 ; Specify path to "optipng.exe" if you would like to use it.
 ;optipngPath=`%A_ScriptDir`%\optipng.exe
-; 1 = copy to clipboard; else = the image's URL will be opened in browser.
+; 0 = the image's URL will be opened in browser; 1 = copy to clipboard; 2 = do both.
 ;clipURL=1
 ; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
 ;tempScreenshot=1
@@ -71,9 +72,9 @@ Else
 	imgExtension := ".png"	; Specify desired file format (most of common formats are supported).
 	optimizePNG := 7	; Use values from 0 to 7 to specify the compression level: 0 = no compression, 7 = max compression. Compression is always lossless, but works only for PNG.
 	optipngPath := A_ScriptDir . "\optipng.exe"	; Specify path to "optipng.exe" if you would like to use it.
-	clipURL := 1	; 1 = copy to clipboard; 0 = the image's URL will be opened in browser.
+	clipURL := 1	; 0 = the image's URL will be opened in browser; 1 = copy to clipboard; 2 = do both.
 	tempScreenshot := 1	; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
-	imgurClientID := ""	; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
+	imgurClientID := "a6f3e91e6977dc8"	; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
 	; ListLines, Off	; Uncomment this if the script is fully working for you and you'd like to save a bit of RAM by sacrificing script's self-debugging ability.
 }
 ;}
@@ -170,7 +171,7 @@ Else	; User has to hit PrintScreen once again (for the 3rd time) to take a scree
 	If optimizePNG	; Run png optimizator if user chose to do so.
 		RunWait, %optipngPath% -o%optimizePNG% -i0 -nc -nb -q -clobber %imgPath%,, Hide
 	upload(imgPath)
-	x1 := x2 := x3 := y1 := y2 := y3 := ""
+	x1 := x2 := x3 := y1 := y2 := y3 := pPen := pToken := pBitmap := obm := hbm := hdc := hwnd1 := G := ""
 }
 Return
 
@@ -188,8 +189,8 @@ Swap(ByRef a, ByRef b)	; A function to exchange values of two variables without 
 	a ^= b
 }
 
-upload(input, inputtedMultipleFiles = 0)	; Upload to Imgur using it's API.
-{
+upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autohotkey.com/board/user/910-maestrith/
+{	; Upload to Imgur using it's API.
 	http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
 	img := ComObjCreate("WIA.ImageFile")
 	img.LoadFile(input)
@@ -199,7 +200,7 @@ upload(input, inputtedMultipleFiles = 0)	; Upload to Imgur using it's API.
 	http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
 	http.Send(data)
 	imgURL := http.ResponseText
-	If RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?jpg|jpeg|png|gif|apng|tiff|tif|bmp|pdf|xcf)""}", Match)
+	If RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?png|gif|bmp|jpg|jpeg)""}", Match)
     	imgURL := "https://" RegExReplace(Match1, "\\/", "/")
 	If clipURL	; If user configured the script to save the image's URL and he screenshotted something (not drag'n'dropped multiple files)
 	{
@@ -212,11 +213,12 @@ upload(input, inputtedMultipleFiles = 0)	; Upload to Imgur using it's API.
 		Run, %imgURL%
 	If tempScreenshot && (%0% == 0)	; User specified to delete the local screenshot's file after uploading it.
 		FileDelete, %input%
+	http := img := ip := data := input := inputtedMultipleFiles := ""
 	If (%0% == 0) && clipURL
 		Return imgURL
 }
 
-OtherInstance()
+OtherInstance()	; Thanks to: GeekDude http://www.autohotkey.com/board/user/10132-geekdude/
 {
 	DetectHiddenWindows, On
 	WinGet, wins, List, ahk_class AutoHotkey

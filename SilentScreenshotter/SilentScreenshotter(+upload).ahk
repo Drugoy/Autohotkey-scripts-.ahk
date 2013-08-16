@@ -1,5 +1,11 @@
 ﻿;{ SilentScreenshotter by Drugoy
-; This script makes *.png screenshots of the specified area and uploads it to itmages.ru and stores the URL to the uploaded image into the clipboard.
+
+; This script takes *.png screenshots of the specified area and uploads them to imgur.com and depending on user's setting - it either stores the URL of the uploaded image into the clipboard or opens it instantly. It also supports image files to be drag'n'dropped onto the script to upload them.
+
+; Script author: Drugoy a.k.a. Drugmix
+; Contacts: idrugoy@gmail.com, drug0y@ya.ru
+; https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/SilentScreenshotter/
+
 ; Requirements:
 ; 1. 'Optipng' utility (that is boundled along with this script if the script is compiled) can be downloaded from here: http://optipng.sourceforge.net/
 ; 2. Some very basic .ahk knowledge for one-time script configuration.

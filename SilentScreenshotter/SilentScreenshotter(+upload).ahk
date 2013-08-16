@@ -22,7 +22,7 @@
 ;{ Initialization before settings
 #SingleInstance, Off
 SetWorkingDir, %A_ScriptDir%
-FileInstall, %A_ScriptDir%\optipng.exe, %A_ScriptDir%\optipng.exe
+FileInstall, optipng.exe, optipng.exe
 CoordMode, Mouse, Screen
 SetBatchLines, -1
 RegRead, Temp, HKCU, Environment, Temp	; Read registry to get the path to the system environment variable "Temp".

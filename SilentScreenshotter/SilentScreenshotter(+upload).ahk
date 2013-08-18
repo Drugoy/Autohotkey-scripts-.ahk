@@ -7,8 +7,9 @@
 ; https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/SilentScreenshotter/
 
 ; Requirements:
-; 1. 'Optipng' utility: it is boundled along with this script if the script is compiled, or can be downloaded from here: http://optipng.sourceforge.net/
-; 2. Some very basic .ahk knowledge for one-time script configuration.
+; 1. GDI+ library (put it to your "../Program files/Autohotkey/Lib" folder) http://www.autohotkey.com/board/topic/29449-gdi-standard-library-145-by-tic/
+; 2. That requirement is optional: 'Optipng' utility: it is boundled along with this script if the script is compiled, or can be downloaded from here: http://optipng.sourceforge.net/
+; 3. Some very basic .ahk knowledge for one-time script configuration.
 ; How to use:
 ; 0. Configure the settings.
 ; 1. Obtain ClientID here https://api.imgur.com/oauth2/addclient
@@ -21,6 +22,13 @@
 ; Before step "3e" - you may cancel screenshotting process by hitting Escape button.
 ;}
 ;{ Initialization before settings
+#Include, Gdip.ahk
+If !pToken := Gdip_Startup()
+{
+	MsgBox, 48, gdiplus error!, GDI+ failed to start. Please ensure you have GDI+ on your system. Opening http://www.autohotkey.com/board/topic/29449-gdi-standard-library-145-by-tic/, please manually put that library to the "../Program files/Autohotkey/Lib" folder.
+	Run, http://www.autohotkey.com/board/topic/29449-gdi-standard-library-145-by-tic/
+	ExitApp
+}
 #SingleInstance, Off
 SetWorkingDir, %A_ScriptDir%
 FileInstall, optipng.exe, optipng.exe
@@ -200,7 +208,7 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 	http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
 	http.Send(data)
 	imgURL := http.ResponseText
-	If RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?png|gif|bmp|jpg|jpeg)""}", Match)
+	If RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?(jpg|jpeg|png|gif|apng|tiff|tif|bmp|pdf|xcf))""}", Match)
     	imgURL := "https://" RegExReplace(Match1, "\\/", "/")
 	If clipURL	; If user configured the script to save the image's URL and he screenshotted something (not drag'n'dropped multiple files)
 	{

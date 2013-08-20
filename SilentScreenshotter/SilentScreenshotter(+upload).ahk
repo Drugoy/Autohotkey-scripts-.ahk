@@ -81,7 +81,7 @@ Else
 	optipngPath := A_ScriptDir . "\optipng.exe"	; Specify path to "optipng.exe" if you would like to use it.
 	clipURL := 1	; 0 = the image's URL will be opened in browser; 1 = copy to clipboard; 2 = do both.
 	tempScreenshot := 1	; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
-	imgurClientID := "a6f3e91e6977dc8"	; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
+	imgurClientID := ""	; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
 	; ListLines, Off	; Uncomment this if the script is fully working for you and you'd like to save a bit of RAM by sacrificing script's self-debugging ability.
 }
 ;}

@@ -22,7 +22,7 @@
 ; Before step "3e" - you may cancel screenshotting process by hitting Escape button.
 ;}
 ;{ Initialization before settings
-#Include, Gdip.ahk
+; #Include, Gdip.ahk
 If !pToken := Gdip_Startup()
 {
 	MsgBox, 48, gdiplus error!, GDI+ failed to start. Please ensure you have GDI+ on your system. Opening http://www.autohotkey.com/board/topic/29449-gdi-standard-library-145-by-tic/, please manually put that library to the "../Program files/Autohotkey/Lib" folder.
@@ -34,9 +34,8 @@ SetWorkingDir, %A_ScriptDir%
 FileInstall, optipng.exe, optipng.exe
 CoordMode, Mouse, Screen
 SetBatchLines, -1
-RegRead, Temp, HKCU, Environment, Temp	; Read registry to get the path to the system environment variable "Temp".
-If ErrorLevel	; If there is no env.var. "Temp".
-	RegRead, Temp, HKCU, Environment, Tmp	; Look for env.var. "tmp" instead.
+If !Temp	; If there is no env.var. "Temp" - use "Tmp" instead.
+	Temp := Tmp
 ;}
 ;{ Settings
 If A_IsCompiled
@@ -78,7 +77,7 @@ Else
 	imgPath := Temp . "\"	; Specify path and screenshot's name.
 	imgName := A_Now	; Specify locally saved image's name.
 	imgExtension := ".png"	; Specify desired file format (most of common formats are supported).
-	optimizePNG := 7	; Use values from 0 to 7 to specify the compression level: 0 = no compression, 7 = max compression. Compression is always lossless, but works only for PNG.
+	optimizePNG := 0	; Use values from 0 to 7 to specify the compression level: 0 = no compression, 7 = max compression. Compression is always lossless, but works only for PNG.
 	optipngPath := A_ScriptDir . "\optipng.exe"	; Specify path to "optipng.exe" if you would like to use it.
 	clipURL := 1	; 0 = the image's URL will be opened in browser; 1 = copy to clipboard; 2 = do both.
 	tempScreenshot := 1	; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
@@ -86,7 +85,7 @@ Else
 	; ListLines, Off	; Uncomment this if the script is fully working for you and you'd like to save a bit of RAM by sacrificing script's self-debugging ability.
 }
 ;}
-Global imgurClientID, clipURL, tempScreenshot
+Global imgurClientID, imgURL, clipURL, tempScreenshot
 imgPath .= imgName . imgExtension
 
 If %0% != 0	; Usually %0% contains the number of command line parameters, but when the user drag'n'drops files onto the script - each of the dropped file gets sent to script as a separate command line parameter, so %0% contains the number of dropped files.
@@ -111,7 +110,6 @@ $Esc::	; Escape hotkey is used in this script to cancel screenshot area selectio
 	If firstHit_EventFired
 	{
 		Gdip_DisposeImage(pBitmap)
-		Gdip_Shutdown(pToken)
 		firstHit_EventFired := ""
 		Gui 1: Destroy
 	}
@@ -125,7 +123,6 @@ If !firstHit_EventFired	; The user hit PrintScreen - this is a first step.
 {
 	firstHit_EventFired := 1
 	MouseGetPos, x1, y1
-	pToken := Gdip_Startup()	; Prepare GDI+.
 	Gui, 1: -Caption +E0x80000 +HWNDhwnd1 +LastFound +AlwaysOnTop +ToolWindow +OwnDialogs ; Create a GUI to use it as a canvas for GDI+ drawing.
 	Gui, 1: Show, NA
 	Loop
@@ -155,7 +152,6 @@ If !firstHit_EventFired	; The user hit PrintScreen - this is a first step.
 			If cancel
 			{
 				Gdip_DisposeImage(pBitmap)
-				Gdip_Shutdown(pToken)
 				Gui 1: Destroy
 				cancel := firstHit_EventFired := ""
 			}
@@ -175,13 +171,19 @@ Else	; User has to hit PrintScreen once again (for the 3rd time) to take a scree
 	While !FileExist(imgPath)	; Wait until the file gets actually created (otherwise the script will execute the next part too fast).
 		Sleep 25
 	Gdip_DisposeImage(pBitmap)	; Clean after self.
-	Gdip_Shutdown(pToken)
 	If optimizePNG	; Run png optimizator if user chose to do so.
 		RunWait, %optipngPath% -o%optimizePNG% -i0 -nc -nb -q -clobber %imgPath%,, Hide
 	upload(imgPath)
-	x1 := x2 := x3 := y1 := y2 := y3 := pPen := pToken := pBitmap := obm := hbm := hdc := hwnd1 := G := ""
+	TrayTip, Complete, The image has been successfully uploaded:`n%imgURL%, 1, 1
+	x1 := x2 := x3 := y1 := y2 := y3 := pPen := pBitmap := obm := hbm := hdc := hwnd1 := G := ""
 }
 Return
+
+OnExit, Exit
+
+Exit:
+	Gdip_Shutdown(pToken)
+ExitApp
 
 x1x2y1y2:
 	If (x1 > x2)	; We have to keep x1 < x2 and y1 < y2 or GDI+ function will fail.
@@ -206,7 +208,10 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 	data := img.filedata.binarydata
 	http.Open("POST", "https://api.imgur.com/3/upload")
 	http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
-	http.Send(data)
+	Try
+		http.Send(data)
+	Catch, e
+		Msgbox Please, try again, because the script failed to upload your screenshot due to a server-issue:`n%e%
 	imgURL := http.ResponseText
 	If RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?(jpg|jpeg|png|gif|apng|tiff|tif|bmp|pdf|xcf))""}", Match)
     	imgURL := "https://" RegExReplace(Match1, "\\/", "/")
@@ -222,8 +227,6 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 	If tempScreenshot && (%0% == 0)	; User specified to delete the local screenshot's file after uploading it.
 		FileDelete, %input%
 	http := img := ip := data := input := inputtedMultipleFiles := ""
-	If (%0% == 0) && clipURL
-		Return imgURL
 }
 
 OtherInstance()	; Thanks to: GeekDude http://www.autohotkey.com/board/user/10132-geekdude/

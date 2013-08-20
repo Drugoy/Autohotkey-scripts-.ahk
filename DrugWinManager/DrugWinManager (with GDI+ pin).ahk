@@ -10,7 +10,7 @@ The script has the following functions:
 6. Hitting WheelLeft/WheelRight (on the mouse) works as going back/forward (correspondingly) in the history of browsers and in Windows Explorer;
 7. Hit "XButton1" to copy (sends Ctrl+C);
 8. Hit "XButton2" to paste (sends Ctrl+V);
-9. Hit "Excel" key to run AkelPad Portable, activate it or hide;
+9. Hit "Excel" key to run AkelPad, activate it or hide;
 10. Hit "Word" key to run Notepad++ Portable, activate it or hide;
 11. Hit "WWW" key to run AHK Toolkit;
 12. Hit "My Computer" key to minimize all (bring desktop to front) and to undo that;
@@ -51,8 +51,8 @@ SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
 	;{ Defining variables' values for later use.
 UAcenterX := UALeft + (UAhalfW := (UALeft + UARight) / 2)
 UAcenterY := UATop + (UAhalfH := (UATop + UABottom) / 2)
-Global GUIs := [], Exceptions := [], WS_EX_TOPMOST := 0x8, EVENT_OBJECT_SHOW := 0x8002, EVENT_OBJECT_HIDE := 0x8003, OBJID_WINDOW := 0, EVENT_OBJECT_LOCATIONCHANGE := 0x800B, WINEVENT_SKIPOWNPROCESS := 0x2
-Exceptions := ["Button", "tooltip", "shadow", "TaskListThumbnailWnd", "TaskListOverlayWnd", "Progman", "ComboLBox", "Shell_TrayWnd", "TTrayAlert", "NotifyIconOverflowWindow", "SysDragImage", "ClockFlyoutWindow", "#327"]	; Exceptions list: add here classNNs (or their parts) of windows to exclude from monitoring.	; TabSRMM's window has class #32770
+Global GUIs := [], Exceptions := [], WS_EX_TOPMOST := 0x8, EVENT_OBJECT_SHOW := 0x8002, EVENT_OBJECT_HIDE := 0x8003, EVENT_OBJECT_LOCATIONCHANGE := 0x800B, WINEVENT_SKIPOWNPROCESS := 0x2, WS_EX_TRANSPARENT := 0x20, WS_POPUP := 0x80000000, WS_CAPTION := 0xC00000, WS_BORDER := 0x800000
+Exceptions := ["Button", "tooltip", "shadow", "TaskListThumbnailWnd", "TaskListOverlayWnd", "Progman", "ComboLBox", "Shell_TrayWnd", "TTrayAlert", "NotifyIconOverflowWindow", "SysDragImage", "ClockFlyoutWindow", "#327", "THppHintWindow", "DV2ControlHost"]	; Exceptions list: add here classNNs (or their parts) of windows to exclude from monitoring.	; TabSRMM's window has class #32770
 	;}
 	;{ Setting hooks.
 HWINEVENTHOOK1 := setWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_HIDE, 0, RegisterCallback("watchingShowHideWindow", "F"), 0, 0, WINEVENT_SKIPOWNPROCESS)	; Track windows' appearing and hiding
@@ -62,17 +62,17 @@ OnExit, Exit	; Remove hooks upon exit.
 	;{ Set timer to monitor changes in windows' positions and visibility (to redraw "always on top" markers if needed).
 SetTimer, MonitoringWindows, 1000	; Monitoring windows' positions to redraw AlwaysOnTop indicator.
 MonitoringWindows:	; Used for timer that tracks windows' position changes to redraw the "always on top" marker.
-	For k, v in GUIs
-		If !WinExist("ahk_id" v.Parent)
-			alwaysOnTopOff(v.Parent)
+	For key, value in GUIs
+		If !WinExist("ahk_id" value.Parent)
+			alwaysOnTopOff(value.Parent)
 	WinGet, List, List
-	Loop % List
+	Loop, %List%
 	{
 		ID := List%A_Index%
 		WinWait, ahk_id %ID%
 		WinGet, PID, PID
-		For k, v in GUIs
-			If (v.Parent == ID)
+		For key, value in GUIs
+			If (value.Parent == ID)
 			{
 				WinGet, ExStyle, ExStyle
 				If !(ExStyle & WS_EX_TOPMOST)
@@ -117,14 +117,14 @@ XButton2 & WheelLeft::
 	}
 	WinGetPos, XWIn, YWin,,, ahk_id %ID%
 	WinGetClass, Class, ahk_id %ID%
-	For k, v in Exceptions
-		If InStr(Class, v)
+	For key, value in Exceptions
+		If InStr(Class, value)
 		{
 			Gosub, CleanVars
 			Return
 		}
-	For k, v in GUIs
-		If (v.Parent == ID)
+	For key, value in GUIs
+		If (value.Parent == ID)
 		{
 			alwaysOnTopOff(ID)	; Remove "always on top" flag
 			If (A_ThisHotkey != "<#vkC0") && (onTop & WS_EX_TOPMOST)
@@ -159,7 +159,7 @@ WheelDown::
 		ControlGet, properTargetWin, Hwnd,, RichEdit20W1, ahk_id %id%
 		PostMessage 0x319, 0, (A_ThisHotkey == "WheelUp") ? 0x10000 : 0x20000,, ahk_id %properTargetWin%
 	}
-	Else If ((class == "AkelPad4") && (control == "SysTabControl321")) || ((class == "IEFrame") && (control == "DirectUIHWND2"))
+	Else If (class == "AkelPad4" && control == "SysTabControl321") || (class == "IEFrame" && control == "DirectUIHWND2")
 		ControlSend,, % (A_ThisHotkey == "WheelUp") ? ("{Ctrl Down}{Shift Down}{Tab}{Shift Up}{Ctrl Up}") : ("{Ctrl Down}{Tab}{Ctrl Up}"), ahk_id %id%
 	PostMessage, 0x20A, (A_ThisHotkey == "WheelUp") ? 120 << 16 : -120 << 16, ( m_y << 16 )|m_x,, ahk_id %hw_m_target%
 	Gosub, CleanVars
@@ -174,9 +174,9 @@ XButton2::Send ^{vk0x56sc0x2f}	; Paste (by sending Ctrl+V).
 
 ; Excel keyboard key to open AkelPad
 sc0x114::
-	Process, Exist, AkelPadPortable.exe
+	Process, Exist, AkelPad.exe
 	If !ErrorLevel
-		Run, C:\Soft\Portable soft\AkelPadPortable\AkelPadPortable.exe
+		Run, C:\Soft\Portable soft\AkelPad\AkelPad.exe
 	Else
 	{
 		IfWinExist, ahk_class AkelPad4
@@ -222,7 +222,7 @@ Return
 Browser_Home::Run, C:\Program Files\AutoHotkey\Scripts\DevTools\ToolKit\AHK-ToolKit.exe
 
 ; My Computer keyboard key
-Launch_App1::Send #d
+Launch_App1::Send, #d
 
 ; Calculator keyboard key
 Launch_App2::Run, calc
@@ -231,7 +231,7 @@ Launch_App2::Run, calc
 sc0x123::
 	IfWinNotExist, ahk_class AnVirMainFrame
 	{
-		Run C:\Soft\Portable soft\AnvirTaskManager\AnVir.exe
+		Run, C:\Soft\Portable soft\AnvirTaskManager\AnVir.exe
 		WinWait, ahk_class AnVirMainFrame
 		WinActivate, ahk_class AnVirMainFrame
 	}
@@ -241,6 +241,23 @@ sc0x123::
 			WinClose, ahk_class AnVirMainFrame
 		Else
 			WinActivate, ahk_class AnVirMainFrame
+	}
+Return
+
+; Hold LCtrl + click keyboard wheel to open ScriptManager
+<^sc0x123::
+	IfWinNotExist, Manage Scripts ahk_class AutoHotkeyGUI
+	{
+		Run, %A_AhkPath% "C:\Program Files\AutoHotkey\Scripts\In Development\MasterScript.ahk"
+		WinWait, Manage Scripts ahk_class AutoHotkeyGUI
+		WinActivate, Manage Scripts ahk_class AutoHotkeyGUI
+	}
+	Else
+	{
+		IfWinActive, Manage Scripts ahk_class AutoHotkeyGUI
+			WinClose, Manage Scripts ahk_class AutoHotkeyGUI
+		Else
+			WinActivate, Manage Scripts ahk_class AutoHotkeyGUI
 	}
 Return
 
@@ -294,7 +311,8 @@ MouseGetPos,,, hwndUnderCursor
 WinGet, Title, Style, ahk_id %hwndUnderCursor%
 If (Title & 0xC00000)
 	WinSet, Style, -0xC00000, ahk_id %hwndUnderCursor%
-Else WinSet, Style, +0xC00000, ahk_id %hwndUnderCursor%
+Else
+	WinSet, Style, +0xC00000, ahk_id %hwndUnderCursor%
 ; Redraw the window
 WinGetPos,,,, Height, ahk_id %hwndUnderCursor%
 WinMove, ahk_id %hwndUnderCursor%,,,,, % Height - 1
@@ -306,16 +324,16 @@ Return
 <#<^vk53::WinMove, A,, UALeft, UATop, UARight - UALeft, UABottom - UATop
 
 ; Resize the active window	(LWin + LAlt + w/s/a/d)
-<!<#vk57::winMoveResize(0, 0, 0, -UAhalfH / 8)	; Decrease height	(w).
-<!<#vk53::winMoveResize(0, 0, 0, UAhalfH / 8)	; Increase height	(s).
-<!<#vk41::winMoveResize(0, 0, -UAhalfW / 8, 0)	; Decrease width	(a).
-<!<#vk44::winMoveResize(0, 0, UAhalfW / 8, 0)	; Increase width	(d).
+<!<#vk57::activeWinMoveResize(0, 0, 0, -UAhalfH / 8)	; Decrease height	(w).
+<!<#vk53::activeWinMoveResize(0, 0, 0, UAhalfH / 8)	; Increase height	(s).
+<!<#vk41::activeWinMoveResize(0, 0, -UAhalfW / 8, 0)	; Decrease width	(a).
+<!<#vk44::activeWinMoveResize(0, 0, UAhalfW / 8, 0)	; Increase width	(d).
 
 ; Move the active window	(LWIn + LShift + w/s/a/d)
-<+<#vk57::winMoveResize(0, -UAhalfH / 8, 0, 0)	; Move top		(w).
-<+<#vk53::winMoveResize(0, UAhalfH / 8, 0, 0)	; Move bottom	(s).
-<+<#vk41::winMoveResize(-UAhalfW / 8, 0, 0, 0)	; Move left		(a).
-<+<#vk44::winMoveResize(UAhalfW / 8, 0, 0, 0)	; Move right	(d).
+<+<#vk57::activeWinMoveResize(0, -UAhalfH / 8, 0, 0)	; Move top		(w).
+<+<#vk53::activeWinMoveResize(0, UAhalfH / 8, 0, 0)	; Move bottom	(s).
+<+<#vk41::activeWinMoveResize(-UAhalfW / 8, 0, 0, 0)	; Move left		(a).
+<+<#vk44::activeWinMoveResize(UAhalfW / 8, 0, 0, 0)	; Move right	(d).
 
 ; Quarter the active window	(LWin + LCtrl + q/e/z/c)
 <#<^vk51::WinMove, A,, UALeft, UATop, UAcenterX, UAcenterY			; Top left		(q).
@@ -333,7 +351,7 @@ Return
 CapsLock & Tab::Send, {AltUp}	{AltUp}
 
 ;{ Functions
-winMoveResize(dx, dy, dw, dh)
+activeWinMoveResize(dx, dy, dw, dh)
 {
 	WinGetPos, X, Y, W, H, A
 	WinMove, A,, (X + dx), (Y + dy), (W + dw), (H + dh)
@@ -341,44 +359,37 @@ winMoveResize(dx, dy, dw, dh)
 
 alwaysOnTopOff(hwnd)
 {
-	For k, v in GUIs
-		If (v.Parent == hwnd)
+	For key, value in GUIs
+		If (value.Parent == hwnd)
 		{
 			WinSet, AlwaysOnTop, Off, ahk_id %hwnd%
-			Gui, % v.Owned ":Destroy"
-			GUIs.Remove(k)
+			Gui, % value.Owned ":Destroy"
+			GUIs.Remove(key)
 			Break
 		}
 }
 
 checkingAndMarking(hwnd)
 {
-	Static WS_POPUP := 0x80000000, WS_CAPTION := 0xC00000, WS_BORDER := 0x800000
 	WinWait, ahk_id %hwnd%
 	WinGetClass, Class
-	For k, v in Exceptions
-		If InStr(Class, v)
+	For key, value in Exceptions
+		If InStr(Class, value)
 			Return
 	WinGet, ExStyle, ExStyle
 	If (ExStyle & WS_EX_TOPMOST)
 	{
 		WinGet, Style, Style
-		If (Style & WS_POPUP && !(Style & WS_CAPTION) && !(Style & WS_BORDER))
+		WinGetPos, XWin, YWin, WWin, HWin
+		If ((Style & WS_POPUP) && !(Style & WS_CAPTION) && !(Style & WS_BORDER)) || (WWin == A_ScreenWidth && HWin == A_ScreenHeight)
 			Return
 		; ToolTip % Class	; Uncomment this line to show a tooltip displaying active window's class, so you could add it to the exceptions list.
-		WinGetPos, XWin, YWin, WWin, HWin
-		; If (WWin == A_ScreenWidth && HWin == A_ScreenHeight)	; Fullscreen check: such windows should not get a marker.
-		; {
-		; 	; Msgbox HUI
-		; 	Return
-		; }
 		createMarker(hwnd, XWin + 8, YWin + 7)
 	}
 }
 
 createMarker(OwnerID, X, Y)
 {
-	Static WS_EX_TRANSPARENT := 0x20	; Needed to make the marker transparent for clicks
 	Gui, New, +E%WS_EX_TRANSPARENT% -Caption +LastFound +AlwaysOnTop +ToolWindow +hwndhGui +Owner%OwnerID%	; +Owner%OwnerID% makes GUI window be bound to the active one, thus the GUI window becomes always on top of it's parent.
 	WinSet, Transparent, 100	; Set marker's transparency [0; 255]
 	Gui, Color, Red	; Set marker's color
@@ -388,7 +399,7 @@ createMarker(OwnerID, X, Y)
 
 watchingShowHideWindow(hWinEventHook, event, hwnd, idObject)
 {
-	If (idObject != OBJID_WINDOW)
+	If (idObject != "0")
 		Return
 	If (event == EVENT_OBJECT_SHOW)
 		checkingAndMarking(hwnd)
@@ -401,19 +412,19 @@ watchingShowHideWindow(hWinEventHook, event, hwnd, idObject)
 
 watchingChangeLocation(hWinEventHook, event, hwnd, idObject)
 {
-	If (idObject != OBJID_WINDOW)
+	If (idObject != "0")
 		Return
 	Static i := 0, OwnedWindowID, MonitoredWindowID
-	For k, v in GUIs
-		If (v.Parent == hwnd)
+	For key, value in GUIs
+		If (value.Parent == hwnd)
 		{
-			OwnedWindowID := v.Owned
-			MonitoredWindowID := v.Parent
+			OwnedWindowID := value.Owned
+			MonitoredWindowID := value.Parent
 			SetTimer, watchingMove, 10
 			Break
 		}
 	Return
-	
+
 watchingMove:
 	WinGetPos, X, Y,,, ahk_id %MonitoredWindowID%
 	WinMove, ahk_id %OwnedWindowID%,, X + 8, Y + 7
@@ -425,8 +436,6 @@ watchingMove:
 	Return
 }
 
-
-
 setWinEventHook(eventMin, eventMax, hmodWinEventProc, lpfnWinEventProc, idProcess, idThread, dwFlags)
 {
 	Return DllCall("SetWinEventHook" , UInt, eventMin, UInt, eventMax, Ptr, hmodWinEventProc, Ptr, lpfnWinEventProc, UInt, idProcess, UInt, idThread, UInt, dwFlags, Ptr)
@@ -434,7 +443,7 @@ setWinEventHook(eventMin, eventMax, hmodWinEventProc, lpfnWinEventProc, idProces
 ;}
 ;{ Clean variables (label)
 CleanVars:
-currOpacity := hwndUnderCursor := x1 := y1 := id := winClass := maximized := winX1 := winY1 := x2 := y2 := winX2 := winY2 := ID := IDactive := control := class := properTargetWin := Hwnd := Height := m_x := m_y := hw_m_target := onTop :=
+currOpacity := hwndUnderCursor := x1 := y1 := id := winClass := maximized := winX1 := winY1 := x2 := y2 := winX2 := winY2 := ID := IDactive := control := class := properTargetWin := Hwnd := Height := m_x := m_y := hw_m_target := onTop := ""
 Return
 
 Exit:	; Removing hooks upon exit.

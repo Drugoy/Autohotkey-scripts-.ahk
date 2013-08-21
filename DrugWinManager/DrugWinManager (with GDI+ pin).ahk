@@ -153,17 +153,17 @@ $WheelDown::
 	If (class == "Notepad++") && (control == "SysTabControl325")	; Notepad++: ahk_class Notepad++	tab-bar classNN: SysTabControl325	listener-window classNN: Scintilla1
 	{
 		ControlGet, properTargetWin, Hwnd,, Scintilla1, ahk_id %id%
-		PostMessage 0x319, 0, (A_ThisHotkey == "WheelUp") ? 0x10000 : 0x20000,, ahk_id %properTargetWin%
+		PostMessage 0x319, 0, (A_ThisHotkey == "$WheelUp") ? 0x10000 : 0x20000,, ahk_id %properTargetWin%
 	}
 	Else If (control == "TSTabCtrlClass1")	; Miranda IM, TabSRMM window's tab-bar classNN: TSTabCtrlClass1	listener-window classNN: RichEdit20W1
 	{
 		ControlGet, properTargetWin, Hwnd,, RichEdit20W1, ahk_id %id%
-		PostMessage 0x319, 0, (A_ThisHotkey == "WheelUp") ? 0x10000 : 0x20000,, ahk_id %properTargetWin%
+		PostMessage 0x319, 0, (A_ThisHotkey == "$WheelUp") ? 0x10000 : 0x20000,, ahk_id %properTargetWin%
 	}
 	Else If (class == "AkelPad4" && control == "SysTabControl321") || (class == "IEFrame" && control == "DirectUIHWND2")
-		ControlSend,, % (A_ThisHotkey == "WheelUp") ? ("{Ctrl Down}{Shift Down}{Tab}{Shift Up}{Ctrl Up}") : ("{Ctrl Down}{Tab}{Ctrl Up}"), ahk_id %id%
+		ControlSend,, % (A_ThisHotkey == "$WheelUp") ? ("{Ctrl Down}{Shift Down}{Tab}{Shift Up}{Ctrl Up}") : ("{Ctrl Down}{Tab}{Ctrl Up}"), ahk_id %id%
 	If (class != classA)
-		PostMessage, 0x20A, (A_ThisHotkey == "WheelUp") ? 120 << 16 : -120 << 16, ( m_y << 16 )|m_x,, ahk_id %hw_m_target%
+		PostMessage, 0x20A, (A_ThisHotkey == "$WheelUp") ? 120 << 16 : -120 << 16, ( m_y << 16 )|m_x,, ahk_id %hw_m_target%
 	Else
 	{
 		If (A_ThisHotkey == "$WheelUp")

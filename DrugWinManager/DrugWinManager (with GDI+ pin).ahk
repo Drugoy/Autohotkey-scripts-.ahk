@@ -144,11 +144,12 @@ XButton2 & WheelLeft::
 ; Scroll inactive windows without activating them.
 ; Tab Wheel Scroll For Notepad++, Miranda IM (TabSRMM), AkelPad and Internet Explorer.
 ; Can't do the same For Google Chrome and Mozilla Firefox.
-WheelUp::
-WheelDown::
+$WheelUp::
+$WheelDown::
 	MouseGetPos, m_x, m_y, id, control, 1
 	hw_m_target := DllCall("WindowFromPoint", "int", m_x, "int", m_y)
 	WinGetClass, class, ahk_id %id%
+	WinGetClass, classA, A
 	If (class == "Notepad++") && (control == "SysTabControl325")	; Notepad++: ahk_class Notepad++	tab-bar classNN: SysTabControl325	listener-window classNN: Scintilla1
 	{
 		ControlGet, properTargetWin, Hwnd,, Scintilla1, ahk_id %id%
@@ -161,7 +162,15 @@ WheelDown::
 	}
 	Else If (class == "AkelPad4" && control == "SysTabControl321") || (class == "IEFrame" && control == "DirectUIHWND2")
 		ControlSend,, % (A_ThisHotkey == "WheelUp") ? ("{Ctrl Down}{Shift Down}{Tab}{Shift Up}{Ctrl Up}") : ("{Ctrl Down}{Tab}{Ctrl Up}"), ahk_id %id%
-	PostMessage, 0x20A, (A_ThisHotkey == "WheelUp") ? 120 << 16 : -120 << 16, ( m_y << 16 )|m_x,, ahk_id %hw_m_target%
+	If (class != classA)
+		PostMessage, 0x20A, (A_ThisHotkey == "WheelUp") ? 120 << 16 : -120 << 16, ( m_y << 16 )|m_x,, ahk_id %hw_m_target%
+	Else
+	{
+		If (A_ThisHotkey == "$WheelUp")
+			Send {WheelUp}
+		Else
+			Send {WheelDown}
+	}
 	Gosub, CleanVars
 Return
 
@@ -443,7 +452,7 @@ setWinEventHook(eventMin, eventMax, hmodWinEventProc, lpfnWinEventProc, idProces
 ;}
 ;{ Clean variables (label)
 CleanVars:
-currOpacity := hwndUnderCursor := x1 := y1 := id := winClass := maximized := winX1 := winY1 := x2 := y2 := winX2 := winY2 := ID := IDactive := control := class := properTargetWin := Hwnd := Height := m_x := m_y := hw_m_target := onTop := ""
+currOpacity := hwndUnderCursor := x1 := y1 := id := winClass := maximized := winX1 := winY1 := x2 := y2 := winX2 := winY2 := ID := IDactive := control := class := classA := properTargetWin := Hwnd := Height := m_x := m_y := hw_m_target := onTop := ""
 Return
 
 Exit:	; Removing hooks upon exit.

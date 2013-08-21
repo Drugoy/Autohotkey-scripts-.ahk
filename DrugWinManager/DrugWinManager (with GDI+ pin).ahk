@@ -160,11 +160,11 @@ $WheelDown::
 		ControlGet, properTargetWin, Hwnd,, RichEdit20W1, ahk_id %id%
 		PostMessage 0x319, 0, (A_ThisHotkey == "$WheelUp") ? 0x10000 : 0x20000,, ahk_id %properTargetWin%
 	}
-	Else If (class == "AkelPad4" && control == "SysTabControl321") || (class == "IEFrame" && control == "DirectUIHWND2")
+	Else If (class == "AkelPad4" && control == "SysTabControl321") || (class == "IEFrame" && control == "DirectUIHWND2")	; AkelPad
 		ControlSend,, % (A_ThisHotkey == "$WheelUp") ? ("{Ctrl Down}{Shift Down}{Tab}{Shift Up}{Ctrl Up}") : ("{Ctrl Down}{Tab}{Ctrl Up}"), ahk_id %id%
-	If (class != classA)
+	If (class != classA) && (class != "Progman")	; If the cursor hovers an inactive window (and which is not the desktop) - that inactive window should receive a scrolling event (without the activation of that window).
 		PostMessage, 0x20A, (A_ThisHotkey == "$WheelUp") ? 120 << 16 : -120 << 16, ( m_y << 16 )|m_x,, ahk_id %hw_m_target%
-	Else
+	Else If (class == classA) || (class == "Progman")	; If the cursor hovers the active window or desktop - the regular scrolling event should get sent to the active window.
 	{
 		If (A_ThisHotkey == "$WheelUp")
 			Send {WheelUp}

@@ -102,6 +102,11 @@ If %0% != 0	; Usually %0% contains the number of command line parameters, but wh
 	}
 }
 multipleInstances := OtherInstance()
+If clipURL
+	TrayTip, Complete, The image has been successfully uploaded:`n%clipboard%, 1, 1
+Else
+	TrayTip, Complete, The image has been successfully uploaded:`n%imgURL%, 1, 1
+Sleep, 1000	
 If multipleInstances
 	ExitApp
 Return

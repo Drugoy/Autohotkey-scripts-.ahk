@@ -52,7 +52,7 @@ SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
 UAcenterX := UALeft + (UAhalfW := (UALeft + UARight) / 2)
 UAcenterY := UATop + (UAhalfH := (UATop + UABottom) / 2)
 Global GUIs := [], Exceptions := [], WS_EX_TOPMOST := 0x8, EVENT_OBJECT_SHOW := 0x8002, EVENT_OBJECT_HIDE := 0x8003, EVENT_OBJECT_LOCATIONCHANGE := 0x800B, WINEVENT_SKIPOWNPROCESS := 0x2, WS_EX_TRANSPARENT := 0x20, WS_POPUP := 0x80000000, WS_CAPTION := 0xC00000, WS_BORDER := 0x800000
-Exceptions := ["Button", "tooltip", "shadow", "TaskListThumbnailWnd", "TaskListOverlayWnd", "Progman", "ComboLBox", "Shell_TrayWnd", "TTrayAlert", "NotifyIconOverflowWindow", "SysDragImage", "ClockFlyoutWindow", "#327", "THppHintWindow", "DV2ControlHost"]	; Exceptions list: add here classNNs (or their parts) of windows to exclude from monitoring.	; TabSRMM's window has class #32770
+Exceptions := ["Button", "tooltip", "shadow", "TaskListThumbnailWnd", "TaskListOverlayWnd", "Progman", "ComboLBox", "Shell_TrayWnd", "TTrayAlert", "NotifyIconOverflowWindow", "SysDragImage", "ClockFlyoutWindow", "THppHintWindow", "DV2ControlHost"]	; , "#327"	; Exceptions list: add here classNNs (or their parts) of windows to exclude from monitoring.	; TabSRMM's window has class #32770
 	;}
 	;{ Setting hooks.
 HWINEVENTHOOK1 := setWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_HIDE, 0, RegisterCallback("watchingShowHideWindow", "F"), 0, 0, WINEVENT_SKIPOWNPROCESS)	; Track windows' appearing and hiding
@@ -162,7 +162,7 @@ $WheelDown::
 	}
 	Else If (class == "AkelPad4" && control == "SysTabControl321") || (class == "IEFrame" && control == "DirectUIHWND2")	; AkelPad
 		ControlSend,, % (A_ThisHotkey == "$WheelUp") ? ("{Ctrl Down}{Shift Down}{Tab}{Shift Up}{Ctrl Up}") : ("{Ctrl Down}{Tab}{Ctrl Up}"), ahk_id %id%
-	If (class != classA) && (class != "Progman")	; If the cursor hovers an inactive window (and which is not the desktop) - that inactive window should receive a scrolling event (without the activation of that window).
+	Else If (class != classA) && (class != "Progman")	; If the cursor hovers an inactive window (and which is not the desktop) - that inactive window should receive a scrolling event (without the activation of that window).
 		PostMessage, 0x20A, (A_ThisHotkey == "$WheelUp") ? 120 << 16 : -120 << 16, ( m_y << 16 )|m_x,, ahk_id %hw_m_target%
 	Else If (class == classA) || (class == "Progman")	; If the cursor hovers the active window or desktop - the regular scrolling event should get sent to the active window.
 	{
@@ -452,7 +452,7 @@ setWinEventHook(eventMin, eventMax, hmodWinEventProc, lpfnWinEventProc, idProces
 ;}
 ;{ Clean variables (label)
 CleanVars:
-currOpacity := hwndUnderCursor := x1 := y1 := id := winClass := maximized := winX1 := winY1 := x2 := y2 := winX2 := winY2 := ID := IDactive := control := class := classA := properTargetWin := Hwnd := Height := m_x := m_y := hw_m_target := onTop := ""
+	currOpacity := hwndUnderCursor := x1 := y1 := id := winClass := maximized := winX1 := winY1 := x2 := y2 := winX2 := winY2 := ID := IDactive := control := class := classA := properTargetWin := Hwnd := Height := m_x := m_y := hw_m_target := onTop := ""
 Return
 
 Exit:	; Removing hooks upon exit.

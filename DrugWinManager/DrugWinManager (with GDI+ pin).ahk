@@ -5,15 +5,14 @@ Contacts: idrugoy@gmail.com, drug0y@ya.ru
 https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/DrugWinManager
 
 Description:
-	Marks windows that have "AlwaysOnTop" style with a tiny red marker, lets you scroll over tab-bars to switch tabs, lets you scroll inactive windows (without activating them) and adds a bunch of hotkeys that help manage windows.
+	Lets you scroll over tab-bars to switch tabs, lets you scroll inactive windows (without activating them) and adds a bunch of hotkeys that help manage windows.
 
 	I use mouse "Logitech M510" and keyboard "Genius Comfy KB-21e scroll" and each has extra buttons: that mouse has a wheel that can be turned left and right and it also has two extra buttons (XButton1 and XButton2) and the keyboard has lots of extra buttons.
 
 	The script has the following functions:
-1. The script draws a small indicator on top of "always on top" windows (a semi-transparent red rectangular at top left corner of the window);
-2. Scroll over inactive windows to scroll them without their activation;
-3. Scroll over tab bar to switch tabs in Notepad++, AkelPad, Miranda's TabSRMM and Internet Explorer;
-4. Adds hotkeys and key combos that use both keyboard and mouse and their extra buttons:
+1. Scroll over inactive windows to scroll them without their activation;
+2. Scroll over tab bar to switch tabs in Notepad++, AkelPad, Miranda's TabSRMM and Internet Explorer;
+3. Adds hotkeys and key combos that use both keyboard and mouse and their extra buttons:
 	1. Hit "left WinKey + `" to toggle "always on top" attribute for the active window;
 	2. Hold XButton2 and hit WheelLeft (on the mouse) to toggle "always on top" attribute for the window under cursor (without activating it);
 	3. Hitting WheelLeft/WheelRight (on the mouse) works as going back/forward (correspondingly) in the history of browsers and in Windows Explorer;
@@ -36,41 +35,28 @@ Description:
 	20. Hit "left WinKey + left Shift + w/s/a/d" to move the active window top/bottom/left/right;
 	21. Hit "left WinKey + left Ctrl + q/e/z/c" to make the active window occupy top_left/top_right/bottom_left/bottom_right quarter of the "usable area" (desktop area minus Windows' taskbar area);
 	22. Hit "left WinKey + left Ctrl + w/x/a/d" to make the active window occupy top/bottom/left/right part of the "usable area".
-
-Application-specific hotkeys
-Firefox:
-	a. Hold XButton1 and scroll Mouse Wheel Up/Down to increase/decrease to zoom page in/out;
-	b. Hold XButton1 and hit Middle Mouse Button to reset page's zoom level.
-Media Player Classic - Home Cinema:
-	a. Xbutton1 and Xbutton2 respectively switch to the previous and next videos.
+4. Application-specific hotkeys
+	Firefox:
+		a. Hold XButton1 and scroll Mouse Wheel Up/Down to increase/decrease to zoom page in/out;
+		b. Hold XButton1 and hit Middle Mouse Button to reset page's zoom level.
+	Media Player Classic - Home Cinema:
+		a. Xbutton1 and Xbutton2 respectively switch to the previous and next videos.
 */
 ;{ Initialization
-	;{ Settings
 #SingleInstance, Force
 SetWinDelay, 0
 SendMode Input	; Recommended For new scripts due to its superior speed and reliability.
 #NoEnv	; Recommended For performance and compatibility with future AutoHotkey releases.
 CoordMode, Mouse, Screen	; By default all coordinates are relative to the active window, changing them to be related to screen is required for proper work of some script's commands.
 SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
-	;}
-	;{ Defining variables' values for later use.
+OnExit, Exit	; Remove hooks upon exit.
+; Defining variables' values for later use.
 UAcenterX := UALeft + (UAhalfW := (UALeft + UARight) / 2)
 UAcenterY := UATop + (UAhalfH := (UATop + UABottom) / 2)
-Global GUIs := [], Exceptions := [], DisableExceptionsForTheseProcesses := [], WS_EX_TOPMOST := 0x8, EVENT_OBJECT_SHOW := 0x8002, EVENT_OBJECT_HIDE := 0x8003, EVENT_OBJECT_LOCATIONCHANGE := 0x800B, WINEVENT_SKIPOWNPROCESS := 0x2, WS_EX_TRANSPARENT := 0x20, WS_POPUP := 0x80000000, WS_CAPTION := 0xC00000, WS_BORDER := 0x800000
-Exceptions := ["Button", "tooltip", "shadow", "TaskListThumbnailWnd", "TaskListOverlayWnd", "Progman", "ComboLBox", "Shell_TrayWnd", "TTrayAlert", "NotifyIconOverflowWindow", "SysDragImage", "ClockFlyoutWindow", "THppHintWindow", "DV2ControlHost", "#327"]	; Exceptions list: add here classNNs (or their parts) of windows to exclude from monitoring. If your application has the class of any of the listed exceptions - you might want unexclude it by specifying your application's process name in the array on the next line.
-DisableExceptionsForTheseProcesses := ["Miranda64.exe"]	; Miranda's TabSRMM window (#32770).
-	;}
-	;{ Setting hooks, timers and OnExit subroutine (which removes hooks).
-HWINEVENTHOOK1 := setWinEventHook(EVENT_OBJECT_SHOW, EVENT_OBJECT_HIDE, 0, RegisterCallback("watchingShowHideWindow", "F"), 0, 0, WINEVENT_SKIPOWNPROCESS)	; Track windows' appearing and hiding
-HWINEVENTHOOK2 := setWinEventHook(EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_LOCATIONCHANGE, 0, RegisterCallback("watchingChangeLocation", "F"), 0, 0, WINEVENT_SKIPOWNPROCESS)	; Track windows' position changes
-OnExit, Exit	; Remove hooks upon exit.
-SetTimer, MonitoringWindows, 50	; Monitoring windows' positions to redraw AlwaysOnTop indicator.
-	;}
-	;{ Bind left click on tray icon to open menu like If you right clicked it.
+; Bind left click on tray icon to open menu like If you right clicked it.
 Menu Tray, Click, 1	; Enable single click action on tray.
-Gosub AddMenu		; Add new default menu.
+Gosub, AddMenu		; Add new default menu.
 Return
-	;}
 ;}
 ;{ Hotkeys
 	;{ Toggle "Always on top" attribute for the active window (LWin + `)
@@ -222,7 +208,7 @@ Return
 ; Hold XButton2 (mouse extra button) then hold left button and move the cursor while the left button is being held (you may release XButton2).
 XButton2 & LButton::moveWinWithCursor("LButton")
 	;}
-	;{ Control transparency of a window under the cursor.
+	;{ Control transparency of a window under the cursor
 XButton2 & WheelUp::
 XButton2 & WheelDown::
 MouseGetPos,,, hwndUnderCursor
@@ -235,14 +221,14 @@ WinSet, Transparent, %currOpacity%, ahk_id %hwndUnderCursor%
 Gosub, CleanVars
 Return
 	;}
-	;{ Remove transparency of the window under the cursor.
+	;{ Remove transparency of the window under the cursor
 XButton2 & MButton::
 MouseGetPos,,, hwndUnderCursor
 WinSet, Transparent, 255, ahk_id %hwndUnderCursor%
 Gosub, CleanVars
 Return
 	;}
-	;{ Remove/restore titlebar of the window under the cursor.
+	;{ Remove/restore titlebar of the window under the cursor
 XButton2 & WheelRight::
 <#Space::
 MouseGetPos,,, hwndUnderCursor
@@ -319,147 +305,6 @@ moveWinWithCursor(buttonHeld)
 }
 		;}
 	;}
-	;{ To control AOT styles and markers
-		;{ MonitoringWindows()	Gets executed by timer.
-; Checks if any existing marker needs to get moved or removed and if a new marker is needed.
-MonitoringWindows()
-{
-	For key, value in GUIs
-	{
-		If !WinExist("ahk_id" value.Parent)	; If window doesn't exist anymore 
-			alwaysOnTopOff(value.Parent)
-		Else	; Detecting full-screen application.
-		{
-			WinGetPos, X, Y, W, H, % "ahk_id " value.Parent
-			If (X == 0) && (Y == 0) && (W == A_ScreenWidth) && (H == A_ScreenHeight)
-				alwaysOnTopOff(value.Parent, 1)
-		}
-	}
-	WinGet, List, List
-	Loop, %List%
-	{
-		ID := List%A_Index%
-		WinWait, ahk_id %ID%
-		WinGet, PID, PID
-		For key, value in GUIs
-		{
-			If (value.Parent == ID)
-			{
-				WinGet, ExStyle, ExStyle
-				If !(ExStyle & WS_EX_TOPMOST)
-					alwaysOnTopOff(ID)
-				Continue 2
-			}
-		}
-		checkingAndMarking(ID)
-	}
-}
-		;}
-		;{ alwaysOnTopOff(hwnd, FS = 0)
-; By default removes both: AOT marker and AOT from the selected window. For full-screen windows with AOT style - it removes only the marker.
-alwaysOnTopOff(hwnd, FS = 0)
-{
-	For key, value in GUIs
-	{
-		If (value.Parent == hwnd)
-		{
-			If !FS	; If "FS" attribute is present - we won't remove the AOT style from that window.
-				WinSet, AlwaysOnTop, Off, ahk_id %hwnd%
-			Gui, % value.Owned ":Destroy"
-			GUIs.Remove(key)
-			Break
-		}
-	}
-}
-		;}
-		;{ checkingAndMarking(hwnd)	Gets executed by timer.
-checkingAndMarking(hwnd)
-{
-	WinWait, ahk_id %hwnd%
-	WinGetClass, Class
-	WinGet, procName, ProcessName, ahk_id %hwnd%
-	For key, value in Exceptions
-	{
-		If InStr(Class, value)
-		{
-			For key, value in DisableExceptionsForTheseProcesses
-			{
-				If InStr(procName, value)
-					Break 2
-			}
-			Return
-		}
-	}
-	WinGet, ExStyle, ExStyle
-	If (ExStyle & WS_EX_TOPMOST)
-	{
-		WinGet, Style, Style
-		WinGetPos, XWin, YWin, WWin, HWin
-		If (Style & WS_POPUP) && !(Style & WS_CAPTION) && !(Style & WS_BORDER)
-			Return
-		; ToolTip % Class	; Uncomment this line to show a tooltip displaying active window's class, so you could add it to the exceptions list.
-		createMarker(hwnd, XWin + 8, YWin + 7)
-	}
-}
-		;}
-		;{ createMarker(OwnerID, X, Y)
-; Adds the AOT marker to the specified window.
-createMarker(OwnerID, X, Y)
-{
-	Gui, New, +E%WS_EX_TRANSPARENT% -Caption +LastFound +AlwaysOnTop +ToolWindow +hwndhGui +Owner%OwnerID%	; +Owner%OwnerID% makes GUI window be bound to the active one, thus the GUI window becomes always on top of it's parent.
-	WinSet, Transparent, 100	; Set marker's transparency [0; 255]
-	Gui, Color, Red	; Set marker's color
-	Gui, Show, NA w16 h16 x%X% y%Y%	; Set marker's size and position
-	GUIs.Insert({Parent: OwnerID, Owned: hGui})
-}
-		;}
-		;{ watchingShowHideWindow(hWinEventHook, event, hwnd, idObject)
-watchingShowHideWindow(hWinEventHook, event, hwnd, idObject)
-{
-	If (idObject != "0")
-		Return
-	If (event == EVENT_OBJECT_SHOW)
-		checkingAndMarking(hwnd)
-	Else If (event == EVENT_OBJECT_HIDE) && (!WinExist("ahk_id" hwnd))
-		alwaysOnTopOff(hwnd)
-}
-		;}
-		;{ watchingChangeLocation(hWinEventHook, event, hwnd, idObject)
-watchingChangeLocation(hWinEventHook, event, hwnd, idObject)
-{
-	If (idObject != "0")
-		Return
-	Static i := 0, OwnedWindowID, MonitoredWindowID
-	For key, value in GUIs
-	{
-		If (value.Parent == hwnd)
-		{
-			OwnedWindowID := value.Owned
-			MonitoredWindowID := value.Parent
-			SetTimer, watchingMove, 10
-			Break
-		}
-	}
-	Return
-
-watchingMove:
-	WinGetPos, X, Y,,, ahk_id %MonitoredWindowID%
-	WinMove, ahk_id %OwnedWindowID%,, X + 8, Y + 7
-	If (i++ == 30)
-	{
-		i := 0
-		SetTimer, watchingMove, Off
-	}
-	Return
-}
-		;}
-		;{ setWinEventHook(eventMin, eventMax, hmodWinEventProc, lpfnWinEventProc, idProcess, idThread, dwFlags)
-setWinEventHook(eventMin, eventMax, hmodWinEventProc, lpfnWinEventProc, idProcess, idThread, dwFlags)
-{
-	Return DllCall("SetWinEventHook" , UInt, eventMin, UInt, eventMax, Ptr, hmodWinEventProc, Ptr, lpfnWinEventProc, UInt, idProcess, UInt, idThread, UInt, dwFlags, Ptr)
-}
-		;}
-	;}
 ;}
 ;{ Labels
 
@@ -476,12 +321,6 @@ ShowMenu:
 	MouseGetPos MouseX, MouseY
 	Menu Tray, Show, %MouseX%, % MouseY - 15	; By default context menu gets opened at cursor's position and to let user be able to double click the tray icon - we move this menu a 15px higher.
 	Gosub, AddMenu	; We have to restore the deleted menu item for later use.
-Return
-	;}
-	;{ MonitoringWindows
-; Used for timer that tracks windows' position changes to draw, redraw or remove the AOT marker.
-MonitoringWindows:
-	MonitoringWindows()
 Return
 	;}
 	;{ CleanVars

@@ -26,6 +26,7 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 #SingleInstance, force
 DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
 memoryScanInterval := 1000	; Specify a value in milliseconds.
+GroupAdd ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId")
 SplitPath, A_AhkPath,, startFolder
 rememberPosAndSize := 1	; 1 = Make script's window remember it's position and size between window's closures. 0 = always open 800x600 on the center of the screen.
 storePosAndSize := 1	; 1 = Make script store info (into the "Settings.ini" file) about it's window's size and position between script's closures. 0 = do not store that info in the Settings.ini.
@@ -480,9 +481,8 @@ Return
 ;}
 
 ;{ HOTKEYS
-#IfWinActive Manage Scripts ahk_class AutoHotkeyGUI
-
-Delete::
+#IfWinActive ahk_group ScriptHwnd_A
+~Delete::
 	; ControlGet, activeTab, Tab,, SysTabControl321
 	If (activeTab == 1)
 		GoSub, DeleteSelected
@@ -490,7 +490,7 @@ Delete::
 		Gosub, Kill
 Return
 
-Esc::
+~Esc::
 	If (activeControl == "BookmarksList") || (activeControl == "FileList") || (activeControl == "ProcessList")
 	{
 		Gui, ListView, %activeControl%

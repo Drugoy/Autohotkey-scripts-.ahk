@@ -217,7 +217,7 @@ ExitApp:
 	;}
 	;{ Tab #1: gLabels of [Tree/List]Views.
 		;{ FolderTree
-FolderTree:	; TreeView's G-label that should trigger ListView update.
+FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as well as trigger "FileList" ListView update.
 	Global activeControl := A_ThisLabel
 	If (A_GuiEvent == "") || (A_GuiEvent == "Normal") || (A_GuiEvent == "S")	; In case of script's initialization, user's left click or keyboard selection - (re)fill the 'FileList' listview.
 	{
@@ -229,7 +229,6 @@ FolderTree:	; TreeView's G-label that should trigger ListView update.
 				TV_Modify(0)	; Remove selection and thus make 'FileList' ListView show the root folder's contents.
 		}
 		Gui, TreeView, FolderTree
-		Global activeControl := A_ThisLabel
 		TV_GetText(selectedItemText, A_EventInfo)	; Determine the full path of the selected folder:
 		ParentID := A_EventInfo
 		If memorizePath	; Variable 'memorizePath' is used as a token: if it returns true - then we shall use old path to the folder as the current one (otherwise the default path would be used).
@@ -341,17 +340,21 @@ Return
 		;}
 	;}
 	;{ Tab #1: gLabels of buttons.
-RunSelected:
-	If (activeControl == "FileList")
+RunSelected:	; G-Label of "Run selected" button.
+	If (activeControl == "FileList")	; In case the last active GUI element was "FileList" ListView.
 	{
 		Gui, ListView, FileList
 		selected := selectedFullPath "\" getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
+		If !selected
+			Return
 		StringReplace, selected, selected, |, |%selectedFullPath%\, All
 	}
-	Else If (activeControl == "BookmarksList")
+	Else If (activeControl == "BookmarksList")	; In case the last active GUI element was "BookmarksList" ListView.
 	{
 		Gui, ListView, BookmarksList
 		selected := getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
+		If !selected
+			Return
 	}
 	run(selected)
 Return
@@ -359,6 +362,8 @@ Return
 BookmarkSelected:	; G-Label of "Bookmark selected" button.
 	Gui, ListView, FileList
 	selected := getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
+	If !selected
+		Return
 	IniRead, bookmarks, Settings.ini, Bookmarks, list
 	selected := selectedFullPath "\" selected
 	StringReplace, selected, selected, |, |%selectedFullPath%\, All
@@ -372,21 +377,25 @@ BookmarkSelected:	; G-Label of "Bookmark selected" button.
 	GoSub, BookmarksList
 Return
 
-DeleteSelected:
+DeleteSelected:	; G-Label of "Delete selected" button.
 	If (activeControl == "BookmarksList") || (activeControl == "FileList")
 		Gui, ListView, %activeControl%
-	If (activeControl == "BookmarksList")
+	If (activeControl == "BookmarksList")	; In case the last active GUI element was "BookmarksList" ListView.
 	{
 		bookmarksToDelete := getSelectedRowsNumbers()
+		If !bookmarksToDelete
+			Return
 		bookmarksModified := 1
 		GoSub, %activeControl%
 	}
-	Else If (activeControl == "FileList")
+	Else If (activeControl == "FileList")	; In case the last active GUI element was "FileList" ListView.
 	{
+		selected := getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
+		If !selected
+			Return
 		Msgbox, 1, Confirmation required, Are you sure want to delete the selected file(s)?
 		IfMsgBox, OK
 		{
-			selected := getScriptsNamesOfSelectedFiles(getSelectedRowsNumbers())
 			selected := selectedFullPath "\" selected
 			StringReplace, selected, selected, |, |%selectedFullPath%\, All
 			Loop, Parse, selected, |
@@ -395,9 +404,9 @@ DeleteSelected:
 			GoSub, FolderTree
 		}
 	}
-	; Else If (activeControl == "FolderTree")
+	; Else If (activeControl == "FolderTree")	; In case the last active GUI element was "FileList" TreeView.
 	; {
-	; 	Msgbox, 1, Confirmation required, Are you sure want to delete the selected file(s)?
+	; 	Msgbox, 1, Confirmation required, Are you sure want to delete the selected folder(s) and it's/their contents?
 	; 	IfMsgBox, OK
 	; 	{
 	; 		
@@ -564,12 +573,16 @@ getScriptsPathsOfSelectedProcesses(selectedRowsNumbers)	; Usable by 'ProcessList
 	;{ Functions of process control.
 run(pathOrPathsSeparatedByPipes)
 {
+	If !pathOrPathsSeparatedByPipes
+		Return
 	Loop, Parse, pathOrPathsSeparatedByPipes, |
 		Run, "%A_AhkPath%" "%A_LoopField%"
 }
 
 exit(pidOrPIDsSeparatedByPipes)
 {
+	If !pidOrPIDsSeparatedByPipes
+		Return
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 		PostMessage, 0x111, 65307,,, ahk_pid %A_LoopField%
 	NoTrayOrphans()
@@ -577,6 +590,8 @@ exit(pidOrPIDsSeparatedByPipes)
 
 kill(pidOrPIDsSeparatedByPipes)	; Accepts a PID or a bunch of PIDs separated by pipes ("|").
 {
+	If !pidOrPIDsSeparatedByPipes
+		Return
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 		Process, Close, %A_LoopField%
 	NoTrayOrphans()
@@ -584,6 +599,8 @@ kill(pidOrPIDsSeparatedByPipes)	; Accepts a PID or a bunch of PIDs separated by 
 
 killNreexecute(pidOrPIDsSeparatedByPipes)
 {
+	If !pidOrPIDsSeparatedByPipes
+		Return
 	scriptsPaths := getScriptsPathsOfSelectedProcesses(pidOrPIDsSeparatedByPipes)
 	kill(pidOrPIDsSeparatedByPipes)
 	NoTrayOrphans()
@@ -593,6 +610,8 @@ killNreexecute(pidOrPIDsSeparatedByPipes)
 
 ; reload(pidOrPIDsSeparatedByPipes)
 ; {
+;	If !pidOrPIDsSeparatedByPipes
+;		Return
 ; 	scriptsPaths := getScriptsPathsOfSelectedProcesses(pidOrPIDsSeparatedByPipes)
 ; 	; Loop, Parse, scriptsPaths, |
 ; 	; 	Run, % """" A_AhkPath """ /restart """ A_LoopField """"
@@ -601,24 +620,32 @@ killNreexecute(pidOrPIDsSeparatedByPipes)
 
 reload(pidOrPIDsSeparatedByPipes)
 {
+	If !pidOrPIDsSeparatedByPipes
+		Return
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 		PostMessage, 0x111, 65303,,, ahk_pid %A_LoopField%
 }
 
 pause(pidOrPIDsSeparatedByPipes)
 {
+	If !pidOrPIDsSeparatedByPipes
+		Return
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 		PostMessage, 0x111, 65403,,, ahk_pid %A_LoopField%
 }
 
 suspendHotkeys(pidOrPIDsSeparatedByPipes)
 {
+	If !pidOrPIDsSeparatedByPipes
+		Return
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 		PostMessage, 0x111, 65404,,, ahk_pid %A_LoopField%
 }
 
 suspendProcess(pidOrPIDsSeparatedByPipes)
 {
+	If !pidOrPIDsSeparatedByPipes
+		Return
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 	{
 		If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, "Int", A_LoopField))
@@ -630,6 +657,8 @@ suspendProcess(pidOrPIDsSeparatedByPipes)
 
 resumeProcess(pidOrPIDsSeparatedByPipes)
 {
+	If !pidOrPIDsSeparatedByPipes
+		Return
 	Loop, Parse, pidOrPIDsSeparatedByPipes, |
 	{
 		If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, "Int", A_LoopField))
@@ -640,11 +669,13 @@ resumeProcess(pidOrPIDsSeparatedByPipes)
 }
 	;}
 	;{ Fulfill 'TreeView' GUI.
-AddSubFoldersToTree(Folder, ParentItemID = 0)
+AddSubFoldersToTree(folder, ParentItemID = 0)
 {
-	; This function adds to the TreeView all subfolders in the specified folder.
-	; It also calls itself recursively to gather nested folders to any depth.
-	Loop %Folder%\*.*, 2	; Retrieve all of Folder's sub-folders.
+	If !folder
+		Return
+	; This function adds all the subfolders in the specified folder to the TreeView.
+	; It also calls itself recursively to build a nested tree structure of any depth.
+	Loop %folder%\*.*, 2	; Retrieve all of Folder's sub-folders.
 		AddSubFoldersToTree(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon1"))
 }
 	;}

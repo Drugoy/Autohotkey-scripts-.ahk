@@ -9,13 +9,14 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/ScriptManager.ahk/
 ;{ TODO:
 ; 1. Functions to control scripts:
 ; 	a. Hide/restore scripts' tray icons.
-; 2. Add more icons.
-; 3. Improve TreeView.
+; 2. Improve TreeView.
 ;	a. It should load all disks' root folders (and their sub-folders) + folders specified by user (that info should also get stored to settings).
 ;	b. TreeView should always only load folder's contents + contents of it's sub-folders. And load more, when user selected a deeper folder.
-; 4. [If possible:] Combine suspendProcess() and resumeProcess() into a single function.
+; 3. [If possible:] Combine suspendProcess() and resumeProcess() into a single function.
 ;	This might be helpful: http://www.autohotkey.com/board/topic/41725-how-do-i-disable-a-script-from-a-different-script/#entry287262
-; 5. [If possible:] Add more scripts' info to ProcessList: hotkey suspend state, script's pause state.
+; 4. [If possible:] Add more scripts' info to ProcessList: hotkey suspend state, script's pause state.
+; 5. Handle scripts' icons hiding/restoring.
+; 6. Add "Process assistant" feature.
 ;}
 
 ;{ Settings block.
@@ -34,9 +35,18 @@ storePosAndSize := 1	; 1 = Make script store info (into the "Settings.ini" file)
 ;{ GUI Create
 	;{ Create folder icons.
 OnExit, ExitApp
-ImageListID := IL_Create(5)	; ICON
-Loop 5	; Below omits the DLL's path so that it works on Windows 9x too:	; ICON
-	IL_Add(ImageListID, "shell32.dll", A_Index)	; ICON
+ImageListID := IL_Create(1)	; Create an ImageList to hold 1 icon.
+	IL_Add(ImageListID, "shell32.dll", 4)	; 'Folder' icon
+	; IL_Add(ImageListID, "shell32.dll", 13)	; 'Process' icon
+	; IL_Add(ImageListID, "shell32.dll", 44)	; 'Bookmark' icon
+	; IL_Add(ImageListID, "shell32.dll", 46)	; 'Up to the root folder' icon
+	; IL_Add(ImageListID, "shell32.dll", 71)	; 'Script' icon
+	; IL_Add(ImageListID, "shell32.dll", 138)	; 'Run' icon
+	; IL_Add(ImageListID, "shell32.dll", 272)	; 'Delete' icon
+	; IL_Add(ImageListID, "shell32.dll", 285)	; Neat 'Script' icon
+	; IL_Add(ImageListID, "shell32.dll", 286)	; Neat 'Folder' icon
+	; IL_Add(ImageListID, "shell32.dll", 288)	; Neat 'Bookmark' icon
+	; IL_Add(ImageListID, "shell32.dll", 298)	; 'Folders tree' icon
 	;}
 	;{ Tray menu.
 Menu, Tray, NoStandard
@@ -55,12 +65,11 @@ Gui, Add, Button, x+0 gBookmarkSelected, Bookmark selected
 Gui, Add, Button, x+0 gDeleteSelected, Delete selected
 ; Folder list (left pane).
 Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.	; ICON
-AddSubFoldersToTree(startFolder)
+AddSubFoldersToTree(startFolder)	; Fulfill TreeView.
 
 ; File list (right pane).
 Gui, Add, ListView, AltSubmit x+0 +Resize +Grid gFileList vFileList HwndFileListHwnd, Name|Size (bytes)|Created|Modified
-
-; Set the column sizes
+; Set the static widths for some of it's columns
 LV_ModifyCol(2, 76)
 LV_ModifyCol(3, 117)
 LV_ModifyCol(4, 117)
@@ -69,7 +78,7 @@ Gui, Add, Text, vtextBS, Bookmarked scripts:
 
 ; Bookmarks (bottom pane).
 Gui, Add, ListView, AltSubmit +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
-; Set the column sizes
+; Set the static widths for some of it's columns
 LV_ModifyCol(1, 20)
 LV_ModifyCol(4, 76)
 LV_ModifyCol(5, 117)
@@ -93,7 +102,7 @@ Gui, Add, Button, x+0 gResumeProcess, Resume process
 
 ; Add the main "ListView" element and define it's size, contents, and a label binding.
 Gui, Add, ListView, x0 y+0 +Resize +Grid gProcessList vProcessList, #|PID|Name|Path
-; Set the column sizes
+; Set the static widths for some of it's columns
 LV_ModifyCol(1, 20)
 LV_ModifyCol(2, 40)
 
@@ -268,7 +277,7 @@ Return
 BookmarksList:
 	If (A_GuiEvent == "Normal") || (A_GuiEvent == "*") || (bookmarksModified == 1)
 		Global activeControl := A_ThisLabel
-	If !((A_GuiEvent == "*") || (bookmarksModified == 1)) || !FileExist("Settings.ini")	; Filter events out: (re)fill the listview only if the script just started, or we added/removed (a) bookmark(s). And don't fill anything if we have no bookmarks at all.
+	If !((A_GuiEvent == "") || (bookmarksModified == 1)) || !FileExist("Settings.ini") || (A_GuiEvent == "C")	; Filter events out: (re)fill the listview only if the script just started, or we added/removed (a) bookmark(s). And don't fill anything if we have no bookmarks at all.
 		Return
 	If bookmarksModified	; That variable is used as token for adding and deleting bookmarks.
 		GoSub, BookmarksModified	; First update the bookmarks file, and only then fill the listview.
@@ -636,7 +645,7 @@ AddSubFoldersToTree(Folder, ParentItemID = 0)
 	; This function adds to the TreeView all subfolders in the specified folder.
 	; It also calls itself recursively to gather nested folders to any depth.
 	Loop %Folder%\*.*, 2	; Retrieve all of Folder's sub-folders.
-		AddSubFoldersToTree(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon4"))
+		AddSubFoldersToTree(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon1"))
 }
 	;}
 	;{ NoTrayOrphans() - a function to remove tray icons of dead processes.

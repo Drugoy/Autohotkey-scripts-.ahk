@@ -148,7 +148,8 @@ Return
 	;{ G-Labels of main GUI.
 GuiShow:
 	Gui, +Resize +MinSize666x222
-	Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 16 " h" sw_H - 38, Manage Scripts	; FIXME: sometimes this causes the "Error: Invalid option" upon script's execution + it will probably have window size bug on other platforms/theme, since I've tuned the values to fix it for Win7 with Aero.
+	; Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 16 " h" sw_H - 38, Manage Scripts	; FIXME: sometimes this causes the "Error: Invalid option" upon script's execution + it will probably have window size bug on other platforms/theme, since I've tuned the values to fix it for Win7 with Aero.
+	Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W " h" sw_H , Manage Scripts
 Return
 
 GuiSize:	; Expand or shrink the ListView in response to the user's resizing of the window.

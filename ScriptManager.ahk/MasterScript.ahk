@@ -801,7 +801,6 @@ exit(pids)	; Closes processes nicely (uses PostMessage).
 		Return
 	Loop, Parse, pids, |
 		PostMessage, 0x111, 65307,,, ahk_pid %A_LoopField%
-	NoTrayOrphans()
 }
 
 kill(pids)	; Kills processes unnicely (uses "Process, Close").

@@ -1,8 +1,8 @@
 ﻿/* MasterScript.ahk
 Version: 2
-Last time modified: 04:00 17.10.2013
+Last time modified: 04:00 18.10.2013
 
-Description: this is a script manager written in .ahk and supposed to control other .ahk scripts.
+Description: a script manager for *.ahk scripts.
 
 Script author: Drugoy a.k.a. Drugmix
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
@@ -612,10 +612,10 @@ Return
 AddNewRule:
 InputBox, ruleAdd, Add new 'Process Assistant' rule,
 (
-'Process Assistant' feature works so: you create rules for it, where you specify Trigger Condition (or 'TC' further in this text) - which process should be assisted with Triggered Action (or 'TA' further in this text) - with which *.ahk script and then just whenever the specified process appears - the corresponding script will get executed and whenever the specified process dies - the corresponding script will get closed too.
+'Process Assistant' feature works so: you create rules for it, where you specify Trigger Condition) (or 'TC' further in this text) - which process should be assisted with Triggered Action (or 'TA' further in this text) - with which *.ahk script and then just whenever the specified process appears - the corresponding script will get executed and whenever the specified process dies - the corresponding script will get closed too.
 In the "Settings" section of the script (in it's source code) you may select a way how to close the scripts. By default, it uses a gentle method which lets the scripts execute their "OnExit" subroutine.
 
-There are the following rules for 'Proces Assistant' rule creation:
+There are the following rules for 'Process Assistant' rule creation:
 1. Every rule has to consist of 2 parts, separated by the ">" character:
   a. the left part of a rule is used to specify TCs. TCs can be specified as a process name (explorer.exe) or as a full or partial path (without the "\" at start) to an executable. If multiple TCs are specified in 1 rule - that means that if ANY of those processes appears - it will trigger the rule.
   b. the right part of a rule is used to specify TAs. TAs can be specified only by it's full path to the *.ahk file (but don't specify the path to the "AutoHotkey.exe"). If multiple TAs are specified in 1 rule - that means that ALL of them will get executed/closed whenever the trigger works out.
@@ -1003,8 +1003,8 @@ buildTree(folder, ParentItemID = 0)
 	;{ NoTrayOrphans() - a bunch of functions to remove tray icons of dead processes.
 NoTrayOrphans()
 {
-	TrayInfo:= TrayIcons(sExeName,"ahk_class Shell_TrayWnd","ToolbarWindow32" . GetTrayBar()) "`n"
-		. TrayIcons(sExeName,"ahk_class NotifyIconOverflowWindow","ToolbarWindow321")
+	TrayInfo := TrayIcons(sExeName, "ahk_class Shell_TrayWnd", "ToolbarWindow32" . GetTrayBar()) "`n"
+		. TrayIcons(sExeName, "ahk_class NotifyIconOverflowWindow", "ToolbarWindow321")
 	Loop, Parse, TrayInfo, `n
 	{
 		ProcessName := StrX(A_Loopfield, "| Process: ", " |")
@@ -1061,7 +1061,7 @@ TrayIcons(sExeName, traywindow, control)
 			VarSetCapacity(wTooltip, 128*2)
 			DllCall("ReadProcessMemory", "Uint", hProc, "Uint", iString, "Uint", &wTooltip, "Uint", 128*2, "Uint", 0)
 			DllCall("WideCharToMultiByte", "Uint", 0, "Uint", 0, "str", wTooltip, "int", -1, "str", sTooltip, "int", 128, "Uint", 0, "Uint", 0)
-			sTrayIcons .= "idx: " . A_Index-1 . " | idn: " . idn . " | Pid: " . pid . " | uID: " . uID . " | MessageID: " . nMsg . " | hWnd: " . hWnd . " | Class: " . sClass . " | Process: " . sProcess . " | Icon: " . hIcon . " | Tooltip: " . wTooltip . "`n"
+			sTrayIcons .= "idx: " A_Index - 1 " | idn: " idn " | Pid: " pid " | uID: " uID " | MessageID: " nMsg " | hWnd: " hWnd " | Class: " sClass " | Process: " sProcess " | Icon: " hIcon " | Tooltip: " wTooltip "`n"
 		}
 	}
 	DllCall("VirtualFreeEx", "Uint", hProc, "Uint", pProc, "Uint", 0, "Uint", 0x8000)

@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 2
-Last time modified: 04:00 18.10.2013
+Version: 2.1
+Last time modified: 20:13 20.10.2013
 
 Description: a script manager for *.ahk scripts.
 
@@ -15,11 +15,9 @@ http://forum.script-coding.com/viewtopic.php?id=8724
 ; 1. Functions to control scripts:
 ; 	a. Hide/restore scripts' tray icons.
 ; 2. Improve TreeView.
-;	a. It should load all disks' root folders (and their sub-folders) + folders specified by user (that info should also get stored to settings).
-;	b. TreeView should always only load folder's contents + contents of it's sub-folders. And load more, when user selected a deeper folder.
 ; 3. [If possible:] Combine suspendProcess() and resumeProcess() into a single function.
 ;	This might be helpful: http://www.autohotkey.com/board/topic/41725-how-do-i-disable-a-script-from-a-different-script/#entry287262
-; 4. [If possible:] Add more processes info to ProcessList: hotkey suspend state, script's pause state.
+; 4. [If possible:] Add more info about processes to ProcessList: hotkey suspend state, script's pause state.
 ; 5. Handle scripts' icons hiding/restoring.
 ;}
 
@@ -34,7 +32,6 @@ GroupAdd ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId")
 SplitPath, A_AhkPath,, startFolder
 rememberPosAndSize := 1	; 1 = Make script's window remember it's position and size between window's closures. 0 = always open 800x600 on the center of the screen.
 storePosAndSize := 1	; 1 = Make script store info (into the "Settings.ini" file) about it's window's size and position between script's closures. 0 = do not store that info in the Settings.ini.
-; startFolder := "C:\Program Files\AutoHotkey"
 howToQuitAssistants := "exit"	; Specify either "exit" or "kill" as the values for this variable. This will tell the script how to close the scripts-assistants if the their triggering process(es) were closed: "exit" closes the scripts gently (the "OnExit" subroutine will work out, it's the same as you manually select "Exit" from the script's tray icon's context menu) and "kill" kills them brutally (the "OnExit" subroutine probably won't get executed, it's the same as killing the process from the Task Manager).
 ;}
 

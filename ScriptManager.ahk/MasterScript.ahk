@@ -40,19 +40,20 @@ howToQuitAssistants := "exit"	; Specify either "exit" or "kill" as the values fo
 
 ;{ GUI Creation.
 	;{ Create folder icons.
-OnExit, ExitApp
-ImageListID := IL_Create(1)	; Create an ImageList to hold 1 icon.
-	IL_Add(ImageListID, "shell32.dll", 4)	; 'Folder' icon
-;	IL_Add(ImageListID, "shell32.dll", 13)	; 'Process' icon
-;	IL_Add(ImageListID, "shell32.dll", 44)	; 'Bookmark' icon
-;	IL_Add(ImageListID, "shell32.dll", 46)	; 'Up to the root folder' icon
-;	IL_Add(ImageListID, "shell32.dll", 71)	; 'Script' icon
-;	IL_Add(ImageListID, "shell32.dll", 138)	; 'Run' icon
-;	IL_Add(ImageListID, "shell32.dll", 272)	; 'Delete' icon
-;	IL_Add(ImageListID, "shell32.dll", 285)	; Neat 'Script' icon
-;	IL_Add(ImageListID, "shell32.dll", 286)	; Neat 'Folder' icon
-;	IL_Add(ImageListID, "shell32.dll", 288)	; Neat 'Bookmark' icon
-;	IL_Add(ImageListID, "shell32.dll", 298)	; 'Folders tree' icon
+ImageListID := IL_Create(3)	; Create an ImageList to hold 1 icon.
+	IL_Add(ImageListID, "shell32.dll", 4)	; 'Folder' icon.
+	IL_Add(ImageListID, "shell32.dll", 80)	; 'Logical disk' icon.
+	IL_Add(ImageListID, "shell32.dll", 27)	; 'Removable disk' icon.
+;	IL_Add(ImageListID, "shell32.dll", 13)	; 'Process' icon.
+;	IL_Add(ImageListID, "shell32.dll", 44)	; 'Bookmark' icon.
+;	IL_Add(ImageListID, "shell32.dll", 46)	; 'Up to the root folder' icon.
+;	IL_Add(ImageListID, "shell32.dll", 71)	; 'Script' icon.
+;	IL_Add(ImageListID, "shell32.dll", 138)	; 'Run' icon.
+;	IL_Add(ImageListID, "shell32.dll", 272)	; 'Delete' icon.
+;	IL_Add(ImageListID, "shell32.dll", 285)	; Neat 'Script' icon.
+;	IL_Add(ImageListID, "shell32.dll", 286)	; Neat 'Folder' icon.
+;	IL_Add(ImageListID, "shell32.dll", 288)	; Neat 'Bookmark' icon.
+;	IL_Add(ImageListID, "shell32.dll", 298)	; 'Folders tree' icon.
 	;}
 	;{ Tray menu.
 Menu, Tray, NoStandard
@@ -71,7 +72,6 @@ Gui, Add, Button, x+0 gBookmarkSelected, Bookmark selected
 Gui, Add, Button, x+0 gDeleteSelected, Delete selected
 ; Folder list (left pane).
 Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.	; ICON
-buildTree(startFolder)	; Fulfill TreeView.
 
 ; File list (right pane).
 Gui, Add, ListView, AltSubmit x+0 +Resize +Grid gFileList vFileList HwndFileListHwnd, Name|Size (bytes)|Created|Modified
@@ -125,6 +125,20 @@ token := 1
 GoSub, AssistantsList
 GoSub, ProcessList
 GoSub, ManageProcesses
+
+			;{ Initial construction of the TreeView.
+; Blame:
+; 1. Except for FIXED and REMOVABLE, there are other types of drives (CDROM, NETWORK, RAMDISK, UNKNOWN).
+; 2. I should add 'bookmarked folders' feature.
+; 3. The list of drives currently is static, but it should be dynamic.
+DriveGet, fixedDrivesList, List, FIXED
+DriveGet, removableDrivesList, List, REMOVABLE
+Loop, Parse, fixedDrivesList	; Add all fixed disks to the TreeView.
+	buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon2"))
+If removableDrivesList
+	Loop, Parse, removableDrivesList	; Add all removable disks to the TreeView.
+		buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon3"))
+			;}
 GoSub, FolderTree
 GoSub, BookmarksList
 SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
@@ -136,9 +150,11 @@ If storePosAndSize
 	IniRead, sw_Y, Settings.ini, Script's window, posY, % (UABottom - sw_H) / 2
 }
 Else
-	sizeW := 800, sizeH := 600, posX := (UARight - sw_W) / 2, posY := (UABottom - sw_H) / 2
+	sw_W := 800, sw_H := 600, sw_X := (UARight - sw_W) / 2, sw_Y := (UABottom - sw_H) / 2
 SetTimer, ProcessList, %memoryScanInterval%
 GoSub, GuiShow
+; OnMessage(0x219, "WM_DEVICECHANGE")
+OnExit, ExitApp
 Return
 		;}
 	;}
@@ -235,13 +251,13 @@ ExitApp:
 		;{ FolderTree
 FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as well as trigger "FileList" ListView update.
 	Global activeControl := A_ThisLabel
-	If (A_GuiEvent == "") || (A_GuiEvent == "Normal") || (A_GuiEvent == "S")	; In case of script's initialization, user's left click or keyboard selection - (re)fill the 'FileList' listview.
+	If (A_GuiEvent == "") || (A_GuiEvent == "Normal") || (A_GuiEvent == "S") || (A_GuiEvent == "+")	; In case of script's initialization, user's left click, keyboard selection or tree expansion - (re)fill the 'FileList' listview.
 	{
 		If (A_GuiEvent == "Normal")	; If user left clicked anything in the TreeView.
 		{
-			If (A_EventInfo != 0)	; If he clicked an empty space at right from a folder's name.
+			If (A_EventInfo != 0)	; If user clicked an empty space at right from a folder's name.
 				TV_Modify(A_EventInfo, "Select")	; Forcefully select that line.
-			Else If (A_EventInfo == 0)	; If he clicked an empty space (not the one at right from a folder's name).
+			Else If (A_EventInfo == 0)	; If user clicked an empty space (not the one at right from a folder's name).
 				TV_Modify(0)	; Remove selection and thus make 'FileList' ListView show the root folder's contents.
 		}
 		Gui, TreeView, FolderTree
@@ -257,16 +273,26 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 			TV_GetText(ParentText, ParentID)
 			SelectedItemText = %ParentText%\%selectedItemText%
 		}
-		selectedFullPath := startFolder "\" selectedItemText
+		; selectedFullPath := startFolder "\" selectedItemText
 		If memorizePath
 			selectedFullPath := memorizePath
-		If (A_GuiEvent == "") && !token
+		If (A_GuiEvent == "") && !(token)
 			Return
+		Else If (A_GuiEvent == "+")
+		{
+			Loop %selectedItemText%\*.*, 2	; Parse all the children of the selected item.
+			{
+				thisChildID := TV_GetChild(A_EventInfo)	; Get first child's ID.
+				If thisChildID
+					TV_Delete(thisChildID)
+			}
+			buildTree(selectedItemText, A_EventInfo)	; Add children and grandchildren to the selected item.
+		}
 		Gui, ListView, FileList	; Put the files into the ListView:
 		LV_Delete()	; Delete old data.
 		GuiControl, -Redraw, FileList	; Improve performance by disabling redrawing during load.
 		token := memorizePath := FileCount := TotalSize := 0	; Init prior to loop below.
-		Loop %selectedFullPath%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
+		Loop %selectedItemText%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
 		{
 			FormatTime, created, %A_LoopFileTimeCreated%, dd.MM.yyyy (HH:mm:ss)
 			FormatTime, modified, %A_LoopFileTimeModified%, dd.MM.yyyy (HH:mm:ss)
@@ -995,9 +1021,45 @@ buildTree(folder, ParentItemID = 0)
 ; It also calls itself recursively to build a nested tree structure of any depth.
 	If !folder
 		Return
-	Loop %folder%\*.*, 2	; Retrieve all of Folder's sub-folders.
-		buildTree(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon1"))
+	Loop %folder%\*, 2	; Retrieve all of Folder's sub-folders.
+		buildOneBranch(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon1"))
 }
+
+buildOneBranch(Folder, ParentItemID = 0)
+{
+	If !folder
+		Return
+	Loop %folder%\*.*, 2	; Retrieve all of Folder's sub-folders.
+		TV_Add(A_LoopFileName, ParentItemID, "Icon1")
+}
+
+; WM_DEVICECHANGE(wp, lp)
+; {
+; 	; Static DBT_DEVICEARRIVAL := 0x8000, DBT_DEVICEREMOVECOMPLETE := 0x8004, DBT_DEVTYP_VOLUME := 2
+; 	If ((wp == 0x8000 || wp == 0x8004) && NumGet(lp + 4, "UInt") == 2)
+; 	{
+; 		dbcv_unitmask := NumGet(lp+12, "UInt")
+; 		Loop, 26	; The number of letters in latin alphabet.
+; 		{
+; 			driveLetter := Chr(Asc("A") + A_Index - 1)
+; 		} Until (dbcv_unitmask >> (A_Index - 1))&1
+; 		MsgBox, % "Диск """ driveLetter ":"" " (wp == 0x8000 ? "подключен" : "отключен") ".`nПытаюсь обновить дерево соответствующим образом.`nwp: '" wp "'"
+; 		If (wp == 0x8000)	; A new drive got connected
+; 			TV_Add(driveLetter)
+; 		Else If (wp == 0x8004)	; A drive got removed.
+; 		{
+; 			Loop
+; 			{
+; 				If (A_Index == 1)
+; 					driveID := TV_GetChild(0)
+; 				Else
+; 					driveID := TV_GetNext(driveID)
+; 				TV_GetText(thisDrive , driveID)
+; 			} Until (driveLetter == thisDrive)
+; 			TV_Delete(driveID)
+; 		}
+; 	}
+; }
 	;}
 	;{ NoTrayOrphans() - a bunch of functions to remove tray icons of dead processes.
 NoTrayOrphans()

@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 2.1
-Last time modified: 20:13 20.10.2013
+Version: 2.2
+Last time modified: 1:20 23.10.2013
 
 Description: a script manager for *.ahk scripts.
 
@@ -29,7 +29,6 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
 memoryScanInterval := 1000	; Specify a value in milliseconds.
 GroupAdd ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId")
-SplitPath, A_AhkPath,, startFolder
 rememberPosAndSize := 1	; 1 = Make script's window remember it's position and size between window's closures. 0 = always open 800x600 on the center of the screen.
 storePosAndSize := 1	; 1 = Make script store info (into the "Settings.ini" file) about it's window's size and position between script's closures. 0 = do not store that info in the Settings.ini.
 howToQuitAssistants := "exit"	; Specify either "exit" or "kill" as the values for this variable. This will tell the script how to close the scripts-assistants if the their triggering process(es) were closed: "exit" closes the scripts gently (the "OnExit" subroutine will work out, it's the same as you manually select "Exit" from the script's tray icon's context menu) and "kill" kills them brutally (the "OnExit" subroutine probably won't get executed, it's the same as killing the process from the Task Manager).
@@ -258,38 +257,32 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 				TV_Modify(0)	; Remove selection and thus make 'FileList' ListView show the root folder's contents.
 		}
 		Gui, TreeView, FolderTree
-		TV_GetText(selectedItemText, A_EventInfo)	; Determine the full path of the selected folder:
-		ParentID := A_EventInfo
-		If memorizePath	; Variable 'memorizePath' is used as a token: if it returns true - then we shall use old path to the folder as the current one (otherwise the default path would be used).
-			memorizePath := selectedFullPath
+		TV_GetText(selectedItemPath, A_EventInfo)	; Determine the full path of the selected folder:
 		Loop	; Build the full path to the selected folder.
 		{
-			ParentID := TV_GetParent(ParentID)
-			If !ParentID	; No more ancestors.
+			parentID :=	(A_Index == 1) ? TV_GetParent(A_EventInfo) : TV_GetParent(parentID)
+			If !parentID	; No more ancestors.
 				Break
-			TV_GetText(ParentText, ParentID)
-			SelectedItemText = %ParentText%\%selectedItemText%
+			TV_GetText(parentText, parentID)
+			selectedItemPath = %parentText%\%selectedItemPath%
 		}
-		; selectedFullPath := startFolder "\" selectedItemText
-		If memorizePath
-			selectedFullPath := memorizePath
 		If (A_GuiEvent == "") && !(token)
 			Return
-		Else If (A_GuiEvent == "+")
+		If (A_GuiEvent == "+")	; If a tree got expanded.
 		{
-			Loop %selectedItemText%\*.*, 2	; Parse all the children of the selected item.
+			Loop %selectedItemPath%\*.*, 2	; Parse all the children of the selected item.
 			{
 				thisChildID := TV_GetChild(A_EventInfo)	; Get first child's ID.
 				If thisChildID
 					TV_Delete(thisChildID)
 			}
-			buildTree(selectedItemText, A_EventInfo)	; Add children and grandchildren to the selected item.
+			buildTree(selectedItemPath, A_EventInfo)	; Add children and grandchildren to the selected item.
 		}
 		Gui, ListView, FileList	; Put the files into the ListView:
 		LV_Delete()	; Delete old data.
 		GuiControl, -Redraw, FileList	; Improve performance by disabling redrawing during load.
 		token := memorizePath := FileCount := TotalSize := 0	; Init prior to loop below.
-		Loop %selectedItemText%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
+		Loop %selectedItemPath%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
 		{
 			FormatTime, created, %A_LoopFileTimeCreated%, dd.MM.yyyy (HH:mm:ss)
 			FormatTime, modified, %A_LoopFileTimeModified%, dd.MM.yyyy (HH:mm:ss)
@@ -482,14 +475,6 @@ Return
 	;}
 	;{ ProcessList.
 ProcessList:
-	If !indexProcesses
-		processesOldSnapshot := []
-	Else
-		processesOldSnapshot := processesSnapshot
-	If !indexScripts
-		scriptsOldSnapshot := []
-	Else
-		scriptsOldSnapshot := scriptsSnapshot
 	Global processesSnapshot := [], Global scriptsSnapshot := [], Global indexScripts := 0, Global indexProcesses := 0
 	For Process In ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on "If RegExMatch" rules).
 	{	; A list of accessible parameters related to the running processes: http://msdn.microsoft.com/en-us/library/windows/desktop/aa394372%28v=vs.85%29.aspx
@@ -515,7 +500,7 @@ sbUpdate:
 ; Update the three parts of the status bar to show info about the currently selected folder:
 	SB_SetText(FileCount . " files", 1)
 	SB_SetText(Round(TotalSize / 1024, 1) . " KB", 2)
-	SB_SetText(selectedFullPath, 3)
+	SB_SetText(selectedItemPath, 3)
 Return
 	;}
 	;{ Tab #1: gLabels of buttons.
@@ -523,10 +508,10 @@ RunSelected:	; G-Label of "Run selected" button.
 	If (activeControl == "FileList")	; In case the last active GUI element was "FileList" ListView.
 	{
 		Gui, ListView, FileList
-		selected := selectedFullPath "\" getScriptNames()
+		selected := selectedItemPath "\" getScriptNames()
 		If !selected
 			Return
-		StringReplace, selected, selected, |, |%selectedFullPath%\, All
+		StringReplace, selected, selected, |, |%selectedItemPath%\, All
 	}
 	Else If (activeControl == "BookmarksList")	; In case the last active GUI element was "BookmarksList" ListView.
 	{
@@ -539,18 +524,24 @@ RunSelected:	; G-Label of "Run selected" button.
 Return
 
 BookmarkSelected:	; G-Label of "Bookmark selected" button.
-	Gui, ListView, FileList
-	selected := getScriptNames()
-	If !selected
-		Return
-	IniRead, bookmarks, Settings.ini, Bookmarks, list
-	selected := selectedFullPath "\" selected
-	StringReplace, selected, selected, |, |%selectedFullPath%\, All
-	StringReplace, selected, selected, \\, \, All
-	bookmarks := ((bookmarks) ? (bookmarks "|" selected) : (selected))
-	IniWrite, %bookmarks%, Settings.ini, Bookmarks, list
-	bookmarksModified := 1
-	GoSub, BookmarksList
+	If (activeControl == "FileList")
+	{
+		Gui, ListView, FileList
+		selected := getScriptNames()
+		If !selected
+			Return
+		IniRead, bookmarks, Settings.ini, Bookmarks, list
+		selected := selectedItemPath "\" selected
+		StringReplace, selected, selected, |, |%selectedItemPath%\, All
+		StringReplace, selected, selected, \\, \, All
+		bookmarks := ((bookmarks) ? (bookmarks "|" selected) : (selected))
+		IniWrite, %bookmarks%, Settings.ini, Bookmarks, list
+		bookmarksModified := 1
+		GoSub, BookmarksList
+	}
+	; Else If (activeControl == "FolderTree")
+	; {
+	; }
 Return
 
 DeleteSelected:	; G-Label of "Delete selected" button.
@@ -569,15 +560,16 @@ DeleteSelected:	; G-Label of "Delete selected" button.
 		selected := getScriptNames()
 		If !selected
 			Return
-		Msgbox, 1, Confirmation required, Are you sure want to delete the selected file(s)?
+		Msgbox, 1, Confirmation required, Are you sure want to delete the selected file(s)?`n%selected%
 		IfMsgBox, OK
 		{
-			selected := selectedFullPath "\" selected
-			StringReplace, selected, selected, |, |%selectedFullPath%\, All
+			selected := selectedItemPath "\" selected
+			StringReplace, selected, selected, |, |%selectedItemPath%\, All
 			Loop, Parse, selected, |
 				FileDelete, %A_LoopField%
-			memorizePath := 1	; This is used as a token.
-			GoSub, FolderTree
+			selected := getRowNs()
+			Loop, Parse, selected, |
+				LV_Delete(A_LoopField + 1 - A_Index)	; That trick lets us delete the rows considering their position change after the 1st delete. Another way to do this is to sort rows' numbers in backwards order, but that would require exte computing efforts.
 		}
 	}
 	; Else If (activeControl == "FolderTree")	; In case the last active GUI element was "FileList" TreeView.

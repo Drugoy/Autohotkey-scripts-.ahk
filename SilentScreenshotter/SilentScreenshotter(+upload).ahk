@@ -9,6 +9,7 @@
 ; Requirements:
 ; 0. Some very basic .ahk knowledge for one-time script configuration.
 ; 1. That requirement is optional: 'Optipng' utility: it is boundled along with this script If the script is compiled, or can be downloaded from here: http://optipng.sourceforge.net/
+; 2. AHK_L x32 Unicode. The script may not work with other versions.
 ; How to use:
 ; 1. Obtain ClientID here https://api.imgur.com/oauth2/addclient
 ; 2. Configure the settings.
@@ -55,26 +56,26 @@ imgurClientID=
 ;tempScreenshot=1
 		), settings.ini, settings
 	}
-	IniRead, imgPath, settings.ini, settings, imgPath, % Temp . "\"
+	IniRead, imgPath, settings.ini, settings, imgPath, % Temp "\"
 	IniRead, imgName, settings.ini, settings, imgName, % A_Now
 	IniRead, imgExtension, settings.ini, settings, imgExtension, .png
 	IniRead, optimizePNG, settings.ini, settings, optimizePNG, 7
-	IniRead, optipngPath, settings.ini, settings, optipngPath, % A_ScriptDir . "\optipng.exe"
+	IniRead, optipngPath, settings.ini, settings, optipngPath, % A_ScriptDir "\optipng.exe"
 	IniRead, clipURL, settings.ini, settings, clipURL, 1
 	IniRead, tempScreenshot, settings.ini, settings, tempScreenshot, 1
 	IniRead, imgurClientID, settings.ini, settings, imgurClientID
 }
 Else
 {
-	imgPath := Temp . "\"	; Specify path and screenshot's name.
+	imgPath := Temp "\"	; Specify path and screenshot's name.
 	imgName := A_Now	; Specify locally saved image's name.
 	imgExtension := ".png"	; Specify desired file format (most of common formats are supported).
 	optimizePNG := 0	; Use values from 0 to 7 to specify the compression level: 0 = no compression, 7 = max compression. Compression is always lossless, but works only for PNG.
 	optipngPath := A_ScriptDir . "\optipng.exe"	; Specify path to "optipng.exe" If you would like to use it.
-	clipURL := 1	; 0 = the image's URL will be opened in browser; 1 = copy to clipboard; 2 = do both.
-	tempScreenshot := 1	; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
+	clipURL := 2	; 0 = the image's URL will be opened in browser; 1 = copy to clipboard; 2 = do both.
+	tempScreenshot := 0	; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
 	imgurClientID := ""	; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
-	; ListLines, Off	; Uncomment this If the script is fully working for you and you'd like to save a bit of RAM by sacrificing script's self-debugging ability.
+	; ListLines, Off	; Uncomment this if the script is fully working for you and you'd like to save a bit of RAM by sacrificing script's self-debugging ability.
 }
 ;}
 If !imgurClientID	; The script can't work without imgurClientID
@@ -205,10 +206,15 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 	http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
 	img := ComObjCreate("WIA.ImageFile")
 	img.LoadFile(input)
-	ip := ComObjCreate("WIA.ImageProcess")
+	; ip := ComObjCreate("WIA.ImageProcess")
+	; ip.filters.add(IP.FilterInfos("Convert").FilterID)
+	; ip.filters(1).properties("FormatID").value := "{B96B3CAF-0728-11D3-9D7B-0000F81EF32E}"	; = png, {B96B3CAE-0728-11D3-9D7B-0000F81EF32E} = jpg
+	; ip.filters(1).properties("Quality").value := 100
+	; img := ip.apply(img)
 	data := img.filedata.binarydata
 	http.Open("POST", "https://api.imgur.com/3/upload")
 	http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
+	http.SetRequestHeader("Content-Length", size)
 	Try
 		http.Send(data)
 	Catch, e
@@ -223,7 +229,7 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 		Else	; Multiple files got drag'n'dropped, so links should be separated with a space.
 			Clipboard .= A_Space . imgURL
 	}
-	Else	; Otherwise - open it in the browser.
+	If (clipURL != 1)	; Otherwise - open it in the browser.
 		Run, %imgURL%
 	If tempScreenshot && (%0% == 0)	; User specified to delete the local screenshot's file after uploading it.
 		FileDelete, %input%

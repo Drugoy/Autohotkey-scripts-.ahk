@@ -490,7 +490,7 @@ ProcessList:
 			scriptsSnapshot[indexScripts, "path"] := scriptPath	; The second RegExMatch outputs to "scriptPath" variable, who's contents we use to fulfill our "scriptPathArray" array.
 		}
 	}
-	isTCGroupMet()
+	isTCGroupMet()	; ProcessAssistant's main routine.
 	If (activeTab == 2)
 		GoSub, ManageProcesses
 Return
@@ -786,7 +786,7 @@ getPIDs()	; Get PIDs of selected processes.
 
 getScriptPaths()	; Get scripts' paths of the selected rows.
 {
-; Usable by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill and re-execute'.
+; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill and re-execute'.
 ; Input: none.
 ; Output: script paths of the files in the selected rows.
 	rowNs := getRowNs()
@@ -1004,22 +1004,21 @@ isTAMet(TA)	; Check if a specific TA (not a group) is running or not.
 }
 	;}
 	;{ Fulfill 'TreeView' GUI.
-buildTree(folder, ParentItemID = 0)
+buildTree(folder, parentItemID = 0)
 {
-; This function adds all the subfolders in the specified folder to the TreeView.
-; It also calls itself recursively to build a nested tree structure of any depth.
-	If !folder
-		Return
-	Loop %folder%\*, 2	; Retrieve all of Folder's sub-folders.
-		buildOneBranch(A_LoopFileFullPath, TV_Add(A_LoopFileName, ParentItemID, "Icon1"))
-}
-
-buildOneBranch(Folder, ParentItemID = 0)
-{
-	If !folder
-		Return
-	Loop %folder%\*.*, 2	; Retrieve all of Folder's sub-folders.
-		TV_Add(A_LoopFileName, ParentItemID, "Icon1")
+; Used by: script's initialization; Tab #1 'Manage files' - TVs: 'FolderTree'.
+; Input: folder's path and parentItemID (ID of an item in a TreeView)
+; Output: none.
+   If folder
+         Loop %folder%\*, 2   ; Inception: retrieve all of Folder's sub-folders.
+         {
+             parent := TV_Add(A_LoopFileName, parentItemID, "Icon1")	; Add all of those sub-folders to the TreeView.
+             Loop %A_LoopFileFullPath%\*, 2   ; We need to get deeper (c).
+             {
+                    TV_Add(A_LoopFileName, parent, "Icon2")
+                    Break	; No need to add more than 1 item: that's needed just to make the parent item expandable (wnyways it's contents will get re-constructed when that item gets expanded).
+             }
+         }
 }
 
 ; WM_DEVICECHANGE(wp, lp)

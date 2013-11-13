@@ -20,8 +20,7 @@ http://forum.script-coding.com/viewtopic.php?id=8724
 ;{ Settings block.
 settings := A_ScriptDir "\" SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4) "_settings.ini"	; Path and name of the file name to store script's settings.
 memoryScanInterval := 1000	; Specify a value in milliseconds.
-rememberPosAndSize := 1	; 1 = Make script's window remember it's position and size between window's closures. 0 = always open 800x600 on the center of the screen.
-storePosAndSize := 1	; 1 = Make script store info (into the settings file) about it's window's size and position between script's closures. 0 = do not store that info in the settings file.
+rememberPosAndSize := 1	; 1 = Make script store info (into the settings file) about it's window's size and position between script's closures. 0 = do not store that info in the settings file.
 quitAssistantsNicely := 1	; 1 = use "exit" to end scripts, let them execute their 'OnExit' sub-routine. 0 = use "kill" to end scripts, that just instantly stops them, so scripts won't execute their 'OnExit' subroutines.
 ;}
 ;{ Initialization.
@@ -155,7 +154,7 @@ GoSub, AssistantsList	; Fulfill the list with the data.
 	;{ Finish GUI creation.
 Gui, Submit, NoHide
 SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
-If storePosAndSize
+If rememberPosAndSize
 {
 	IniRead, sw_W, %settings%, Script's window, sizeW, 800
 	IniRead, sw_H, %settings%, Script's window, sizeH, 600
@@ -164,7 +163,9 @@ If storePosAndSize
 }
 Else
 	sw_W := 800, sw_H := 600, sw_X := (UARight - sw_W) / 2, sw_Y := (UABottom - sw_H) / 2
-Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 16 " h" sw_H - 38
+Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 6 " h" sw_H - 28	; Values are tuned for W7 with Aero.
+Gui, +Resize +MinSize666x222
+GroupAdd ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId") ; Create an ahk_group "ScriptHwnd_A" and make all the current process's windows get into that group.
 Return
 	;}
 ;}
@@ -172,8 +173,7 @@ Return
 ;{ Labels.
 	;{ G-Labels of main GUI.
 GuiShow:
-	Gui, +Resize +MinSize666x222
-	Gui, Show,, Manage Scripts
+	Gui, Show
 Return
 
 GuiSize:	; Expand or shrink the ListView in response to the user's resizing of the window.
@@ -224,7 +224,7 @@ GuiSize:	; Expand or shrink the ListView in response to the user's resizing of t
 Return
 
 GuiClose:
-	If storePosAndSize || rememberPosAndSize
+	If rememberPosAndSize
 		WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
 	Gui, Hide
 Return
@@ -246,8 +246,11 @@ Return
 
 ExitApp:
 	Gosub, GuiClose
-	If storePosAndSize
+	If rememberPosAndSize
 	{
+		DetectHiddenWindows, Off
+		IfWinExist, ahk_group ScriptHwnd_A
+			WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
 		IniWrite, %sw_X%, %settings%, Script's window, posX
 		IniWrite, %sw_Y%, %settings%, Script's window, posY
 		IniWrite, %sw_W%, %settings%, Script's window, sizeW

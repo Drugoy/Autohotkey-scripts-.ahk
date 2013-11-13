@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 2.2
-Last time modified: 1:20 23.10.2013
+Version: 3
+Last time modified: 01:05 14.11.2013
 
 Description: a script manager for *.ahk scripts.
 
@@ -10,53 +10,65 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/ScriptManager.ahk/
 http://auto-hotkey.com/boards/viewtopic.php?f=6&t=109&p=1612
 http://forum.script-coding.com/viewtopic.php?id=8724
 */
-
 ;{ TODO:
-; 1. Functions to control scripts:
-; 	a. Hide/restore scripts' tray icons.
-; 2. Improve TreeView.
-; 3. [If possible:] Combine suspendProcess() and resumeProcess() into a single function.
+; 1. Handle scripts' icons hiding/restoring.
+;	a. Add a button to hide/restore script's train icon.
+; 2. [If possible:] Combine suspendProcess() and resumeProcess() into a single function.
 ;	This might be helpful: http://www.autohotkey.com/board/topic/41725-how-do-i-disable-a-script-from-a-different-script/#entry287262
-; 4. [If possible:] Add more info about processes to ProcessList: hotkey suspend state, script's pause state.
-; 5. Handle scripts' icons hiding/restoring.
+; 3. [If possible:] Add more info about processes to 'ManageProcesses' LV: hotkey suspend state, script's pause state.
 ;}
-
 ;{ Settings block.
-#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
-; #Warn  ; Recommended for catching common errors.
-SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
-#SingleInstance, force
-DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
+settings := A_ScriptDir "\" SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4) "_settings.ini"	; Path and name of the file name to store script's settings.
 memoryScanInterval := 1000	; Specify a value in milliseconds.
-GroupAdd ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId")
 rememberPosAndSize := 1	; 1 = Make script's window remember it's position and size between window's closures. 0 = always open 800x600 on the center of the screen.
-storePosAndSize := 1	; 1 = Make script store info (into the "Settings.ini" file) about it's window's size and position between script's closures. 0 = do not store that info in the Settings.ini.
-howToQuitAssistants := "exit"	; Specify either "exit" or "kill" as the values for this variable. This will tell the script how to close the scripts-assistants if the their triggering process(es) were closed: "exit" closes the scripts gently (the "OnExit" subroutine will work out, it's the same as you manually select "Exit" from the script's tray icon's context menu) and "kill" kills them brutally (the "OnExit" subroutine probably won't get executed, it's the same as killing the process from the Task Manager).
+storePosAndSize := 1	; 1 = Make script store info (into the settings file) about it's window's size and position between script's closures. 0 = do not store that info in the settings file.
+quitAssistantsNicely := 1	; 1 = use "exit" to end scripts, let them execute their 'OnExit' sub-routine. 0 = use "kill" to end scripts, that just instantly stops them, so scripts won't execute their 'OnExit' subroutines.
 ;}
+;{ Initialization.
+#NoEnv	; Recommended for performance and compatibility with future AutoHotkey releases.
+#SingleInstance, Force
+; #Warn	; Recommended for catching common errors.
+GroupAdd, ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId")
+DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
+OnExit, ExitApp
+Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global conditions, Global triggeredActions, Global toBeRun, token := 1
 
-;{ GUI Creation.
-	;{ Create folder icons.
-ImageListID := IL_Create(3)	; Create an ImageList to hold 1 icon.
+; Hooking ComObjects to track processes.
+oSvc := ComObjGet("winmgmts:")
+ComObjConnect(createSink := ComObjCreate("WbemScripting.SWbemSink"), "ProcessCreate_")
+ComObjConnect(deleteSink := ComObjCreate("WbemScripting.SWbemSink"), "ProcessDelete_")
+Command := "Within 1 Where TargetInstance ISA 'Win32_Process'"
+oSvc.ExecNotificationQueryAsync(createSink, "select * from __InstanceCreationEvent " Command)
+oSvc.ExecNotificationQueryAsync(deleteSink, "select * from __InstanceDeletionEvent " Command)
+
+; Create a canvas and add the icons to be used later.
+ImageListID := IL_Create(4)	; Create an ImageList to hold 1 icon.
 	IL_Add(ImageListID, "shell32.dll", 4)	; 'Folder' icon.
 	IL_Add(ImageListID, "shell32.dll", 80)	; 'Logical disk' icon.
 	IL_Add(ImageListID, "shell32.dll", 27)	; 'Removable disk' icon.
-;	IL_Add(ImageListID, "shell32.dll", 13)	; 'Process' icon.
-;	IL_Add(ImageListID, "shell32.dll", 44)	; 'Bookmark' icon.
-;	IL_Add(ImageListID, "shell32.dll", 46)	; 'Up to the root folder' icon.
-;	IL_Add(ImageListID, "shell32.dll", 71)	; 'Script' icon.
-;	IL_Add(ImageListID, "shell32.dll", 138)	; 'Run' icon.
-;	IL_Add(ImageListID, "shell32.dll", 272)	; 'Delete' icon.
-;	IL_Add(ImageListID, "shell32.dll", 285)	; Neat 'Script' icon.
-;	IL_Add(ImageListID, "shell32.dll", 286)	; Neat 'Folder' icon.
-;	IL_Add(ImageListID, "shell32.dll", 288)	; Neat 'Bookmark' icon.
-;	IL_Add(ImageListID, "shell32.dll", 298)	; 'Folders tree' icon.
-	;}
+	IL_Add(ImageListID, "shell32.dll", 87)	; 'Folder with bookmarks' icon.
+	; IL_Add(ImageListID, "shell32.dll", 13)	; 'Process' icon.
+	; IL_Add(ImageListID, "shell32.dll", 46)	; 'Up to the root folder' icon.
+	; IL_Add(ImageListID, "shell32.dll", 71)	; 'Script' icon.
+	; IL_Add(ImageListID, "shell32.dll", 138)	; 'Run' icon.
+	; IL_Add(ImageListID, "shell32.dll", 272)	; 'Delete' icon.
+	; IL_Add(ImageListID, "shell32.dll", 285)	; Neat 'Script' icon.
+	; IL_Add(ImageListID, "shell32.dll", 286)	; Neat 'Folder' icon.
+	; IL_Add(ImageListID, "shell32.dll", 288)	; Neat 'Bookmark' icon.
+	; IL_Add(ImageListID, "shell32.dll", 298)	; 'Folders tree' icon.
+;}
+
+;{ GUI Creation.
 	;{ Tray menu.
 Menu, Tray, NoStandard
 Menu, Tray, Add, Manage Scripts, GuiShow	; Create a tray menu's menuitem and bind it to a label that opens main window.
 Menu, Tray, Default, Manage Scripts
 Menu, Tray, Add
 Menu, Tray, Standard
+	;}
+	;{ StatusBar
+Gui, Add, StatusBar
+SB_SetParts(60, 85)
 	;}
 	;{ Add tabs and their contents.
 Gui, Add, Tab2, AltSubmit x0 y0 w568 h46 Choose1 +Theme -Background gTabSwitch vactiveTab, Manage files|Manage processes|Manage process assistants	; AltSubmit here is needed to make variable 'activeTab' get active tab's number, not name.
@@ -66,8 +78,22 @@ Gui, Add, Text, x26 y26, Choose a folder:
 Gui, Add, Button, x301 y21 gRunSelected, Run selected
 Gui, Add, Button, x+0 gBookmarkSelected, Bookmark selected
 Gui, Add, Button, x+0 gDeleteSelected, Delete selected
-; Folder list (left pane).
-Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.	; ICON
+
+; Folders Tree (left pane).
+Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.
+IniRead, bookmarkedFolders, %settings%, Bookmarks, Folders	; Check if there are some previously saved bookmarked folders.
+DriveGet, fixedDrivesList, List, FIXED	; Fixed logical disks.
+DriveGet, removableDrivesList, List, REMOVABLE	; Removable logical disks.
+If bookmarkedFolders
+	Loop, Parse, bookmarkedFolders, |
+		buildTree(A_LoopField, TV_Add(A_LoopField,, "Icon4"))
+Loop, Parse, fixedDrivesList	; Add all fixed disks to the TreeView.
+	buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon2"))
+If removableDrivesList
+	Loop, Parse, removableDrivesList	; Add all removable disks to the TreeView.
+		buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon3"))
+
+OnMessage(0x219, "WM_DEVICECHANGE")	; Track removable devices connecting/disconnecting to update the Folder Tree.
 
 ; File list (right pane).
 Gui, Add, ListView, AltSubmit x+0 +Resize +Grid gFileList vFileList HwndFileListHwnd, Name|Size (bytes)|Created|Modified
@@ -76,10 +102,10 @@ LV_ModifyCol(2, 76)
 LV_ModifyCol(3, 117)
 LV_ModifyCol(4, 117)
 
-Gui, Add, Text, vtextBS, Bookmarked scripts:
-
 ; Bookmarks (bottom pane).
+Gui, Add, Text, vtextBS, Bookmarked scripts:
 Gui, Add, ListView, AltSubmit +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
+GoSub, BookmarksList	; Fulfill 'BookmarksList' LV.
 ; Set the static widths for some of it's columns
 LV_ModifyCol(1, 20)
 LV_ModifyCol(4, 76)
@@ -88,6 +114,7 @@ LV_ModifyCol(6, 117)
 		;}
 		;{ Tab #2: 'Manage processes'.
 Gui, Tab, Manage processes
+
 ; Add buttons to trigger functions.
 Gui, Add, Button, x2 y21 gExit, Exit
 Gui, Add, Button, x+0 gKill, Kill
@@ -99,69 +126,54 @@ Gui, Add, Button, x+0 gSuspendProcess, Suspend process
 Gui, Add, Button, x+0 gResumeProcess, Resume process
 
 ; Add the main "ListView" element and define it's size, contents, and a label binding.
-Gui, Add, ListView, x0 y+0 +Resize +Grid gManageProcesses vManageProcesses, #|PID|Name|Path
+Gui, Add, ListView, x0 y+0 +Resize +Grid vManageProcesses, #|PID|Name|Path
 ; Set the static widths for some of it's columns
 LV_ModifyCol(1, 20)
 LV_ModifyCol(2, 40)
+
+; Fulfill processesSnapshot[] and scriptsSnapshot[] arrays with data and 'ManageProcesses' LV.
+For Process In oSvc.ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on "If RegExMatch" rules).
+{	; A list of accessible parameters related to the running processes: http://msdn.microsoft.com/en-us/library/windows/desktop/aa394372%28v=vs.85%29.aspx
+	processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
+	If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
+	{
+		scriptsSnapshot.Insert({"pid": Process.ProcessId, "name": scriptName, "path": scriptPath})
+		LV_Add(, scriptsSnapshot.MaxIndex(), Process.ProcessId, scriptName, scriptPath)
+	}
+}
 		;}
 		;{ Tab #3: 'Manage process assistants'.
 Gui, Tab, Manage process assistants
 Gui, Add, Button, x374 y21 gAddNewRule, Add new rule
 Gui, Add, Button, x+0 gDeleteRules, Delete selected rule(s)
-Gui, Add, ListView, x0 y+0 +Resize +Grid vAssistantsList, #|Trigger condition|Scripts to execute
+Gui, Add, ListView, x0 y+0 +Resize +Grid vAssistantsList, #|Type|Trigger condition|Scripts to execute
 LV_ModifyCol(1, 20)
+LV_ModifyCol(2, 40)
+GoSub, AssistantsList	; Fulfill the list with the data.
 		;}
-		;{ StatusBar
-Gui, Add, StatusBar
-SB_SetParts(60, 85)
-		;}
-		;{ Startup labels executions.
+	;}
+	;{ Finish GUI creation.
 Gui, Submit, NoHide
-token := 1
-GoSub, AssistantsList
-GoSub, ProcessList
-GoSub, ManageProcesses
-
-			;{ Initial construction of the TreeView.
-; Blame:
-; 1. Except for FIXED and REMOVABLE, there are other types of drives (CDROM, NETWORK, RAMDISK, UNKNOWN).
-; 2. I should add 'bookmarked folders' feature.
-; 3. The list of drives currently is static, but it should be dynamic.
-DriveGet, fixedDrivesList, List, FIXED
-DriveGet, removableDrivesList, List, REMOVABLE
-Loop, Parse, fixedDrivesList	; Add all fixed disks to the TreeView.
-	buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon2"))
-If removableDrivesList
-	Loop, Parse, removableDrivesList	; Add all removable disks to the TreeView.
-		buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon3"))
-			;}
-GoSub, FolderTree
-GoSub, BookmarksList
 SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
 If storePosAndSize
 {
-	IniRead, sw_W, Settings.ini, Script's window, sizeW, 800
-	IniRead, sw_H, Settings.ini, Script's window, sizeH, 600
-	IniRead, sw_X, Settings.ini, Script's window, posX, % (UARight - sw_W) / 2
-	IniRead, sw_Y, Settings.ini, Script's window, posY, % (UABottom - sw_H) / 2
+	IniRead, sw_W, %settings%, Script's window, sizeW, 800
+	IniRead, sw_H, %settings%, Script's window, sizeH, 600
+	IniRead, sw_X, %settings%, Script's window, posX, % (UARight - sw_W) / 2
+	IniRead, sw_Y, %settings%, Script's window, posY, % (UABottom - sw_H) / 2
 }
 Else
 	sw_W := 800, sw_H := 600, sw_X := (UARight - sw_W) / 2, sw_Y := (UABottom - sw_H) / 2
-SetTimer, ProcessList, %memoryScanInterval%
-GoSub, GuiShow
-; OnMessage(0x219, "WM_DEVICECHANGE")
-OnExit, ExitApp
+Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 16 " h" sw_H - 38
 Return
-		;}
 	;}
 ;}
 
-;{ GUI Actions
+;{ Labels.
 	;{ G-Labels of main GUI.
 GuiShow:
 	Gui, +Resize +MinSize666x222
-	; Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 16 " h" sw_H - 38, Manage Scripts	; FIXME: sometimes this causes the "Error: Invalid option" upon script's execution + it will probably have window size bug on other platforms/theme, since I've tuned the values to fix it for Win7 with Aero.
-	Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W " h" sw_H , Manage Scripts
+	Gui, Show,, Manage Scripts
 Return
 
 GuiSize:	; Expand or shrink the ListView in response to the user's resizing of the window.
@@ -195,8 +207,8 @@ GuiSize:	; Expand or shrink the ListView in response to the user's resizing of t
 		LV_ModifyCol(4, (A_GuiWidth - 79) * 0.7)
 		GuiControl, Move, AssistantsList, % "w" . (A_GuiWidth + 1) . " h" . (workingAreaHeight + 20)
 		Gui, ListView, AssistantsList
-		LV_ModifyCol(2, (A_GuiWidth - 39) * 0.6)
-		LV_ModifyCol(3, (A_GuiWidth - 39) * 0.4)
+		LV_ModifyCol(3, (A_GuiWidth - 79) * 0.6)
+		LV_ModifyCol(4, (A_GuiWidth - 79) * 0.4)
 		If (activeTab == 1)
 		{
 			GuiControl, +Redraw, textBS
@@ -236,12 +248,65 @@ ExitApp:
 	Gosub, GuiClose
 	If storePosAndSize
 	{
-			IniWrite, %sw_X%, Settings.ini, Script's window, posX
-			IniWrite, %sw_Y%, Settings.ini, Script's window, posY
-			IniWrite, %sw_W%, Settings.ini, Script's window, sizeW
-			IniWrite, %sw_H%, Settings.ini, Script's window, sizeH
+		IniWrite, %sw_X%, %settings%, Script's window, posX
+		IniWrite, %sw_Y%, %settings%, Script's window, posY
+		IniWrite, %sw_W%, %settings%, Script's window, sizeW
+		IniWrite, %sw_H%, %settings%, Script's window, sizeH
 	}
-	ExitApp
+ExitApp
+	;}
+	;{ StatusbarUpdate.
+StatusbarUpdate:
+; Update the three parts of the status bar to show info about the currently selected folder:
+	SB_SetText(FileCount . " files", 1)
+	SB_SetText(Round(TotalSize / 1024, 1) . " KB", 2)
+	SB_SetText(selectedItemPath, 3)
+Return
+	;}
+	;{ AssistantsList.
+AssistantsList:
+	Gui, ListView, AssistantsList
+	rowShift := ruleIndex := tcRows := taRows := 0
+	IniRead, rules, %settings%, Assistants
+	If !rules	; There is nothing to do if there are no rules yet.
+		Return
+	rules := Trim(rules, "`n")
+	StringSplit, rule, rules, `n
+	Loop, Parse, rules, `n
+	{
+		ruleGroupN := A_Index
+		Loop, Parse, A_LoopField, >
+		{
+			If (A_Index == 1)
+			{
+				type := A_LoopField
+				Continue
+			}
+			StringSplit, shiftRows, A_LoopField, |
+			(A_Index == 2) ? (side := 1, tcRows := shiftRows0) : (side := 2, taRows := shiftRows0)
+			Loop, Parse, A_LoopField, |
+			{
+				procBinder.Insert({"ruleGroupN": ruleGroupN, "type": type, "side": side, "value": A_LoopField})
+				rowShift++
+				If (ruleIndex != ruleGroupN)	; New rule (thus, left side).
+				{
+					ruleIndex := ruleGroupN
+					If (type)
+						LV_Add(, ruleGroupN, (type == 1 ? "⇒" : "⇔"), A_LoopField)
+					Else
+						LV_Add(, ruleGroupN, "Ѻ", A_LoopField)
+				}
+				Else If (side == 1)
+					LV_Add(,,, A_LoopField)
+				Else If !(A_Index > tcRows) && (type)
+					LV_Modify(--rowShift - tcRows + A_Index,,,,, A_LoopField)
+				Else
+					((type) ? (LV_Add(,,,, A_LoopField)) : (LV_Add(,,, A_LoopField)))
+			}
+		}
+	}
+	checkRunTriggers()
+Return
 	;}
 	;{ Tab #1: gLabels of [Tree/List]Views.
 		;{ FolderTree
@@ -270,7 +335,7 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 			Return
 		If (A_GuiEvent == "+")	; If a tree got expanded.
 		{
-			Loop %selectedItemPath%\*.*, 2	; Parse all the children of the selected item.
+			Loop, %selectedItemPath%\*.*, 2	; Parse all the children of the selected item.
 			{
 				thisChildID := TV_GetChild(A_EventInfo)	; Get first child's ID.
 				If thisChildID
@@ -282,7 +347,7 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 		LV_Delete()	; Delete old data.
 		GuiControl, -Redraw, FileList	; Improve performance by disabling redrawing during load.
 		token := memorizePath := FileCount := TotalSize := 0	; Init prior to loop below.
-		Loop %selectedItemPath%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
+		Loop, %selectedItemPath%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
 		{
 			FormatTime, created, %A_LoopFileTimeCreated%, dd.MM.yyyy (HH:mm:ss)
 			FormatTime, modified, %A_LoopFileTimeModified%, dd.MM.yyyy (HH:mm:ss)
@@ -291,7 +356,7 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 			TotalSize += A_LoopFileSize
 		}
 		GuiControl, +Redraw, FileList
-		GoSub, sbUpdate
+		GoSub, StatusbarUpdate
 	}
 Return
 		;}
@@ -305,14 +370,14 @@ Return
 BookmarksList:
 	If (A_GuiEvent == "Normal") || (A_GuiEvent == "*") || (bookmarksModified == 1)
 		Global activeControl := A_ThisLabel
-	If !((A_GuiEvent == "") || (bookmarksModified == 1)) || !FileExist("Settings.ini") || (A_GuiEvent == "C")	; Filter events out: (re)fill the listview only if the script just started, or we added/removed (a) bookmark(s). And don't fill anything if we have no bookmarks at all.
+	If !((A_GuiEvent == "") || (bookmarksModified == 1)) || !FileExist(settings) || (A_GuiEvent == "C")	; Filter events out: (re)fill the listview only if the script just started, or if the user has just added/removed (a) bookmark(s). That won't fill anything if there are no bookmarks at all.
 		Return
 	If bookmarksModified	; That variable is used as token for adding and deleting bookmarks.
 		GoSub, BookmarksModified	; First update the bookmarks file, and only then fill the listview.
 	A_IndexMy := nBookmarks := bookmarks := token := ""
 	Gui, ListView, BookmarksList
 	LV_Delete()	; Clear all rows.
-	IniRead, bookmarks, Settings.ini, Bookmarks, list
+	IniRead, bookmarks, %settings%, Bookmarks, list
 	If bookmarks
 	{
 		StringSplit, bookmarks, bookmarks, |
@@ -333,10 +398,7 @@ BookmarksList:
 			Else	; If the file doesn't exist - remove that bookmark.
 			{
 				bookmarksModified := 1
-				If !bookmarksToDelete
-					bookmarksToDelete := A_IndexMy
-				Else
-					bookmarksToDelete := bookmarksToDelete . "," A_IndexMy
+				bookmarksToDelete ((!bookmarksToDelete) ? (bookmarksToDelete := A_IndexMy) : (bookmarksToDelete .= "," A_IndexMy))
 			}
 		}
 	}
@@ -359,149 +421,11 @@ BookmarksModified:
 		Else
 			Break
 	}
-	IniWrite, %bookmarks%, Settings.ini, Bookmarks, list
+	IniWrite, %bookmarks%, %settings%, Bookmarks, list
 	bookmarksToDelete := bookmarksModified := ""
 	GoSub, BookmarksList
 Return
 		;}
-	;}
-	;{ Tab #2: gLabel of ListView.
-ManageProcesses:	; Update the list of running scripts on the Tab #2.
-	Global activeControl := A_ThisLabel, oldListItems := listItems, newRows := deadRows := 0
-	Gui, ListView, ManageProcesses
-	Loop, %indexScripts%	; Transform the scriptsSnapshot's "pid" values into a pipe-separated string and store it in the 'listItems' variable.
-		listItems := (A_Index != 1) ? (listItems "|" scriptsSnapshot[A_Index, "pid"]) : (scriptsSnapshot[A_Index, "pid"])
-	Loop, parse, oldListItems, |	; Look for scripts' dead processes and fulfill 'deadRows' variable with their rows' numbers separated by pipes.
-	{
-		this := A_LoopField
-		Loop, Parse, listItems, |
-		{
-			stillLives := 0
-			If (this == A_LoopField)
-			{
-				stillLives := 1
-				Break
-			}
-		}
-		If !stillLives
-			deadRows := ((deadRows) ? (deadRows "|" A_Index) : (A_Index))
-	}
-	If deadRows	; Delete rows if any scripts's processes were found dead.
-	{
-		Loop, Parse, deadRows, |
-		{
-			If (A_Index == 1)
-				this := A_LoopField	; This would be the 1st row to delete, thus since that row and up to the end of the list - we'll have to re-index them.
-			LV_Delete(A_LoopField + 1 - A_Index)
-		}
-		Loop, %indexScripts%	; Re-index rows #'s (first column) if needed.
-			If (A_Index >= this)
-				LV_Modify(A_Index,, A_Index)
-	}
-	Loop, Parse, listItems, |	; Look for scripts' new processes and fulfill 'newRows' variable with their rows' numbers separated by pipes.
-	{
-		this := A_LoopField
-		Loop, Parse, oldListItems, |
-		{
-			newFound := 0
-			If (this == A_LoopField)
-			{
-				newFound := 1
-				Break
-			}
-		}
-		If !newFound
-			newRows := ((newRows) ? (newRows "|" A_Index) : (A_Index))
-	}
-	If newRows	; Add new rows for the newly found scripts.
-		Loop, Parse, newRows, |
-			LV_Add(, A_LoopField, scriptsSnapshot[A_LoopField, "pid"], scriptsSnapshot[A_LoopField, "name"], scriptsSnapshot[A_LoopField, "path"])
-Return
-	;}
-	;{ Tab #3: gLabels of ListView.
-AssistantsList:
-	Global activeControl := A_ThisLabel, Global conditions, Global triggeredActions
-	rowShift := 0
-	Gui, ListView, AssistantsList
-	IniRead, rules, Settings.ini, Assistants
-	If rules
-	{
-		StringSplit, rule, rules, `n	; Each rule is stored on a new line.
-		Loop, %rule0%
-		{
-			ruleN := A_Index	; 'ruleN' == the # of the rule being parsed.
-			StringTrimLeft, rule%ruleN%, rule%ruleN%, 1 + StrLen(ruleN)	; Cut away ini-file's "keys".
-			Loop, Parse, rule%A_Index%, >	; Trigger condition (TC) in a rule is separated by the ">" from the triggered actions (TA), which are the process(es) to be executed upon TC.
-			{
-				If (A_Index == 1)	; Left part of each rule contains a group of pipe-separated TCs.
-				{
-					conditions := ((conditions) ? (conditions "?" A_LoopField) : (A_LoopField))	; Preparing data for further parsing by the 'ProcessList' subroutine. Save TC-groups of all the rules into a single variable 'conditions' and separate the groups with the "?".
-					If A_LoopField	; Safe check against empty groups of TCs.
-					{
-						Loop, Parse, A_LoopField, |	; If there are multiple TCs - they should be pipe-separated.
-						{
-							If A_LoopField	; Safe check against empty TCs.
-							{
-								tcRows := A_Index	; Number of rows to be occupied by the TC.
-								LV_Add(, ((A_Index == 1) ? (ruleN) : ("")), A_LoopField)
-							}
-						}
-					}
-				}
-				Else If (A_Index == 2)	; Right part of each rule contains pipe separated TAs.
-				{
-					triggeredActions := ((triggeredActions) ? (triggeredActions "?" A_LoopField) : (A_LoopField))	; Preparing data for further parsing by the 'ProcessList' subroutine. Save TA-groups of all the rules into a single variable 'triggeredActions' and separate the groups with the "?".
-					If A_LoopField	; Safe check against empty groups of TAs.
-					{
-						Loop, Parse, A_LoopField, |	; If there are multiple TAs - they should be pipe-separated.
-						{
-							If A_LoopField	; Safe check against empty TAs.
-							{
-								taRows := A_Index	; Number of rows to be occupied by the TAs.
-								If (taRows > tcRows)
-									LV_Add(,,, A_LoopField)
-								Else
-									LV_Modify(taRows + rowShift,,,, A_LoopField)
-							}
-						}
-					}
-				}
-			}
-			rowsOccupied := ((rowsOccupied) ? (rowsOccupied "|" ((taRows > tcRows) ? (taRows) : (tcRows))) : (((taRows > tcRows) ? (taRows) : (tcRows))))	; This variable contains pipe-separated numbers which represent the number of rows occupied by each rule.
-			rowShift := ((rowShift) ? (rowShift + ((taRows > tcRows) ? (taRows) : (tcRows))) : (((taRows > tcRows) ? (taRows) : (tcRows))))	; This variable contains the total number of the occupied rows.
-		}
-	}
-Return
-	;}
-	;{ ProcessList.
-ProcessList:
-	Global processesSnapshot := [], Global scriptsSnapshot := [], Global indexScripts := 0, Global indexProcesses := 0
-	For Process In ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on "If RegExMatch" rules).
-	{	; A list of accessible parameters related to the running processes: http://msdn.microsoft.com/en-us/library/windows/desktop/aa394372%28v=vs.85%29.aspx
-		indexProcesses++
-		processesSnapshot[indexProcesses, "pid"] := Process.ProcessId
-		processesSnapshot[indexProcesses, "exe"] := Process.ExecutablePath
-		; processesSnapshot[indexProcesses, "cmd"] := Process.CommandLine
-		If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
-		{
-			indexScripts++
-			scriptsSnapshot[indexScripts, "pid"] := Process.ProcessId	; Using "ProcessId" param to fulfill our "pidsArray" array.
-			scriptsSnapshot[indexScripts, "name"] := scriptName	; The first RegExMatch outputs to "scriptName" variable, who's contents we use to fulfill our "scriptNamesArray" array.
-			scriptsSnapshot[indexScripts, "path"] := scriptPath	; The second RegExMatch outputs to "scriptPath" variable, who's contents we use to fulfill our "scriptPathArray" array.
-		}
-	}
-	isTCGroupMet()	; ProcessAssistant's main routine.
-	If (activeTab == 2)
-		GoSub, ManageProcesses
-Return
-	;}
-	;{ StatusBar.
-sbUpdate:
-; Update the three parts of the status bar to show info about the currently selected folder:
-	SB_SetText(FileCount . " files", 1)
-	SB_SetText(Round(TotalSize / 1024, 1) . " KB", 2)
-	SB_SetText(selectedItemPath, 3)
-Return
 	;}
 	;{ Tab #1: gLabels of buttons.
 RunSelected:	; G-Label of "Run selected" button.
@@ -524,31 +448,33 @@ RunSelected:	; G-Label of "Run selected" button.
 Return
 
 BookmarkSelected:	; G-Label of "Bookmark selected" button.
-	If (activeControl == "FileList")
+	If (activeControl == "FileList")	; Bookmark a script.
 	{
 		Gui, ListView, FileList
 		selected := getScriptNames()
 		If !selected
 			Return
-		IniRead, bookmarks, Settings.ini, Bookmarks, list
+		IniRead, bookmarks, %settings%, Bookmarks, list
 		selected := selectedItemPath "\" selected
 		StringReplace, selected, selected, |, |%selectedItemPath%\, All
 		StringReplace, selected, selected, \\, \, All
 		bookmarks := ((bookmarks) ? (bookmarks "|" selected) : (selected))
-		IniWrite, %bookmarks%, Settings.ini, Bookmarks, list
+		IniWrite, %bookmarks%, %settings%, Bookmarks, list
 		bookmarksModified := 1
 		GoSub, BookmarksList
 	}
-	; Else If (activeControl == "FolderTree")
-	; {
-	; }
+	Else If (activeControl == "FolderTree")	; Bookmark a folder.
+	{
+		bookmarkedFolders .= (bookmarkedFolders) ? ("|" selectedItemPath) : (selectedItemPath)
+		IniWrite, %bookmarkedFolders% , %settings%, Bookmarks, folders
+		buildTree(selectedItemPath, TV_Add(selectedItemPath,, "Vis Icon4"))
+	}
 Return
 
 DeleteSelected:	; G-Label of "Delete selected" button.
-	If (activeControl == "BookmarksList") || (activeControl == "FileList")
-		Gui, ListView, %activeControl%
 	If (activeControl == "BookmarksList")	; In case the last active GUI element was "BookmarksList" ListView.
 	{
+		Gui, ListView, %activeControl%
 		bookmarksToDelete := getRowNs()
 		If !bookmarksToDelete
 			Return
@@ -557,6 +483,7 @@ DeleteSelected:	; G-Label of "Delete selected" button.
 	}
 	Else If (activeControl == "FileList")	; In case the last active GUI element was "FileList" ListView.
 	{
+		Gui, ListView, %activeControl%
 		selected := getScriptNames()
 		If !selected
 			Return
@@ -572,14 +499,16 @@ DeleteSelected:	; G-Label of "Delete selected" button.
 				LV_Delete(A_LoopField + 1 - A_Index)	; That trick lets us delete the rows considering their position change after the 1st delete. Another way to do this is to sort rows' numbers in backwards order, but that would require exte computing efforts.
 		}
 	}
-	; Else If (activeControl == "FolderTree")	; In case the last active GUI element was "FileList" TreeView.
-	; {
-	; 	Msgbox, 1, Confirmation required, Are you sure want to delete the selected folder(s) and it's/their contents?
-	; 	IfMsgBox, OK
-	; 	{
-	; 		
-	; 	}
-	; }
+	Else If (activeControl == "FolderTree")	; In case the last active GUI element was "FileList" TreeView.
+	{
+		If bookmarkedFolders Contains %selectedItemPath%
+		{
+			StringReplace, bookmarkedFolders, bookmarkedFolders, %selectedItemPath%
+			StringReplace, bookmarkedFolders, bookmarkedFolders, ||,, 1
+			IniWrite, %bookmarkedFolders%, %settings%, Bookmarks, folders
+			TV_Delete(TV_GetSelection())
+		}
+	}
 Return
 	;}
 	;{ Tab #2: gLabels of buttons.
@@ -631,73 +560,42 @@ InputBox, ruleAdd, Add new 'Process Assistant' rule,
 In the "Settings" section of the script (in it's source code) you may select a way how to close the scripts. By default, it uses a gentle method which lets the scripts execute their "OnExit" subroutine.
 
 There are the following rules for 'Process Assistant' rule creation:
-1. Every rule has to consist of 2 parts, separated by the ">" character:
-  a. the left part of a rule is used to specify TCs. TCs can be specified as a process name (explorer.exe) or as a full or partial path (without the "\" at start) to an executable. If multiple TCs are specified in 1 rule - that means that if ANY of those processes appears - it will trigger the rule.
-  b. the right part of a rule is used to specify TAs. TAs can be specified only by it's full path to the *.ahk file (but don't specify the path to the "AutoHotkey.exe"). If multiple TAs are specified in 1 rule - that means that ALL of them will get executed/closed whenever the trigger works out.
+1. Every rule has to consist of 3 parts, separated by the ">" character:
+  a. the left part of a rule is used to specify the rule's type: either one-way or bidirectional. "One way" rules will only execute TA-group associated with any TC from the rule's TC-group. "Bidirectional" rules work so: if any TC or TA from the rule's TC-group or TA-group is found alive - both groups will get executed, and if one of them dies - they will all die too. 
+  b. the middle part of a rule is used to specify TCs. TCs can be specified as a process name (explorer.exe) or as a full or partial path (without the "\" at start) to an executable. If multiple TCs are specified in 1 rule - that means that if ANY of those processes appears - it will trigger the rule.
+  c. the right part of a rule is used to specify TAs. TAs can be specified only by it's full path to the *.ahk file (but don't specify the path to the "AutoHotkey.exe"). If multiple TAs are specified in 1 rule - that means that ALL of them will get executed/closed whenever the trigger works out.
 2. One rule may contain multiple TCs or TAs: you just need to separate them by the "|" (pipe) symbol.
 
 A few examples:
-firefox.exe|Program Files\GoogleChrome\chrome.exe|C:\Program Files\Internet Explorer\iexplore.exe>C:\Program Files\AHK-Scripts\browserHelper.ahk
+2>firefox.exe|Program Files\GoogleChrome\chrome.exe|C:\Program Files\Internet Explorer\iexplore.exe>C:\Program Files\AHK-Scripts\browserHelper.ahk
 
-notepad.exe>C:\Program Files\AHK-Scripts\pimpMyPad.ahk
+1>notepad.exe>C:\Program Files\AHK-Scripts\pimpMyPad.ahk|C:\Program Files\AHK-Scripts\silentProfile.ahk
 
-C:\Games\DOTA\dota.exe>C:\DOTA Scripts\cooldownSoundNotify.ahk|C:\DOTA Scripts\cheats\showInvisibleEnemies.ahk
+2>C:\Games\DOTA\dota.exe>C:\DOTA Scripts\cooldownSoundNotify.ahk|C:\DOTA Scripts\cheats\showInvisibleEnemies.ahk
 ),, 745, 515
 If !(ErrorLevel) && ruleAdd	; Do something only if user clicked [OK] and if he actually entered something.
-	IfNotInString, ruleAdd, >	; Fool-proof.
-	{
-		Run, https://en.wikipedia.org/wiki/RTFM
-		Msgbox RTFM!
-	}
-	Else	; If everything seems to be okay - add the rule to the Settings.ini and re-build the 'AssistantsList' LV.
-	{
-		IniWrite, %ruleAdd%, Settings.ini, Assistants, % rule0 + 1
-		Gui, ListView, AssistantsList
-		LV_Delete()
-		GoSub, AssistantsList
-	}
+	IniWrite, %ruleAdd%, %settings%, Assistants	; It's strange that it works. Instead I should have written "rules "`n" ruleadd".
+	procBinder := []
+	Gui, ListView, AssistantsList
+	LV_Delete()
+	GoSub, AssistantsList
 Return
 
 DeleteRules:
 	Gui, ListView, AssistantsList
-	rulesToDelete := newRules := selectedRow := rowsSelected := rulesToDeleteIndex := isThatRowOfRule := "", thisIndex := thatIndex := "0"
-	selectedRows := getRowNs()
+	rulesToDelete := newRules := ""
+	selectedRows := getRowNs()	; Getting numbers of the selected rows.
 	If !(selectedRows)	; Safe check.
 		Return
-	Loop, Parse, selectedRows, |	; Getting the number of items in the 'selectedRows'.
-		rowsSelected := A_Index
 	Loop, Parse, selectedRows, |
 	{
-		selectedRow := A_LoopField
-		Loop
-		{
-			isThatRowOfRule := ""
-			LV_GetText(isThatRowOfRule, selectedRow, 1)
-			If isThatRowOfRule	; we found # in the left column.
-			{
-				If !rulesToDelete	; no rules to delete yet, so we just assign it
-					rulesToDelete := isThatRowOfRule
-				Else	; there are rules to delete, so we need to decide wheter to add a new value or not
-				{
-					Loop, Parse, rulesToDelete, |	; Getting the number of items in the 'rulesToDelete'.
-						rulesToDeleteIndex := A_Index
-					Loop, Parse, rulesToDelete, |
-					{
-						If (isThatRowOfRule == A_LoopField)
-							Break
-						Else If (rulesToDeleteIndex == A_Index) && (isThatRowOfRule != A_LoopField)
-							rulesToDelete .= "|" isThatRowOfRule
-					}
-				}
-				Break
-			}
-			Else	; Didn't find the number in the left column, checking the row above.
-				selectedRow--
-		}
+		LV_GetText(selectedRow, A_LoopField, 1)
+		rulesToDelete ? rulesToDelete .= "|" selectedRow : rulesToDelete := selectedRow
 	}
+	Sort, rulesToDelete, N U D|	; Sorting the numbers of the rules to be deleted so there are no duplicates.
 	Loop, Parse, rulesToDelete, |	; Getting the number of items in the 'rulesToDelete'.
 		rulesToDeleteIndex := A_Index
-	Loop, %rule0%
+	Loop, %rule0%	; Recreating rules without the ones to be deleted.
 	{
 		thisIndex := A_Index
 		Loop, Parse, rulesToDelete, |
@@ -705,13 +603,11 @@ DeleteRules:
 			If (A_LoopField == thisIndex)
 				Break
 			Else If (A_LoopField != thisIndex) && (A_Index == rulesToDeleteIndex)
-			{
-				thatIndex++
-				newRules := ((newRules) ? (newRules "`n" thatIndex "=" rule%thisIndex%) : (thatIndex "=" rule%thisIndex%))
-			}
+				newRules := ((newRules) ? (newRules "`n" rule%thisIndex%) : (rule%thisIndex%))
 		}
 	}
-	IniWrite, %newRules%, Settings.ini, Assistants
+	IniDelete, %settings%, Assistants	; This is needed because the settings file has non-INI structure for this section.
+	IniWrite, %newRules%, %settings%, Assistants
 	LV_Delete()
 	GoSub, AssistantsList
 Return
@@ -736,7 +632,6 @@ Return
 	Else If (activeControl == "FolderTree")
 		TV_Modify(0)
 Return
-
 #IfWinActive
 ;}
 ;{ FUNCTIONS
@@ -791,20 +686,26 @@ getScriptPaths()	; Get scripts' paths of the selected rows.
 ; Output: script paths of the files in the selected rows.
 	rowNs := getRowNs()
 	Loop, Parse, rowNs, |
-		scriptsPaths := ((A_Index == 1) ? (scriptsSnapshot[A_LoopField, "path"]) : (scriptsPaths "|" scriptsSnapshot[A_LoopField, "path"]))
+		 (A_Index == 1) ? (scriptsPaths := scriptsSnapshot[A_LoopField, "path"]) : (scriptsPaths .= "|" scriptsSnapshot[A_LoopField, "path"])
 	Return scriptsPaths
 }
 	;}
 	;{ Functions of process control.
 run(paths)	; Runs selected scripts.
 {
-; Used by: Tab #1 'Manage files' - LVs: 'FileList', 'BookmarksList'; buttons: 'Run selected', 'Kill and re-execute'; functions: isTAGroupRunning().
+; Used by: Tab #1 'Manage files' - LVs: 'FileList', 'BookmarksList'; buttons: 'Run selected', 'Kill and re-execute'; functions: setRunState().
 ; Input: path or paths (separated by pipes, if many).
 ; Output: none.
 	If !paths
 		Return
+	toBeRun := paths
 	Loop, Parse, paths, |
-		Run, "%A_AhkPath%" "%A_LoopField%"
+	{
+		If (SubStr(A_LoopField, -2) == "ahk")
+			Run, "%A_AhkPath%" "%A_LoopField%"
+		Else
+			Run, %A_LoopField%
+	}
 }
 
 exit(pids)	; Closes processes nicely (uses PostMessage).
@@ -820,14 +721,13 @@ exit(pids)	; Closes processes nicely (uses PostMessage).
 
 kill(pids)	; Kills processes unnicely (uses "Process, Close").
 {
-; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill', 'Kill and re-execute'.
+; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill', 'Kill and re-execute'; functions: setRunState().
 ; Input: PID(s) (separated by pipes, if many).
 ; Output: none.
 	If !pids
 		Return
 	Loop, Parse, pids, |
 		Process, Close, %A_LoopField%
-	NoTrayOrphans()
 }
 
 killNreexecute(pids)	; Kills processes unnicely (uses "Process, Close") and then re-executes them.
@@ -839,7 +739,6 @@ killNreexecute(pids)	; Kills processes unnicely (uses "Process, Close") and then
 		Return
 	scriptsPaths := getScriptPaths()
 	kill(pids)
-	NoTrayOrphans()
 	run(scriptsPaths)
 }
 
@@ -908,99 +807,210 @@ resumeProcess(pids)	; Resume processes of selected scripts.
 	}
 }
 	;}
-	;{ Functions needed for 'Process Assistant' to work.
-
-isTCGroupMet(ruleGroupN = 0)	; Checks either all or specific TC group if any of it's TC's is running. It also calls other functions, like isTCMet() and isTAGroupRunning().
+	;{ Track Processes.
+ProcessCreate_OnObjectReady(obj)
 {
-; Used by: soubroutines: 'ProcessList'; functions: isTCGroupMet().
-; Input: specific TC-group's number or if it's called with no argument (or 0) - it calls self recursively.
-; Output: none.
-	If conditions	; Just a safe check, not really needed.
+	Process := obj.TargetInstance
+	processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
+	If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
 	{
-		Loop, Parse, conditions, ?	; Parse TC-groups in the contents of 'conditions' variable.
+		scriptsSnapshot.Insert({"pid": Process.ProcessId, "name": scriptName, "path": scriptPath})
+		Gui, ListView, ManageProcesses
+		LV_Add(, scriptsSnapshot.MaxIndex(), Process.ProcessId, scriptName, scriptPath)
+		thisProcess := scriptPath
+	}
+	Else
+		thisProcess := Process.ExecutablePath
+	If (toBeRun)
+	{
+		StringReplace, toBeRun, toBeRun, % thisProcess
+		StringReplace, toBeRun, toBeRun, ||
+		StringLeft, thisChar, toBeRun, 1
+		If (thisChar == "|")
+			StringTrimLeft, toBeRun, toBeRun, 1
+		StringRight, thisChar, toBeRun, 1
+		If (thisChar == "|")
+			StringTrimRight, toBeRun, toBeRun, 1
+	}
+	checkRunTriggers(thisProcess)
+}
+
+ProcessDelete_OnObjectReady(obj)
+{
+	Process := obj.TargetInstance
+	For k, v In processesSnapshot
+		If (v.pid == Process.ProcessId)
+			processesSnapshot.Remove(A_Index)
+	If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
+	{
+		For k, v In scriptsSnapshot
 		{
-			If !ruleGroupN	; The function was called with no argument, thus it should recursively call self to check every TC group.
-				isTCGroupMet(A_Index)
-			Else If (A_Index != ruleGroupN)
-				Continue
-			Else
+			If (v.pid == Process.ProcessId)
 			{
-				StringSplit, this, A_LoopField, |
-				that := A_Index
-				Loop, Parse, A_LoopField, |	; Parse TCs in the specified TC-group.
+				Gui, ListView, ManageProcesses
+				LV_Delete(A_Index)
+				scriptsSnapshot.Remove(A_Index)
+				this := 1
+			}
+			If (this)
+				LV_Modify(A_Index,, A_Index)	; FIXME: This better be called after some delay since the last call of this function.
+		}
+		noTrayOrphans()
+		checkKillTriggers(scriptPath)
+	}
+	Else
+		checkKillTriggers(Process.ExecutablePath)
+}
+	;}
+	;{ Functions needed for 'Process Assistant' to work.
+checkRunTriggers(rule = 0)
+{	; OPTIMIZEME
+; Used by: 
+; Input: none.
+; Output: none.
+	For, k, v In procBinder
+	{
+		If (v.ruleGroupN != procBinder[k - 1, "ruleGroupN"])
+			ruleIndex := stopperIndex := noTriggerFound := 0
+		ruleIndex++	; Counter of the rules in a sub-group (or in a group, if type == 0)
+		If ((v.side == 2 || !v.type) && stopperIndex)	; No need in deep parsing, local instructions are enough.
+			stuffToRun := (stuffToRun ? stuffToRun "|" v.value : v.value)
+		Else If ((v.type != 1) && !rule && noTriggerFound)
+			stuffToKill := (stuffToKill ? stuffToKill "|" v.value : v.value)
+		If (stopperIndex || noTriggerFound)
+			Continue
+		isAhkProc := ((SubStr(v.value, -2) == "ahk") ? 1 : 0)	; isAhkProc: 1 - an ahk-script is being parsed; 0 - non-ahk process is being parsed.
+		If (rule)	; A new process appeared.
+		{
+			If ((rule ~= "Si)^.*\Q" v.value "\E$") || ((rule ~= "Si)^.*\Q" v.value "\E$") && (SubStr(rule, -2) == "exe"))) && ((v.side == 1 && v.type) || !v.type)
+			{
+				stopperIndex := k	; A TC found, which is eough to trigger the whole TA-group (or + TC-group in case of !v.type).
+				Loop, % ruleIndex - 1
+					stuffToRun := ((stuffToRun) ? (stuffToRun "|" procBinder[k - ruleIndex + A_Index, "value"]) : (procBinder[k - ruleIndex + A_Index, "value"]))
+			}
+		}
+		Else If (!v.type || (v.side == 1))	; Not a new process appeared, but an initial check is getting executed.
+		{
+			For i, j In (isAhkProc ? scriptsSnapshot : processesSnapshot)	; Need to find out if it's running (and thus is a trigger to run the whole group).
+			{
+				If (((j.path ~= "Si)^.*\Q" v.value "\E$") && (isAhkProc)) || ((j.exe ~= "Si)^.*\Q" v.value "\E$") && !(isAhkProc)))	; A rule was found running, need to trigger the whole group.
 				{
-					isAnyTCMet := isTCMet(A_LoopField)
-					If isAnyTCMet	; At least 1 TC in this group is met, we need to check if the corresponding TA group is running or not and execute it if needed.
+					stopperIndex := k	; A TC found, which is enough to trigger the whole TA-group (or + TC-group in case of !v.type).
+					If !(v.type)
+						Loop, % ruleIndex - 1
+							stuffToRun := ((stuffToRun) ? (stuffToRun "|" procBinder[k - ruleIndex + A_Index, "value"]) : (procBinder[k - ruleIndex + A_Index, "value"]))
+					Break
+				}
+			}
+		}
+		If (v.side != procBinder[k + 1, "side"]) && (v.type) && !(stopperIndex)
+			noTriggerFound := 1
+	}
+	If stuffToKill
+	{
+		Sort, stuffToKill, U D|	; Removing duplicates, if there are any of them.
+		setRunState(stuffToKill, 0)	; Check if everything from 'stuffToRun' is already running, and run if something is not yet running.
+	}
+	If stuffToRun
+	{
+		Sort, stuffToRun, U D|	; Removing duplicates, if there are any of them.
+		If toBeRun
+			Loop, Parse, stuffToRun, |
+				IfNotInString, toBeRun, %A_LoopField%
+					((runThem) ? (runThem .= "|" A_LoopField) : (runThem := A_LoopField))
+		If runThem
+			setRunState(runThem, 1)	; Check if everything from 'stuffToRun' is already running, and run if something is not yet running.
+		Else
+			setRunState(stuffToRun, 1)
+	}
+}
+
+checkKillTriggers(path)	; A selective check of the specified process to trigger any rules.
+{
+; Used by: functions: ProcessDelete_OnObjectReady()
+; Input: 'path' - a Process.CommandLine/scriptPath of a just died process/script.
+; Output: none.
+ruleIndex := 0
+	For k, v In procBinder
+	{
+		isAhkProc := ((SubStr((procBinder[k - (ruleIndex + 1) + A_Index, "value"]), -2) == "ahk") ? 1 : 0)
+		If (v.ruleGroupN != procBinder[k - 1, "ruleGroupN"])	; First rule in a group.
+			ruleIndex := stopperIndex := noTriggerFound := 0
+		ruleIndex++
+		If (stopperIndex)
+		{
+			If !(v.type)
+				stuffToKill := ((stuffToKill) ? (stuffToKill "|" v.value) : (v.value))
+			Else If (noTriggerFound)	; There was a match already, need to finish parsing the rules in the left side.
+			{
+				If (v.side == 1)
+				For i, j In (isAhkProc ? scriptsSnapshot : processesSnapshot)
+				{
+					If (((j.path ~= "Si)^.*\Q" v.value "\E$") && (isAhkProc)) || ((j.exe ~= "Si)^.*\Q" v.value "\E$") && !(isAhkProc)))
 					{
-						isTAGroupRunning(that, 1)
+						noTriggerFound := 0
 						Break
 					}
-					Else If (this0 == A_Index)	; We've parsed the whole TC group and found out that no TCs in this group are met, thus we have to make sure that the corresponding TA group is dead too.
-						isTAGroupRunning(that, 0)
+				}
+				Else
+					stuffToKill := ((stuffToKill) ? (stuffToKill "|" v.value) : (v.value))
+			}
+			Continue
+		}
+		If (path ~= "Si)^.*\Q" v.value "\E$")	; If the dead process matches anything from 'procBinder[]'.
+		{
+			stopperIndex := k
+			If !(v.type)	; The dead process matches a rule with "type = 0".
+			{
+				Loop, % ruleIndex - 1	; Check previous TCs in the rule's TC-group.
+					stuffToKill := ((stuffToKill) ? (stuffToKill "|" procBinder[k - ruleIndex + A_Index, "value"]) : (procBinder[k - ruleIndex + A_Index, "value"]))
+			}
+			Else If (v.side == 1) && (v.type == 2)	; The dead process matches some TC from a TC-group of a rule with "type = 2".
+			{
+				If (ruleIndex == 1)
+					noTriggerFound := 1
+				Else
+				{
+					Loop, % ruleIndex - 1	; Check previous TCs in the rule's TC-group.
+					{
+						For i, j In (isAhkProc ? scriptsSnapshot : processesSnapshot)
+							If (((j.path ~= "Si)^.*\Q" v.value "\E$") && (isAhkProc)) || ((j.exe ~= "Si)^.*\Q" v.value "\E$") && !(isAhkProc)))
+								Break 2
+						If (A_Index == ruleIndex)
+							noTriggerFound := 1
+					}
 				}
 			}
 		}
 	}
-	Return
-}
-isTCMet(TC)	; Check if a specific TC (not a group) is running or not.
-{
-; Used by: function isTCGroupMet().
-; Input: TC's path.
-; Output: "1" if running or otherwise "0".
-	Loop, %indexProcesses%
+	If (stuffToKill)
 	{
-		this := processesSnapshot[A_Index, "exe"]
-		IfInString, this, \%TC%
-		{
-			TCMet := 1
-			Break
-		}
-		Else If (A_Index == indexProcesses)
-			TCMet := 0
+		Sort, killThem, U D|
+		setRunState(stuffToKill, 0)
 	}
-	Return TCMet
 }
 
-isTAGroupRunning(ruleGroupN, SwitchOnOrOff)	; Check if specified TA-group is running and either kill the scripts (0) or run the scripts (1).
+setRunState(input, runOrKill)	; Checks the running state of the input and runs or kills if needed.
 {
-; Used by: functions: isTCGroupMet().
-; Input: 1st argument is a number of a TA-group to check, 2nd argument forces either to make sure that all the scripts' processes from the corresponding TA-group are dead (0) and kill the living ones; or that they are running (1) and execute the not yet running ones.
+; Used by: functions: checkRunTriggers.
+; Input: input - pipe separated processes or scripts to check and either run or kill; runOrKill: 1 - make sure it is running or run if it isn't; 0 - make sure it is dead, or kill if needed.
 ; Output: none.
-	Loop, Parse, triggeredActions, ?
+	Loop, Parse, input, |
 	{
-		If (ruleGroupN != A_Index)
-			Continue
-		Loop, Parse, A_LoopField, |
+		match := !runOrKill
+		index := A_Index
+		For k, v in ((SubStr(A_LoopField, -2) == "ahk") ? scriptsSnapshot : processesSnapshot)
 		{
-			isAnyTAMet := isTAMet(A_LoopField)
-			If !(isAnyTAMet) && (SwitchOnOrOff)
-				run(A_LoopField)
-			Else If (isAnyTAMet) && !(SwitchOnOrOff)
-				toBeKilled := ((toBeKilled) ? (toBeKilled "|" isAnyTAMet) : (isAnyTAMet))
+			If (RegExMatch((SubStr(A_LoopField, -2) == "ahk" ? v.path : v.exe), "Si)^.*\Q" A_LoopField "\E$"))
+			{
+				match := runOrKill
+				Break
+			}
 		}
+		If ((match != runOrKill) && runOrKill) || ((match == runOrKill) && !runOrKill)
+			stuffToRunOrKill := ((stuffToRunOrKill) ? (stuffToRunOrKill "|" A_LoopField) : (A_LoopField))
 	}
-	If toBeKilled
-		%howToQuitAssistants%(toBeKilled)
-}
-
-isTAMet(TA)	; Check if a specific TA (not a group) is running or not.
-{
-; Used by: functions: isTAGroupRunning().
-; Input: TA's path.
-; Output: script's PID if it's running or otherwise "0".
-	Loop, %indexScripts% 
-	{
-		this := scriptsSnapshot[A_Index, "path"]
-		If (TA == this)
-		{
-			TAMet := scriptsSnapshot[A_Index, "pid"]
-			Break
-		}
-		Else If (A_Index == indexScripts)
-			TAMet := 0
-	}
-	Return TAMet
+	((runOrKill) ? (run(stuffToRunOrKill)) : (kill(stuffToRunOrKill)))
 }
 	;}
 	;{ Fulfill 'TreeView' GUI.
@@ -1009,62 +1019,77 @@ buildTree(folder, parentItemID = 0)
 ; Used by: script's initialization; Tab #1 'Manage files' - TVs: 'FolderTree'.
 ; Input: folder's path and parentItemID (ID of an item in a TreeView)
 ; Output: none.
-   If folder
-         Loop %folder%\*, 2   ; Inception: retrieve all of Folder's sub-folders.
-         {
-             parent := TV_Add(A_LoopFileName, parentItemID, "Icon1")	; Add all of those sub-folders to the TreeView.
-             Loop %A_LoopFileFullPath%\*, 2   ; We need to get deeper (c).
-             {
-                    TV_Add(A_LoopFileName, parent, "Icon2")
-                    Break	; No need to add more than 1 item: that's needed just to make the parent item expandable (wnyways it's contents will get re-constructed when that item gets expanded).
-             }
-         }
+	If folder
+		Loop, %folder%\*, 2   ; Inception: retrieve all of Folder's sub-folders.
+		{
+			parent := TV_Add(A_LoopFileName, parentItemID, "Icon1")	; Add all of those sub-folders to the TreeView.
+			Loop, %A_LoopFileFullPath%\*, 2   ; We need to get deeper (c).
+			{
+				TV_Add(A_LoopFileName, parent, "Icon2")
+				Break	; No need to add more than 1 item: that's needed just to make the parent item expandable (wnyways it's contents will get re-constructed when that item gets expanded).
+			}
+		}
 }
 
-; WM_DEVICECHANGE(wp, lp)
-; {
-; 	; Static DBT_DEVICEARRIVAL := 0x8000, DBT_DEVICEREMOVECOMPLETE := 0x8004, DBT_DEVTYP_VOLUME := 2
-; 	If ((wp == 0x8000 || wp == 0x8004) && NumGet(lp + 4, "UInt") == 2)
-; 	{
-; 		dbcv_unitmask := NumGet(lp+12, "UInt")
-; 		Loop, 26	; The number of letters in latin alphabet.
-; 		{
-; 			driveLetter := Chr(Asc("A") + A_Index - 1)
-; 		} Until (dbcv_unitmask >> (A_Index - 1))&1
-; 		MsgBox, % "Диск """ driveLetter ":"" " (wp == 0x8000 ? "подключен" : "отключен") ".`nПытаюсь обновить дерево соответствующим образом.`nwp: '" wp "'"
-; 		If (wp == 0x8000)	; A new drive got connected
-; 			TV_Add(driveLetter)
-; 		Else If (wp == 0x8004)	; A drive got removed.
-; 		{
-; 			Loop
-; 			{
-; 				If (A_Index == 1)
-; 					driveID := TV_GetChild(0)
-; 				Else
-; 					driveID := TV_GetNext(driveID)
-; 				TV_GetText(thisDrive , driveID)
-; 			} Until (driveLetter == thisDrive)
-; 			TV_Delete(driveID)
-; 		}
-; 	}
-; }
+WM_DEVICECHANGE(wp, lp)	; Add/remove data to the 'FolderTree" TV about connected/disconnected removable disks.
+{
+; Used by: script's initialization. For some reason it's called twice every time a disk got (dis)connected.
+; Input: unknown.
+; Output: none.
+	If ((wp == 0x8000 || wp == 0x8004) && NumGet(lp + 4, "UInt") == 2)
+	{
+		dbcv_unitmask := NumGet(lp+12, "UInt")
+		Loop, 26	; The number of letters in latin alphabet.
+		{
+			driveLetter := Chr(Asc("A") + A_Index - 1)
+		} Until (dbcv_unitmask >> (A_Index - 1))&1
+		If (wp == 0x8000)	; A new drive got connected.
+		{
+			Loop
+			{
+				If (A_Index == 1)
+					driveID := TV_GetChild(0)
+				Else
+					driveID := TV_GetNext(driveID)
+				TV_GetText(thisDrive , driveID)
+				StringLeft, thisDrive, thisDrive, 1
+			} Until (driveLetter == thisDrive) || !(driveID)
+			If !(driveLetter == thisDrive)
+				buildTree(driveLetter ":", TV_Add(driveLetter ":",, "Icon3"))
+		}
+		Else If (wp == 0x8004)	; A drive got removed.
+		{
+			Loop
+			{
+				If (A_Index == 1)
+					driveID := TV_GetChild(0)
+				Else
+					driveID := TV_GetNext(driveID)
+				TV_GetText(thisDrive , driveID)
+				StringLeft, thisDrive, thisDrive, 1
+			} Until (driveLetter == thisDrive) || !(driveID)
+			If driveID
+				TV_Delete(driveID)
+		}
+	}
+}
 	;}
 	;{ NoTrayOrphans() - a bunch of functions to remove tray icons of dead processes.
-NoTrayOrphans()
+noTrayOrphans()
 {
-	TrayInfo := TrayIcons(sExeName, "ahk_class Shell_TrayWnd", "ToolbarWindow32" . GetTrayBar()) "`n"
-		. TrayIcons(sExeName, "ahk_class NotifyIconOverflowWindow", "ToolbarWindow321")
+	TrayInfo := trayIcons(sExeName, "ahk_class Shell_TrayWnd", "ToolbarWindow32" . getTrayBar()) "`n"
+		. trayIcons(sExeName, "ahk_class NotifyIconOverflowWindow", "ToolbarWindow321")
 	Loop, Parse, TrayInfo, `n
 	{
 		ProcessName := StrX(A_Loopfield, "| Process: ", " |")
 		ProcesshWnd := StrX(A_Loopfield, "| hWnd: ", " |")
 		ProcessuID := StrX(A_Loopfield, "| uID: ", " |")
 		If !ProcessName && ProcesshWnd
-			RemoveTrayIcon(ProcesshWnd, ProcessuID)
+			removeTrayIcon(ProcesshWnd, ProcessuID)
 	}
 }
 
-TrayIcons(sExeName, traywindow, control)
+trayIcons(sExeName, traywindow, control)
 {
 	DetectHiddenWindows, On
 	WinGet, pidTaskbar, PID, %traywindow%
@@ -1118,7 +1143,7 @@ TrayIcons(sExeName, traywindow, control)
 	Return sTrayIcons
 }
 
-GetTrayBar()
+getTrayBar()
 {
 	ControlGet, hParent, hWnd,, TrayNotifyWnd1, ahk_class Shell_TrayWnd
 	ControlGet, hChild, hWnd,, ToolbarWindow321, ahk_id %hParent%
@@ -1138,7 +1163,7 @@ StrX(H, BS = "", ES = "", Tr = 1, ByRef OS = 1)
 	Return (SP := InStr(H, BS, 0, OS)) && (L := InStr(H, ES, 0, SP + StrLen(BS))) && (OS := L + StrLen(ES)) ? SubStr(H, SP := Tr ? SP + StrLen(BS) : SP, (Tr ? L : L + StrLen(ES)) -SP) : ""
 }
 
-RemoveTrayIcon(hWnd, uID, nMsg = 0, hIcon = 0, nRemove = 2)
+removeTrayIcon(hWnd, uID, nMsg = 0, hIcon = 0, nRemove = 2)
 {
 	NumPut(VarSetCapacity(ni,444,0), ni)
 	NumPut(hWnd, ni, 4)

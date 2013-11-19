@@ -1,3 +1,7 @@
+; http://justice.dcmembers.com/pages/home/alttab-fingertips.php
+; http://justice.dcmembers.com/media/downloads/AltTab%20Fingertips.zip
+; http://www.donationcoder.com/forum/index.php?topic=10629.0
+
 ; AltTabFingertips by justice
 ; Thanks to ak_ for FileDraft from which I borrow the "menu at cursor" idea
 

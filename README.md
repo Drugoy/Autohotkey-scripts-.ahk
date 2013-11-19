@@ -75,7 +75,7 @@ This is a not yet finished script and it is generally quite buggy at the moment,
 
 ##### [ScriptManager.ahk](ScriptManager.ahk)
 This folder contains different ahk scripts managers.
-One of them is MasterScript, which is an advanced scripts manager for AHK scripts:
+One of them is [MasterScript.ahk](ScriptManager.ahk/MasterScript.ahk), which is an advanced scripts manager for AHK scripts:
 - it has a TreeView to let you navigate among your folders to the .ahk files;
 - it supports bookmarking the paths of .ahk files;
 - it supports bookmarking the paths to any folders (for easier navigation in future);

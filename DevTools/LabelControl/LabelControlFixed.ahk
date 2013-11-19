@@ -1,3 +1,4 @@
+; http://www.donationcoder.com/Software/Skrommel/index.html#LabelControl
 ;LabelControl.ahk
 ; Overlays controls with a Number for direct access via Ctrl-Number
 ;Skrommel @2006

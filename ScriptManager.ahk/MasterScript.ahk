@@ -12,7 +12,7 @@ http://forum.script-coding.com/viewtopic.php?id=8724
 */
 ;{ TODO:
 ; 1. Handle scripts' icons hiding/restoring.
-;	a. Add a button to hide/restore script's train icon.
+;	a. Add a button to hide/restore script's tray icon.
 ; 2. [If possible:] Combine suspendProcess() and resumeProcess() into a single function.
 ;	This might be helpful: http://www.autohotkey.com/board/topic/41725-how-do-i-disable-a-script-from-a-different-script/#entry287262
 ; 3. [If possible:] Add more info about processes to 'ManageProcesses' LV: hotkey suspend state, script's pause state.

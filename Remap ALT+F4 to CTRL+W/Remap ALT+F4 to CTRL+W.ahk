@@ -1,8 +1,11 @@
 ﻿/* Remap ALT+F4 to CTRL+W
-Version: 1
-Last time modified: 18:40 25.11.2013
+Version: 1.1
+Last time modified: 21:25 25.11.2013
 
 Makes "Ctrl+W" hotkey work as "Alt+F4" for lots of different programs and system windows. I like Ctrl+W more than Alt+F4, as it's keys are closer to each other.
+
+Warning: console-related hotkeys require this to work:
+REG.EXE add HKCU\Console /v QuickEdit /t REG_DWORD /d 1 /f
 
 Script author: Drugoy a.k.a. Drugmix
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
@@ -23,16 +26,19 @@ GroupAdd, altF4, ahk_class Ghost ahk_exe autoHotkey.exe	; AHK's WindowSpy window
 ; Group for WinClose by "Ctrl + W".
 GroupAdd, closeWin, Find ahk_exe akelpad.exe	; AkelPad's find window.
 GroupAdd, closeWin, AkelUpdater ahk_exe AkelUpdater.exe	; AkelPad Updater's window.
-GroupAdd, closeWin, Справка и поддержка ahk_exe HelpPane.exe	; Windows' built-in help tha gets triggered by F1.
+GroupAdd, closeWin, Справка и поддержка ahk_exe HelpPane.exe	; Windows' built-in help tha gets triggered by F1 (ru locale).
+GroupAdd, closeWin, Windows Help and Support ahk_exe HelpPane.exe	; Windows' built-in help tha gets triggered by F1.
 GroupAdd, closeWin, ahk_exe hh.exe	; Windows' built-in .chm files reader.
 GroupAdd, closeWin, ahk_class AU3Reveal	; AHK windows' info gatherer.
 GroupAdd, closeWin, AutoHotkey Toolkit [W] ahk_class AutoHotkeyGUI	; AutoHotkey Toolkit.
 GroupAdd, closeWin, GitHub ahk_exe GitHub.exe	; GitHub.
 GroupAdd, closeWin, ahk_exe calc.exe	; Calc.
-GroupAdd, closeWin, Выполнить ahk_exe explorer.exe	; Run.
+GroupAdd, closeWin, Выполнить ahk_exe explorer.exe	; Run (ru locale).
+GroupAdd, closeWin, Run ahk_exe explorer.exe	; Run.
 GroupAdd, closeWin, ahk_exe charmap.exe	; Charmap.
 ; GroupAdd, closeWin, ahk_class MediaPlayerClassicW	; Media Player Classic - Home Cinema.
-GroupAdd, closeWin, ahk_exe mpc-hc64.exe	; Media Player Classic - Home Cinema (64bit process only).
+GroupAdd, closeWin, ahk_exe mpc-hc.exe	; Media Player Classic - Home Cinema (32-bit process only).
+GroupAdd, closeWin, ahk_exe mpc-hc64.exe	; Media Player Classic - Home Cinema (64-bit process only).
 GroupAdd, closeWin, ahk_exe uTorrent.exe	; µTorrent.
 GroupAdd, closeWin, ahk_exe clipdiary-portable.exe	; Clipdiary.
 GroupAdd, closeWin, ahk_exe AnVir.exe	; AnVir TaskManager.
@@ -60,9 +66,30 @@ GroupAdd, pasteCMD, ahk_exe powershell.exe	; Windows console (cmd.exe, powershel
 ^vk57::Send !{F4}	; "Ctrl + W" -> "Alt + F4".
 
 #IfWinActive ahk_group closeWin
-^vk57::WinClose, A	; "Ctrl + W" -> close.
+^vk57::WinClose	; "Ctrl + W" -> close.
 
 #IfWinActive ahk_group pasteCMD
-^vk0x56::ControlClick,,,, Right	; "Ctrl + V" -> "Right mouse click" (paste text from clipboard).
-^vk0x41::Send {Esc}	; "Ctrl + A" -> "Esc" (clear input).
-^vk0x5a::Send {Esc}	; "Ctrl + Z" -> "Esc" (clear input).
+^vk43::	; "CTRL + C" -> "Right mouse click" (copy selected text to clipboard).
+^vk56::	; "Ctrl + V" -> "Right mouse click" (paste text from clipboard).
+	WinGetTitle, title
+	If (title ~= "(Выбрать|Select) .*:.*")
+	{
+		If (A_ThisHotkey == "^vk56")
+			Send {Esc}
+	}
+	Else
+	{
+		If (A_ThisHotkey == "^vk43")
+		{
+			Hotkey, %A_ThisHotkey%, Off
+			Send ^c	; Stop execution.
+			Hotkey, %A_ThisHotkey%, On
+			Return
+		}
+	}
+	ControlClick,,,, Right
+Return
+^vk41::	; "Ctrl + A" -> "Esc" (clear input).
+^vk5a::	; "Ctrl + Z" -> "Esc" (clear input).
+	Send {Esc}
+Return

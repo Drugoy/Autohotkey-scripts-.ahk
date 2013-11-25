@@ -1,7 +1,15 @@
-﻿#SingleInstance, Force
-CoordMode, Mouse, Window
-SetMouseDelay, 0
-SetDefaultMouseSpeed, 0
+﻿/* Remap ALT+F4 to CTRL+W
+Version: 1
+Last time modified: 18:40 25.11.2013
+
+Makes "Ctrl+W" hotkey work as "Alt+F4" for lots of different programs and system windows. I like Ctrl+W more than Alt+F4, as it's keys are closer to each other.
+
+Script author: Drugoy a.k.a. Drugmix
+Contacts: idrugoy@gmail.com, drug0y@ya.ru
+https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/Remap ALT+F4 to CTRL+W/Remap ALT+F4 to CTRL+W.ahk
+*/
+
+#SingleInstance, Force
 
 ; Group for remapping "Ctrl + W" to "Alt + F4".
 GroupAdd, altF4, ahk_class Miranda ahk_exe Miranda64.exe	; Miranda.
@@ -55,10 +63,6 @@ GroupAdd, pasteCMD, ahk_exe powershell.exe	; Windows console (cmd.exe, powershel
 ^vk57::WinClose, A	; "Ctrl + W" -> close.
 
 #IfWinActive ahk_group pasteCMD
-^vk0x56::	; ControlSend,, {RButton}, A
-MouseGetPos, x, y
-Click, Right 15, 35	; "Ctrl + V" -> "Right click" (paste)
-MouseMove, x, y
-Return
+^vk0x56::ControlClick,,,, Right	; "Ctrl + V" -> "Right mouse click" (paste text from clipboard).
 ^vk0x41::Send {Esc}	; "Ctrl + A" -> "Esc" (clear input).
 ^vk0x5a::Send {Esc}	; "Ctrl + Z" -> "Esc" (clear input).

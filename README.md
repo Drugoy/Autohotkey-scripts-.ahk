@@ -31,6 +31,11 @@ Quite a heavy script with lots of functions, all of which are targeted to bring 
 The script uses lots of hotkeys, but many of them by default use non-standard buttons of mouse and keyboard, so if your mouse and/or keyboard lack those buttons - you'll have to re-configure those hotkeys.
 Also, the script has quite much stuff that you'd probably won't be interested in (that stuff was written to fit my own needs only).
 
+##### [FastenFileUploadFromURLs](FastenFileUploadFromURLs)
+Not many people know that when uploading a file (say, setting an avatar to your profile on a forum), it is allowed to use URLs pointing to some files that you don't have locally saved. All you need is to paste the URL into the "file name" input field - in that case, the file will be downloaded to a %temp% folder on your computer and the local path to that file will get used.
+However, Windows OSes are quite buggy and sometimes the downloading of a sinngle tiny image may take up to 1 minute, which is too long.
+This script just fastens this process to the minimum time required to download the file. All you need is to have this script running, whenever you paste an URL into the "File Upload" window.
+
 ##### [FlashPluginUnpacker.ahk-4FxPE](FlashPluginUnpacker.ahk-4FxPE)
 Written for Firefox Portable users who need Flash Player's dll files, but who don't want to install it into the system.
 You put this script into your "%firefoxportable%\Data\Plugins" folder, download Flash Plugin from <a href="http://portableappz.blogspot.ru/2011/03/flash-1021531-10318042-plugins.html">here</a> and just drag'n'drop the exe file you downloaded onto the script.

@@ -42,6 +42,7 @@ GroupAdd, closeWin, ahk_exe Skype.exe	; Skype contact list.
 ; GroupAdd, closeWin, ahk_class ConsoleWindowClass	; Windows console (cmd.exe, powershell.exe).
 GroupAdd, closeWin, ahk_exe cmd.exe	; Windows console (cmd.exe, powershell.exe).
 GroupAdd, closeWin, ahk_exe powershell.exe	; Windows console (cmd.exe, powershell.exe).
+GroupAdd, closeWin, File Upload ahk_class #32770	; File Upload mini-explorer windows, usually called by browsers prompting to select a file to upload.
 
 ; Console remaps (paste).
 GroupAdd, pasteCMD, ahk_exe cmd.exe	; Windows console (cmd.exe, powershell.exe).
@@ -54,10 +55,10 @@ GroupAdd, pasteCMD, ahk_exe powershell.exe	; Windows console (cmd.exe, powershel
 ^vk57::WinClose, A	; "Ctrl + W" -> close.
 
 #IfWinActive ahk_group pasteCMD
-^vk0x56sc0x2f::ControlSend,, {RButton}, A
-; MouseGetPos, x, y
-; Click, Right 15, 35	; "Ctrl + V" -> "Right click" (paste)
-; MouseMove, x, y
-; Return
-^vk0x41sc0x1e::Send {Esc}	; "Ctrl + A" -> "Esc" (clear input).
-^vk0x5asc0x2c::Send {Esc}	; "Ctrl + Z" -> "Esc" (clear input).
+^vk0x56::	; ControlSend,, {RButton}, A
+MouseGetPos, x, y
+Click, Right 15, 35	; "Ctrl + V" -> "Right click" (paste)
+MouseMove, x, y
+Return
+^vk0x41::Send {Esc}	; "Ctrl + A" -> "Esc" (clear input).
+^vk0x5a::Send {Esc}	; "Ctrl + Z" -> "Esc" (clear input).

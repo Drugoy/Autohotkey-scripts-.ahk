@@ -75,7 +75,7 @@ DirectUIHWND
 #IfWinActive, File Upload ahk_class #32770
 $^vk0x56::	; Ctrl + V.
 	x := y := thisLine := localFileName := ""
-	Winget, ctrlList, ControlList, a
+	Winget, ctrlList, ControlList
 	Loop, Parse, ctrlList, `n
 	{
 		StringTrimRight, thisLine, A_LoopField, 1

@@ -24,7 +24,9 @@ Return
 F12::
 	SetTimer, Move, Off
 	MouseGetPos,,, window, ctrl, 2
-	; MsgBox ctrl: '%ctrl%'`n	; %ctrl% is empty if video is embedded on a 3rd party site opened in Firefox.
+	If !ctrl	; There should be no case when %ctrl% is empty, I've added this check just to avoid the conflict with Firefox.
+		Return
+	WinGetActiveTitle, windowTitle
 	WinGetPos,,, ww, wh, ahk_id %window%
 	WinGetPos,,, cw, ch, ahk_id %ctrl%
 	current := counter
@@ -39,7 +41,7 @@ F12::
 	If (current > counter)
 		counter++
 	Gui, %current%: +AlwaysOnTop +Resize +ToolWindow +LabelAllGui 
-	Gui, %current%: Show, X0 Y0 W%cw% H%ch%, DetachVideo
+	Gui, %current%: Show, X0 Y0 W%cw% H%ch%, %windowTitle%
 	Gui, %current%: +LastFound
 	gui := WinExist("A")
 	parent := DllCall("SetParent", "UInt", ctrl, "UInt", gui)

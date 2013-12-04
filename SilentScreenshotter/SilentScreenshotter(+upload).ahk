@@ -1,26 +1,30 @@
-﻿;{ SilentScreenshotter by Drugoy
+﻿/* SilentScreenshotter v1.1
 
-; This script takes *.png screenshots of the specified area and uploads them to imgur.com and depending on user's setting - it either stores the URL of the uploaded image into the clipboard or opens it instantly. It also supports image files to be drag'n'dropped onto the script to upload them.
+Last modified: 21:10 04.12.2013
 
-; Script author: Drugoy a.k.a. Drugmix
-; Contacts: idrugoy@gmail.com, drug0y@ya.ru
-; https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/SilentScreenshotter/
+Changelog: added AHK_x64 support.
 
-; Requirements:
-; 0. Some very basic .ahk knowledge for one-time script configuration.
-; 1. That requirement is optional: 'Optipng' utility: it is boundled along with this script If the script is compiled, or can be downloaded from here: http://optipng.sourceforge.net/
-; 2. AHK_L x32 Unicode. The script may not work with other versions.
-; How to use:
-; 1. Obtain ClientID here https://api.imgur.com/oauth2/addclient
-; 2. Configure the settings.
-; 3. Run the script.
-; 4. a. Set cursor at any corner of the area you'd like to take a screenshot of.
-;	 b. Hit [PrintScreen].
-;	 c. Set cursor to the opposite corner.
-;	 d. Either hit [PrintScreen] again or [left click] to lock the area to be screenshotted.
-;	 e. Hit [PrintScreen] once again to finally take the screenshot.
-; Before step "4e" - you may cancel screenshotting process by hitting Escape button.
-;}
+This script takes *.png screenshots of the specified area and uploads them to imgur.com and depending on user's setting - it either stores the URL of the uploaded image into the clipboard or opens it instantly. It also supports image files to be drag'n'dropped onto the script to upload them.
+
+Script author: Drugoy a.k.a. Drugmix
+Contacts: idrugoy@gmail.com, drug0y@ya.ru
+https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/SilentScreenshotter/
+
+Requirements:
+0. Some very basic .ahk knowledge for one-time script configuration.
+1. That requirement is optional: 'Optipng' utility: it is boundled along with this script If the script is compiled, or can be downloaded from here: http://optipng.sourceforge.net/
+2. AHK_L x32 Unicode. The script may not work with other versions.
+How to use:
+1. Obtain ClientID here: https://api.imgur.com/oauth2/addclient
+2. Configure the settings.
+3. Run the script.
+4. a. Set cursor at any corner of the area you'd like to take a screenshot of.
+	 b. Hit [PrintScreen].
+	 c. Set cursor to the opposite corner.
+	 d. Either hit [PrintScreen] again or [left click] to lock the area to be screenshotted.
+	 e. Hit [PrintScreen] once again to finally take the screenshot.
+Before step "4e" - you may cancel screenshotting process by hitting Escape button.
+*/
 ;{ Initialization before settings
 #SingleInstance, Off
 SetWorkingDir, %A_ScriptDir%
@@ -503,5 +507,4 @@ Gdip_Shutdown(pToken)
 		DllCall("FreeLibrary", Ptr, hModule)
 	Return 0
 }
-;}
 ;}

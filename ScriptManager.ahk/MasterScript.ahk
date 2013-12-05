@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 3
-Last time modified: 01:05 14.11.2013
+Version: 3.1
+Last time modified: 11:25 05.12.2013
 
 Description: a script manager for *.ahk scripts.
 
@@ -18,11 +18,23 @@ http://forum.script-coding.com/viewtopic.php?id=8724
 ; 3. [If possible:] Add more info about processes to 'ManageProcesses' LV: hotkey suspend state, script's pause state.
 ;}
 ;{ Settings block.
-settings := A_ScriptDir "\" SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4) "_settings.ini"	; Path and name of the file name to store script's settings.
-memoryScanInterval := 1000	; Specify a value in milliseconds.
-rememberPosAndSize := 1	; 1 = Make script store info (into the settings file) about it's window's size and position between script's closures. 0 = do not store that info in the settings file.
-quitAssistantsNicely := 1	; 1 = use "exit" to end scripts, let them execute their 'OnExit' sub-routine. 0 = use "kill" to end scripts, that just instantly stops them, so scripts won't execute their 'OnExit' subroutines.
+
+; Path and name of the file name to store script's settings.
+settings := A_ScriptDir "\" SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4) "_settings.ini"
+
+; Specify a value in milliseconds.
+memoryScanInterval := 1000
+
+; 1 = Make script store info (into the settings file) about it's window's size and position between script's closures. 0 = do not store that info in the settings file.
+rememberPosAndSize := 1
+
+; 1 = use "exit" to end scripts, let them execute their 'OnExit' sub-routine. 0 = use "kill" to end scripts, that just instantly stops them, so scripts won't execute their 'OnExit' subroutines.
+quitAssistantsNicely := 1
+
+; Pipe-separated list of process to ignore by the "Process Assistant" parser.
+ignoreTheseProcesses := "C:\Windows\System32\DllHost.exe|C:\Windows\Servicing\TrustedInstaller.exe|C:\Windows\System32\audiodg.exe|C:\Windows\System32\svchost.exe|C:\Windows\System32\SearchFilterHost.exe|C:\Windows\System32\SearchProtocolHost.exe|C:\Windows\System32\wbem\unescapp.exe"
 ;}
+
 ;{ Initialization.
 #NoEnv	; Recommended for performance and compatibility with future AutoHotkey releases.
 #SingleInstance, Force
@@ -30,7 +42,7 @@ quitAssistantsNicely := 1	; 1 = use "exit" to end scripts, let them execute thei
 GroupAdd, ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId")
 DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
 OnExit, ExitApp
-Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global conditions, Global triggeredActions, Global toBeRun, token := 1
+Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global conditions, Global triggeredActions, Global toBeRun, Global rules, Global quitAssistantsNicely, Global ignoreTheseProcesses, token := 1
 
 ; Hooking ComObjects to track processes.
 oSvc := ComObjGet("winmgmts:")
@@ -163,7 +175,7 @@ If rememberPosAndSize
 }
 Else
 	sw_W := 800, sw_H := 600, sw_X := (UARight - sw_W) / 2, sw_Y := (UABottom - sw_H) / 2
-Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 6 " h" sw_H - 28	; Values are tuned for W7 with Aero.
+Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 6 " h" sw_H - 28, Manage Scripts
 Gui, +Resize +MinSize666x222
 GroupAdd ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId") ; Create an ahk_group "ScriptHwnd_A" and make all the current process's windows get into that group.
 Return
@@ -177,7 +189,7 @@ GuiShow:
 Return
 
 GuiSize:	; Expand or shrink the ListView in response to the user's resizing of the window.
-	If !(A_EventInfo == 1)
+	If (A_EventInfo != 1)
 	{	; The window has been resized or maximized. Resize GUI items to match the window's size.
 		workingAreaHeight := A_GuiHeight - 86
 		If (activeTab == 1)
@@ -245,16 +257,18 @@ TabSwitch:
 Return
 
 ExitApp:
-	Gosub, GuiClose
 	If rememberPosAndSize
 	{
 		DetectHiddenWindows, Off
 		IfWinExist, ahk_group ScriptHwnd_A
 			WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
-		IniWrite, %sw_X%, %settings%, Script's window, posX
-		IniWrite, %sw_Y%, %settings%, Script's window, posY
-		IniWrite, %sw_W%, %settings%, Script's window, sizeW
-		IniWrite, %sw_H%, %settings%, Script's window, sizeH
+		If (sw_X != -32000) && (sw_Y != -32000)
+		{
+			IniWrite, %sw_X%, %settings%, Script's window, posX
+			IniWrite, %sw_Y%, %settings%, Script's window, posY
+			IniWrite, %sw_W%, %settings%, Script's window, sizeW
+			IniWrite, %sw_H%, %settings%, Script's window, sizeH
+		}
 	}
 ExitApp
 	;}
@@ -637,6 +651,7 @@ Return
 Return
 #IfWinActive
 ;}
+
 ;{ FUNCTIONS
 	;{ Functions to gather data.
 getRowNs()	; Get selected rows' numbers.
@@ -814,6 +829,11 @@ resumeProcess(pids)	; Resume processes of selected scripts.
 ProcessCreate_OnObjectReady(obj)
 {
 	Process := obj.TargetInstance
+	If !(Process.ExecutablePath)
+		Return
+	Loop, Parse, ignoreTheseProcesses, |
+		If (Process.ExecutablePath ~= "Si)^\Q" A_LoopField "\E$")
+			Return
 	processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
 	If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
 	{
@@ -841,6 +861,11 @@ ProcessCreate_OnObjectReady(obj)
 ProcessDelete_OnObjectReady(obj)
 {
 	Process := obj.TargetInstance
+	If !(Process.ExecutablePath)
+		Return
+	Loop, Parse, ignoreTheseProcesses, |
+		If (Process.ExecutablePath ~= "Si)^\Q" A_LoopField "\E$")
+			Return
 	For k, v In processesSnapshot
 		If (v.pid == Process.ProcessId)
 			processesSnapshot.Remove(A_Index)
@@ -873,7 +898,7 @@ checkRunTriggers(rule = 0)
 ; Output: none.
 	For, k, v In procBinder
 	{
-		If (v.ruleGroupN != procBinder[k - 1, "ruleGroupN"])
+		If (v.ruleGroupN != procBinder[k - 1, "ruleGroupN"])	; First rule in a group.
 			ruleIndex := stopperIndex := noTriggerFound := 0
 		ruleIndex++	; Counter of the rules in a sub-group (or in a group, if type == 0)
 		If ((v.side == 2 || !v.type) && stopperIndex)	; No need in deep parsing, local instructions are enough.
@@ -1001,7 +1026,6 @@ setRunState(input, runOrKill)	; Checks the running state of the input and runs o
 	Loop, Parse, input, |
 	{
 		match := !runOrKill
-		index := A_Index
 		For k, v in ((SubStr(A_LoopField, -2) == "ahk") ? scriptsSnapshot : processesSnapshot)
 		{
 			If (RegExMatch((SubStr(A_LoopField, -2) == "ahk" ? v.path : v.exe), "Si)^.*\Q" A_LoopField "\E$"))
@@ -1011,9 +1035,10 @@ setRunState(input, runOrKill)	; Checks the running state of the input and runs o
 			}
 		}
 		If ((match != runOrKill) && runOrKill) || ((match == runOrKill) && !runOrKill)
-			stuffToRunOrKill := ((stuffToRunOrKill) ? (stuffToRunOrKill "|" A_LoopField) : (A_LoopField))
+			stuffToRunOrKill := stuffToRunOrKill ? stuffToRunOrKill "|" ((runOrKill) ? (A_LoopField) : (v.pid)) : ((runOrKill) ? (A_LoopField) : (v.pid))
 	}
-	((runOrKill) ? (run(stuffToRunOrKill)) : (kill(stuffToRunOrKill)))
+	If stuffToRunOrKill
+		((runOrKill) ? (run(stuffToRunOrKill)) : (quitAssistantsNicely ? exit(stuffToRunOrKill) : kill(stuffToRunOrKill)))
 }
 	;}
 	;{ Fulfill 'TreeView' GUI.
@@ -1026,7 +1051,7 @@ buildTree(folder, parentItemID = 0)
 		Loop, %folder%\*, 2   ; Inception: retrieve all of Folder's sub-folders.
 		{
 			parent := TV_Add(A_LoopFileName, parentItemID, "Icon1")	; Add all of those sub-folders to the TreeView.
-			Loop, %A_LoopFileFullPath%\*, 2   ; We need to get deeper (c).
+			Loop, %A_LoopFileFullPath%\*, 2   ; We need to go deeper (c).
 			{
 				TV_Add(A_LoopFileName, parent, "Icon2")
 				Break	; No need to add more than 1 item: that's needed just to make the parent item expandable (wnyways it's contents will get re-constructed when that item gets expanded).
@@ -1078,103 +1103,91 @@ WM_DEVICECHANGE(wp, lp)	; Add/remove data to the 'FolderTree" TV about connected
 }
 	;}
 	;{ NoTrayOrphans() - a bunch of functions to remove tray icons of dead processes.
+; Initially that function was there: http://www.autohotkey.com/board/topic/80624-notrayorphans/?p=512781
+; Thanks to N. Nazzal a.k.a. Chef: http://www.autohotkey.com/board/user/13176-nazzal/
 noTrayOrphans()
 {
-	TrayInfo := trayIcons(sExeName, "ahk_class Shell_TrayWnd", "ToolbarWindow32" . getTrayBar()) "`n"
-		. trayIcons(sExeName, "ahk_class NotifyIconOverflowWindow", "ToolbarWindow321")
-	Loop, Parse, TrayInfo, `n
+	tray_icons := tray_icons()
+	For index In tray_icons
 	{
-		ProcessName := StrX(A_Loopfield, "| Process: ", " |")
-		ProcesshWnd := StrX(A_Loopfield, "| hWnd: ", " |")
-		ProcessuID := StrX(A_Loopfield, "| uID: ", " |")
-		If !ProcessName && ProcesshWnd
-			removeTrayIcon(ProcesshWnd, ProcessuID)
+		If (index == 0)
+			Continue
+		If (tray_icons[index, "sProcess"] = "")
+			tray_iconRemove(tray_icons[index, "hWnd"], tray_icons[index, "uID"], "", tray_icons[index, "hIcon"])
 	}
 }
 
-trayIcons(sExeName, traywindow, control)
+tray_icons()
 {
-	DetectHiddenWindows, On
-	WinGet, pidTaskbar, PID, %traywindow%
-	hProc := DllCall("OpenProcess", "Uint", 0x38, "int", 0, "Uint", pidTaskbar)
-	pProc := DllCall("VirtualAllocEx", "Uint", hProc, "Uint", 0, "Uint", 32, "Uint", 0x1000, "Uint", 0x4)
-	SendMessage, 0x418, 0, 0, %control%, %traywindow%
-	Loop, %ErrorLevel%
+	arr := []
+	arr[0] := ["sProcess", "Tooltip", "nMsg", "uID", "idx", "idn", "Pid", "hWnd", "sClass", "hIcon"]
+	Index := 0
+	trayWindows := "Shell_TrayWnd|NotifyIconOverflowWindow"
+	Loop, Parse, trayWindows, |
 	{
-		SendMessage, 0x417, A_Index - 1, pProc, %control%, %traywindow%
-		VarSetCapacity(btn, 32, 0), VarSetCapacity(nfo, 32, 0)
-		DllCall("ReadProcessMemory", "Uint", hProc, "Uint", pProc, "Uint", &btn, "Uint", 32, "Uint", 0)
-		iBitmap := NumGet(btn, 0)
-		idn := NumGet(btn, 4)
-		Statyle := NumGet(btn, 8)
-		If dwData := NumGet(btn, 12)
-			iString := NumGet(btn, 16)
-		Else
+		WinGet, taskbar_pid, PID, ahk_class %A_LoopField%
+		hProc := DllCall("OpenProcess", "uInt", 0x38, "Int", 0, "uInt", taskbar_pid)
+		pProc := DllCall("VirtualAllocEx", "uInt", hProc, "uInt", 0, "uInt", 32, "uInt", 0x1000, "uInt", 0x4)
+		idxTB := tray_getTrayBar()
+		SendMessage, 0x0418, 0, 0, ToolbarWindow32%idxTB%, ahk_class %A_LoopField%
+		Loop, %ErrorLevel%
 		{
-			dwData := NumGet(btn, 16, "int64")
-			iString := NumGet(btn, 24, "int64")
+			SendMessage, 0x0417, A_Index - 1, pProc, ToolbarWindow32%idxTB%, ahk_class %A_LoopField%
+			VarSetCapacity(btn, 32, 0), VarSetCapacity(nfo, 32, 0)
+			DllCall("ReadProcessMemory", "uInt", hProc, "uInt", pProc, "uInt", &btn, "uInt", 32, "uInt", 0)
+			iBitmap := NumGet(btn, 0), idn := NumGet(btn, 4), Statyle := NumGet(btn, 8)
+			If dwData := NumGet(btn, 12, "uInt")
+				iString := NumGet(btn, 16)
+			Else
+				dwData := NumGet(btn, 16, "Int64"), iString := NumGet(btn, 24, "Int64")
+			DllCall("ReadProcessMemory", "uInt", hProc, "uInt", dwData, "uInt", &nfo, "uInt", 32, "uInt", 0)
+			If NumGet(btn, 12, "uInt")
+				hWnd := NumGet(nfo, 0), uID := NumGet(nfo, 4), nMsg := NumGet(nfo, 8), hIcon := NumGet(nfo,20)
+			Else
+				hWnd := NumGet(nfo, 0, "Int64"), uID := NumGet(nfo, 8, "uInt"), nMsg := NumGet(nfo,12,"uInt")
+			WinGet, pid, PID, ahk_id %hWnd%
+			WinGet, sProcess, ProcessName, ahk_id %hWnd%
+			WinGetClass, sClass, ahk_id %hWnd%
+			VarSetCapacity(sTooltip,128), VarSetCapacity(wTooltip,128*2)
+			DllCall("ReadProcessMemory", "uInt", hProc, "uInt", iString, "uInt", &wTooltip, "uInt", 128*2, "uInt", 0)
+			DllCall("WideCharToMultiByte", "uInt", 0, "uInt", 0, "Str", wTooltip, "Int", -1, "Str", sTooltip, "Int", 128, "uInt", 0, "uInt", 0)
+			idx := A_Index - 1
+			Tooltip := A_IsUnicode ? wTooltip : sTooltip
+			Index++
+			For a, b In arr[0]
+				arr[Index, b] := %b%
 		}
-		DllCall("ReadProcessMemory", "Uint", hProc, "Uint", dwData, "Uint", &nfo, "Uint", 32, "Uint", 0)
-		If NumGet(btn,12)
-		{
-			hWnd := NumGet(nfo, 0)
-			uID := NumGet(nfo, 4)
-			nMsg := NumGet(nfo, 8)
-			hIcon := NumGet(nfo, 20)
-		}
-		Else
-		{
-			hWnd := NumGet(nfo, 0, "int64")
-			uID := NumGet(nfo, 8)
-			nMsg := NumGet(nfo, 12)
-			hIcon := NumGet(nfo, 24)
-		}
-		WinGet, pid, PID, ahk_id %hWnd%
-		WinGet, sProcess, ProcessName, ahk_id %hWnd%
-		WinGetClass, sClass, ahk_id %hWnd%
-		If !sExeName || (sExeName == sProcess) || (sExeName == pid)
-		{
-			VarSetCapacity(sTooltip, 128)
-			VarSetCapacity(wTooltip, 128*2)
-			DllCall("ReadProcessMemory", "Uint", hProc, "Uint", iString, "Uint", &wTooltip, "Uint", 128*2, "Uint", 0)
-			DllCall("WideCharToMultiByte", "Uint", 0, "Uint", 0, "str", wTooltip, "int", -1, "str", sTooltip, "int", 128, "Uint", 0, "Uint", 0)
-			sTrayIcons .= "idx: " A_Index - 1 " | idn: " idn " | Pid: " pid " | uID: " uID " | MessageID: " nMsg " | hWnd: " hWnd " | Class: " sClass " | Process: " sProcess " | Icon: " hIcon " | Tooltip: " wTooltip "`n"
-		}
+		DllCall("VirtualFreeEx", "uInt", hProc, "uInt", pProc, "uInt", 0, "uInt", 0x8000)
+		DllCall("CloseHandle", "uInt", hProc)
 	}
-	DllCall("VirtualFreeEx", "Uint", hProc, "Uint", pProc, "Uint", 0, "Uint", 0x8000)
-	DllCall("CloseHandle", "Uint", hProc)
-	Return sTrayIcons
+	Return arr
+}
+	
+tray_iconRemove(hWnd, uID, nMsg = 0, hIcon = 0, nRemove = 0x2)
+{
+	VarSetCapacity(nid, size := 936 + 4 * A_PtrSize)
+	NumPut(size, nid, 0, "uInt")
+	NumPut(hWnd, nid, A_PtrSize)
+	NumPut(uID, nid, A_PtrSize * 2, "uInt")
+	NumPut(1|2|4, nid, A_PtrSize * 3, "uInt")
+	NumPut(nMsg, nid, A_PtrSize * 4, "uInt")
+	NumPut(hIcon, nid, A_PtrSize * 5, "uInt")
+	Return DllCall("shell32\Shell_NotifyIconA", "uInt", nRemove, "uInt", &nid)
 }
 
-getTrayBar()
+tray_getTrayBar()
 {
 	ControlGet, hParent, hWnd,, TrayNotifyWnd1, ahk_class Shell_TrayWnd
 	ControlGet, hChild, hWnd,, ToolbarWindow321, ahk_id %hParent%
 	Loop
 	{
 		ControlGet, hWnd, hWnd,, ToolbarWindow32%A_Index%, ahk_class Shell_TrayWnd
-		If (hWnd == hChild)
+		If (hWnd = hChild)
 			idxTB := A_Index
-		If !hWnd || (hWnd == hChild)
+		If (hWnd = hChild) || !hWnd
 			Break
 	}
 	Return idxTB
-}
-
-StrX(H, BS = "", ES = "", Tr = 1, ByRef OS = 1)
-{
-	Return (SP := InStr(H, BS, 0, OS)) && (L := InStr(H, ES, 0, SP + StrLen(BS))) && (OS := L + StrLen(ES)) ? SubStr(H, SP := Tr ? SP + StrLen(BS) : SP, (Tr ? L : L + StrLen(ES)) -SP) : ""
-}
-
-removeTrayIcon(hWnd, uID, nMsg = 0, hIcon = 0, nRemove = 2)
-{
-	NumPut(VarSetCapacity(ni,444,0), ni)
-	NumPut(hWnd, ni, 4)
-	NumPut(uID, ni, 8)
-	NumPut(1|2|4, ni, 12)
-	NumPut(nMsg, ni, 16)
-	NumPut(hIcon, ni, 20)
-	Return DllCall("shell32\Shell_NotifyIconA", "Uint", nRemove, "Uint", &ni)
 }
 	;}
 ;}

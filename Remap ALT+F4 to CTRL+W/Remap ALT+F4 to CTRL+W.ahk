@@ -15,26 +15,22 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/Remap ALT+F4 to CT
 #SingleInstance, Force
 
 ; Group for remapping "Ctrl + W" to "Alt + F4".
-GroupAdd, altF4, ahk_class Miranda ahk_exe Miranda64.exe	; Miranda.
-GroupAdd, altF4, Miranda NG Options ahk_exe Miranda64.exe	; Miranda NG's options.
-GroupAdd, altF4, File Transfers ahk_exe Miranda64.exe	; Miranda NG's file transfers.
-GroupAdd, altF4, Upcoming birthdays ahk_exe Miranda64.exe	; Miranda NG's birthday reminder.
-GroupAdd, altF4, ahk_class THistoryFrm ahk_exe Miranda64.exe	; History++ window in Miranda.
+GroupAdd, altF4, ahk_class Miranda ahk_exe Miranda64.exe	; Miranda's contact list window.
+GroupAdd, altF4, Upcoming birthdays ahk_class #32770 ahk_exe Miranda64.exe	; Miranda's "Upcoming birthdays" window.
+GroupAdd, altF4, Miranda NG Options ahk_class #32770 ahk_exe Miranda64.exe	; Miranda's "Options" window.
 GroupAdd, altF4, ahk_exe autoHotkey.exe	; AHK scripts' windows.
-GroupAdd, altF4, ahk_class Ghost ahk_exe autoHotkey.exe	; AHK's WindowSpy windows.
+GroupAdd, altF4, ahk_exe Skype.exe	; Skype.
 
 ; Group for WinClose by "Ctrl + W".
 GroupAdd, closeWin, Find ahk_exe akelpad.exe	; AkelPad's find window.
 GroupAdd, closeWin, AkelUpdater ahk_exe AkelUpdater.exe	; AkelPad Updater's window.
-GroupAdd, closeWin, Справка и поддержка ahk_exe HelpPane.exe	; Windows' built-in help tha gets triggered by F1 (ru locale).
-GroupAdd, closeWin, Windows Help and Support ahk_exe HelpPane.exe	; Windows' built-in help tha gets triggered by F1.
+GroupAdd, closeWin, ahk_exe HelpPane.exe	; Windows' built-in help tool that gets triggered by F1.
 GroupAdd, closeWin, ahk_exe hh.exe	; Windows' built-in .chm files reader.
 GroupAdd, closeWin, ahk_class AU3Reveal	; AHK windows' info gatherer.
 GroupAdd, closeWin, AutoHotkey Toolkit [W] ahk_class AutoHotkeyGUI	; AutoHotkey Toolkit.
 GroupAdd, closeWin, GitHub ahk_exe GitHub.exe	; GitHub.
 GroupAdd, closeWin, ahk_exe calc.exe	; Calc.
-GroupAdd, closeWin, Выполнить ahk_exe explorer.exe	; Run (ru locale).
-GroupAdd, closeWin, Run ahk_exe explorer.exe	; Run.
+GroupAdd, closeWin, ahk_exe explorer.exe	; Generally that's not needed for the whole explorer, but some dialogs like "Run" need this.
 GroupAdd, closeWin, ahk_exe charmap.exe	; Charmap.
 ; GroupAdd, closeWin, ahk_class MediaPlayerClassicW	; Media Player Classic - Home Cinema.
 GroupAdd, closeWin, ahk_exe mpc-hc.exe	; Media Player Classic - Home Cinema (32-bit process only).
@@ -43,24 +39,28 @@ GroupAdd, closeWin, ahk_exe uTorrent.exe	; µTorrent.
 GroupAdd, closeWin, ahk_exe clipdiary-portable.exe	; Clipdiary.
 GroupAdd, closeWin, ahk_exe AnVir.exe	; AnVir TaskManager.
 GroupAdd, closeWin, ahk_exe teamviewer.exe	; TeamViewer.
-GroupAdd, closeWin, Password Required ahk_class MozillaDialogClass ahk_exe firefox.exe	; Firefox'es master password prompt.
-GroupAdd, closeWin, Edit button: ahk_class MozillaWindowClass ahk_exe firefox.exe	; Custom Buttons' windows in Firefox.
-GroupAdd, closeWin, Textarea Cache Window ahk_class MozillaWindowClass ahk_exe firefox.exe	; Textarea Cache's windows in Firefox.
-GroupAdd, closeWin, Launch Application ahk_class MozillaDialogClass ahk_exe firefox.exe	; Launch application (protocol handlers) windows in Firefox.
+GroupAdd, closeWin, ahk_exe RAVCpl64.exe	; Диспетчер Realtek HD.
+GroupAdd, closeWin, ahk_class MozillaDialogClass ahk_exe firefox.exe	; Firefox'es master password prompt and other dialogs.
+GroupAdd, closeWin, Edit button: ahk_exe firefox.exe	; Custom Buttons' windows in Firefox.
+GroupAdd, closeWin, Textarea Cache Window ahk_exe firefox.exe	; Textarea Cache's windows in Firefox.
+GroupAdd, closeWin, Launch Application ahk_exe firefox.exe	; Launch application (protocol handlers) windows in Firefox.
 GroupAdd, closeWin, ahk_exe smartgithg.exe	; SmartGit/Hg.
 GroupAdd, closeWin, ahk_exe 7zFM.exe	; 7-Zip GUI file manager.
-GroupAdd, closeWin, ahk_class TConversationForm	; Skype chat window.
-GroupAdd, closeWin, ahk_class Photo_Lightweight_Viewer	; Windows Photo Viewer.
-; GroupAdd, closeWin, ahk_class tSkMainForm	; Skype contact list.
-GroupAdd, closeWin, ahk_exe Skype.exe	; Skype contact list.
+GroupAdd, closeWin, ahk_class Photo_Lightweight_Viewer ahk_exe dllhost.exe	; Windows Photo Viewer.
 ; GroupAdd, closeWin, ahk_class ConsoleWindowClass	; Windows console (cmd.exe, powershell.exe).
-GroupAdd, closeWin, ahk_exe cmd.exe	; Windows console (cmd.exe, powershell.exe).
-GroupAdd, closeWin, ahk_exe powershell.exe	; Windows console (cmd.exe, powershell.exe).
+GroupAdd, closeWin, ahk_exe cmd.exe	; Windows console.
+GroupAdd, closeWin, ahk_exe powershell.exe	; Powershell.
 GroupAdd, closeWin, File Upload ahk_class #32770	; File Upload mini-explorer windows, usually called by browsers prompting to select a file to upload.
+GroupAdd, closeWin, ahk_exe taskmgr.exe	; Windows Task Manager.
+GroupAdd, closeWin, ahk_exe regedit.exe	; Windows Registry Editor.
+GroupAdd, closeWin, ahk_exe notepad.exe	; Windows built-in Notepad.
+GroupAdd, closeWin, ahk_class TLister ahk_exe totalcmd.exe	; Total Commander's Lister windows.
+GroupAdd, closeWin, ahk_class TLister ahk_exe totalcmd64.exe	; Total Commander's (x64) Lister windows.
+GroupAdd, closeWin, ahk_class THistoryFrm ahk_exe miranda64.exe	; History++ windows from Miranda (x64).
 
 ; Console remaps (paste).
-GroupAdd, pasteCMD, ahk_exe cmd.exe	; Windows console (cmd.exe, powershell.exe).
-GroupAdd, pasteCMD, ahk_exe powershell.exe	; Windows console (cmd.exe, powershell.exe).
+GroupAdd, pasteCMD, ahk_exe cmd.exe	; Windows console.
+GroupAdd, pasteCMD, ahk_exe powershell.exe	; Powershell.
 
 #IfWinActive ahk_group altF4
 ^vk57::Send !{F4}	; "Ctrl + W" -> "Alt + F4".

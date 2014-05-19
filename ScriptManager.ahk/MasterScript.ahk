@@ -1064,9 +1064,9 @@ WM_DEVICECHANGE(wp, lp)	; Add/remove data to the 'FolderTree" TV about connected
 ; Used by: script's initialization. For some reason it's called twice every time a disk got (dis)connected.
 ; Input: unknown.
 ; Output: none.
-	If ((wp == 0x8000 || wp == 0x8004) && NumGet(lp + 4, "UInt") == 2)
+	If ((wp == 0x8000 || wp == 0x8004) && NumGet(lp + 4, "uInt") == 2)
 	{
-		dbcv_unitmask := NumGet(lp+12, "UInt")
+		dbcv_unitmask := NumGet(lp + 12, "uInt")
 		Loop, 26	; The number of letters in latin alphabet.
 		{
 			driveLetter := Chr(Asc("A") + A_Index - 1)
@@ -1079,10 +1079,10 @@ WM_DEVICECHANGE(wp, lp)	; Add/remove data to the 'FolderTree" TV about connected
 					driveID := TV_GetChild(0)
 				Else
 					driveID := TV_GetNext(driveID)
-				TV_GetText(thisDrive , driveID)
+				TV_GetText(thisDrive, driveID)
 				StringLeft, thisDrive, thisDrive, 1
 			} Until (driveLetter == thisDrive) || !(driveID)
-			If !(driveLetter == thisDrive)
+			If (driveLetter != thisDrive)
 				buildTree(driveLetter ":", TV_Add(driveLetter ":",, "Icon3"))
 		}
 		Else If (wp == 0x8004)	; A drive got removed.
@@ -1093,7 +1093,7 @@ WM_DEVICECHANGE(wp, lp)	; Add/remove data to the 'FolderTree" TV about connected
 					driveID := TV_GetChild(0)
 				Else
 					driveID := TV_GetNext(driveID)
-				TV_GetText(thisDrive , driveID)
+				TV_GetText(thisDrive, driveID)
 				StringLeft, thisDrive, thisDrive, 1
 			} Until (driveLetter == thisDrive) || !(driveID)
 			If driveID

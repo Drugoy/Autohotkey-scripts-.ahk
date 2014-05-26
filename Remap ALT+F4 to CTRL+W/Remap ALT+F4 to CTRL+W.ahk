@@ -1,6 +1,6 @@
 ﻿/* Remap ALT+F4 to CTRL+W
-Version: 1.1
-Last time modified: 21:25 25.11.2013
+Version: 1.2
+Last time modified: 2013.05.26 12:10
 
 Makes "Ctrl+W" hotkey work as "Alt+F4" for lots of different programs and system windows. I like Ctrl+W more than Alt+F4, as it's keys are closer to each other.
 
@@ -13,15 +13,16 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/Remap ALT+F4 to CT
 */
 
 #SingleInstance, Force
+SetTitleMatchMode, 2	; Testing this. Needed to differentiate Outlook's main window from single email viewers.
 
-; Group for remapping "Ctrl + W" to "Alt + F4".
+;{ [ahk_group altF4] remap "Ctrl + W" to "Alt + F4".
 GroupAdd, altF4, ahk_class Miranda ahk_exe Miranda64.exe	; Miranda's contact list window.
 GroupAdd, altF4, Upcoming birthdays ahk_class #32770 ahk_exe Miranda64.exe	; Miranda's "Upcoming birthdays" window.
 GroupAdd, altF4, Miranda NG Options ahk_class #32770 ahk_exe Miranda64.exe	; Miranda's "Options" window.
 GroupAdd, altF4, ahk_exe autoHotkey.exe	; AHK scripts' windows.
 GroupAdd, altF4, ahk_exe Skype.exe	; Skype.
-
-; Group for WinClose by "Ctrl + W".
+;}
+;{ [ahk_group closeWin] WinClose by "Ctrl + W".
 GroupAdd, closeWin, Find ahk_exe akelpad.exe	; AkelPad's find window.
 GroupAdd, closeWin, AkelUpdater ahk_exe AkelUpdater.exe	; AkelPad Updater's window.
 GroupAdd, closeWin, ahk_exe HelpPane.exe	; Windows' built-in help tool that gets triggered by F1.
@@ -38,7 +39,6 @@ GroupAdd, closeWin, ahk_exe mpc-hc64.exe	; Media Player Classic - Home Cinema (6
 GroupAdd, closeWin, ahk_exe uTorrent.exe	; µTorrent.
 GroupAdd, closeWin, ahk_exe clipdiary-portable.exe	; Clipdiary.
 GroupAdd, closeWin, ahk_exe AnVir.exe	; AnVir TaskManager.
-GroupAdd, closeWin, ahk_exe teamviewer.exe	; TeamViewer.
 GroupAdd, closeWin, ahk_exe RAVCpl64.exe	; Диспетчер Realtek HD.
 GroupAdd, closeWin, ahk_class MozillaDialogClass ahk_exe firefox.exe	; Firefox'es master password prompt and other dialogs.
 GroupAdd, closeWin, Edit button: ahk_exe firefox.exe	; Custom Buttons' windows in Firefox.
@@ -56,40 +56,65 @@ GroupAdd, closeWin, ahk_exe regedit.exe	; Windows Registry Editor.
 GroupAdd, closeWin, ahk_exe notepad.exe	; Windows built-in Notepad.
 GroupAdd, closeWin, ahk_class TLister ahk_exe totalcmd.exe	; Total Commander's Lister windows.
 GroupAdd, closeWin, ahk_class TLister ahk_exe totalcmd64.exe	; Total Commander's (x64) Lister windows.
+GroupAdd, closeWin, Lister ahk_class TSEARCHTEXT ahk_exe totalcmd.exe	; Total Commander's Lister's Search windows.
+GroupAdd, closeWin, Lister ahk_class TSEARCHTEXT ahk_exe totalcmd64.exe	; Total Commander's (x64) Lister's Search windows.
 GroupAdd, closeWin, ahk_class THistoryFrm ahk_exe miranda64.exe	; History++ windows from Miranda (x64).
-
-; Console remaps (paste).
+GroupAdd, closeWin, Сообщение (HTML) ahk_class rctrl_renwnd32 ahk_exe outlook.exe	; Outlook.	; Outlook's detached window with some particular message.
+;}
+;{ [ahk_group pasteCMD] console remaps (copy, paste, undo > clear input).
 GroupAdd, pasteCMD, ahk_exe cmd.exe	; Windows console.
 GroupAdd, pasteCMD, ahk_exe powershell.exe	; Powershell.
+;}
+;{ [ahk_group minWin] Minimize by "Ctrl + W".
+GroupAdd, minWin, Microsoft Outlook ahk_class rctrl_renwnd32 ahk_exe outlook.exe	; Outlook.
+;}
 
-#IfWinActive ahk_group altF4
-^vk57::Send !{F4}	; "Ctrl + W" -> "Alt + F4".
-
-#IfWinActive ahk_group closeWin
-^vk57::WinClose	; "Ctrl + W" -> close.
-
-#IfWinActive ahk_group pasteCMD
-^vk43::	; "CTRL + C" -> "Right mouse click" (copy selected text to clipboard).
-^vk56::	; "Ctrl + V" -> "Right mouse click" (paste text from clipboard).
-	WinGetTitle, title
-	If (title ~= "(Выбрать|Select) .*:.*")
-	{
-		If (A_ThisHotkey == "^vk56")
-			Send {Esc}
-	}
-	Else
-	{
-		If (A_ThisHotkey == "^vk43")
+;{ Commands
+	;{ [ahk_group altF4]: "Ctrl + W" -> "Alt + F4".
+#IfWinActive, ahk_group altF4
+	^vk57::
+		Send !{F4}
+	Return
+	;}
+	;{ [ahk_group closeWin]: "Ctrl + W" -> WinClose.
+#IfWinActive, ahk_group closeWin
+	^vk57::
+		WinClose
+	Return
+	;}
+	;{ [ahk_group pasteCMD]: normal copy and paste; "Ctrl + A" and "Ctrl+ Z" clean input.
+#IfWinActive, ahk_group pasteCMD
+	^vk43::	; "Ctrl + C"
+	^vk56::	; "Ctrl + V"
+		WinGetTitle, title
+		If (title ~= "(Выбрать|Select) .*:.*")	; "Selection mode" can be detected by the window's title, which we will check for in order to differentiate two states.
 		{
-			Hotkey, %A_ThisHotkey%, Off
-			Send ^c	; Stop execution.
-			Hotkey, %A_ThisHotkey%, On
-			Return
+			If (A_ThisHotkey == "^vk56")	; "Ctrl + V"
+				Send {Esc}
 		}
-	}
-	ControlClick,,,, Right
-Return
-^vk41::	; "Ctrl + A" -> "Esc" (clear input).
-^vk5a::	; "Ctrl + Z" -> "Esc" (clear input).
-	Send {Esc}
-Return
+		Else
+		{
+			If (A_ThisHotkey == "^vk43")	; "CTRL + C"
+			{
+				Hotkey, %A_ThisHotkey%, Off
+				Send ^c	; Stop execution.
+				Hotkey, %A_ThisHotkey%, On
+				Return
+			}
+		}
+		ControlClick,,,, Right	; Send "Right Click" to paste.
+	Return
+	
+	^vk41::	; "Ctrl + A"
+	^vk5a::	; "Ctrl + Z"
+		Send {Esc}	; Send "Esc" to clear input.
+	Return
+	;}
+	;{ [ahk_group minWin]: "Ctrl + W" -> WinMinimize.
+#IfWinActive, ahk_group minWin
+	^vk57::	; "Ctrl + W"
+		WinMinimize
+	Return
+	;}
+#IfWinActive
+;}

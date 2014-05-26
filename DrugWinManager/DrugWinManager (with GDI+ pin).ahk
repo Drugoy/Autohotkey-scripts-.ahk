@@ -1,4 +1,5 @@
-﻿/* DrugWinManager v2.0
+﻿/* DrugWinManager v2.1
+Last time modified: 2013.05.26 17:00
 
 Script author: Drugoy a.k.a. Drugmix
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
@@ -7,7 +8,7 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/DrugWinManager
 Description:
 	Lets you scroll over tab-bars to switch tabs, lets you scroll inactive windows (without activating them) and adds a bunch of hotkeys that help manage windows.
 
-	I use mouse "Logitech M510" and keyboard "Genius Comfy KB-21e scroll" and each has extra buttons: that mouse has a wheel that can be turned left and right and it also has two extra buttons (XButton1 and XButton2) and the keyboard has lots of extra buttons.
+	I use "Logitech M510" mouse and "Genius Comfy KB-21e scroll" keyboard and each of them has extra buttons: that mouse has a wheel that can be turned left and right and it also has two extra buttons (XButton1 and XButton2) and the keyboard has lots of extra buttons.
 
 	The script has the following functions:
 1. Scroll over inactive windows to scroll them without their activation;
@@ -45,17 +46,25 @@ Description:
 ;{ Initialization
 #SingleInstance, Force
 SetWinDelay, 0
-SendMode Input	; Recommended For new scripts due to its superior speed and reliability.
+SendMode, Input	; Recommended For new scripts due to its superior speed and reliability.
 #NoEnv	; Recommended For performance and compatibility with future AutoHotkey releases.
 CoordMode, Mouse, Screen	; By default all coordinates are relative to the active window, changing them to be related to screen is required for proper work of some script's commands.
-SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
+	;{ Retrieve data from monitors.
+SysGet, monCount, MonitorCount	; Retrieving the number of monitors.
+; MsgBox monCount: '%monCount%'`n
+Loop, %monCount%
+{
+	SysGet, mon%A_Index%, Monitor, %A_Index%	; Retrieving monitors' positions data.
+	SysGet, UA%A_Index%, MonitorWorkArea, %A_Index%	; Getting Usable Area info.
+	; Defining variables' values for later use.
+	UA%A_Index%centerX := UA%A_Index%Left + (UA%A_Index%halfW := (UA%A_Index%Right - UA%A_Index%Left) / 2)
+	UA%A_Index%centerY := UA%A_Index%Top + (UA%A_Index%halfH := (UA%A_Index%Bottom - UA%A_Index%Top) / 2)
+}
+	;}
 OnExit, Exit	; Remove hooks upon exit.
-; Defining variables' values for later use.
-UAcenterX := UALeft + (UAhalfW := (UALeft + UARight) / 2)
-UAcenterY := UATop + (UAhalfH := (UATop + UABottom) / 2)
 ; Bind left click on tray icon to open menu like If you right clicked it.
-Menu Tray, Click, 1	; Enable single click action on tray.
-Gosub, AddMenu		; Add new default menu.
+Menu, Tray, Click, 1	; Enable single click action on tray.
+Gosub, AddMenu	; Add new default menu.
 Return
 ;}
 ;{ Hotkeys
@@ -211,65 +220,118 @@ XButton2 & LButton::moveWinWithCursor("LButton")
 	;{ Control transparency of a window under the cursor
 XButton2 & WheelUp::
 XButton2 & WheelDown::
-MouseGetPos,,, hwndUnderCursor
-WinGet, currOpacity, Transparent, ahk_id %hwndUnderCursor%
-If !(curropacity)
-	currOpacity := 255
-currOpacity := (A_ThisHotkey == "XButton2 & WheelUp") ? currOpacity + 10 : currOpacity - 10
-currOpacity := (currOpacity < 25) ? 25 : (currOpacity >= 255) ? 255 : currOpacity
-WinSet, Transparent, %currOpacity%, ahk_id %hwndUnderCursor%
-Gosub, CleanVars
+	MouseGetPos,,, hwndUnderCursor
+	WinGet, currOpacity, Transparent, ahk_id %hwndUnderCursor%
+	If !(curropacity)
+		currOpacity := 255
+	currOpacity := (A_ThisHotkey == "XButton2 & WheelUp") ? currOpacity + 10 : currOpacity - 10
+	currOpacity := (currOpacity < 25) ? 25 : (currOpacity >= 255) ? 255 : currOpacity
+	WinSet, Transparent, %currOpacity%, ahk_id %hwndUnderCursor%
+	Gosub, CleanVars
 Return
 	;}
 	;{ Remove transparency of the window under the cursor
 XButton2 & MButton::
-MouseGetPos,,, hwndUnderCursor
-WinSet, Transparent, 255, ahk_id %hwndUnderCursor%
-Gosub, CleanVars
+	MouseGetPos,,, hwndUnderCursor
+	WinSet, Transparent, 255, ahk_id %hwndUnderCursor%
+	Gosub, CleanVars
 Return
 	;}
 	;{ Remove/restore titlebar of the window under the cursor
 XButton2 & WheelRight::
 <#Space::
-MouseGetPos,,, hwndUnderCursor
-WinGet, Title, Style, ahk_id %hwndUnderCursor%
-If (Title & 0xC00000)
-	WinSet, Style, -0xC00000, ahk_id %hwndUnderCursor%
-Else
-	WinSet, Style, +0xC00000, ahk_id %hwndUnderCursor%
-; Redraw the window
-WinGetPos,,,, Height, ahk_id %hwndUnderCursor%
-WinMove, ahk_id %hwndUnderCursor%,,,,, % Height - 1
-WinMove, ahk_id %hwndUnderCursor%,,,,, % Height
-Gosub, CleanVars
+	MouseGetPos,,, hwndUnderCursor
+	WinGet, Title, Style, ahk_id %hwndUnderCursor%
+	If (Title & 0xC00000)
+		WinSet, Style, -0xC00000, ahk_id %hwndUnderCursor%
+	Else
+		WinSet, Style, +0xC00000, ahk_id %hwndUnderCursor%
+	; Redraw the window
+	WinGetPos,,,, Height, ahk_id %hwndUnderCursor%
+	WinMove, ahk_id %hwndUnderCursor%,,,,, % Height - 1
+	WinMove, ahk_id %hwndUnderCursor%,,,,, % Height
+	Gosub, CleanVars
 Return
 	;}
 	;{ Pseudo-maximize the active window (LWin + LCtrl + s)
-<#<^vk53::WinMove, A,, UALeft, UATop, UARight - UALeft, UABottom - UATop
+<#<^vk53::
+	GoSub, WhatMonitor
+	WinMove, A,, UA%winCenterIsOnMonN%Left, UA%winCenterIsOnMonN%Top, UA%winCenterIsOnMonN%Right - UA%winCenterIsOnMonN%Left, UA%winCenterIsOnMonN%Bottom - UA%winCenterIsOnMonN%Top
+Return
 	;}
 	;{ Resize the active window	(LWin + LAlt + w/s/a/d)
-<!<#vk57::activeWinMoveResize(0, 0, 0, -UAhalfH / 8)	; Decrease height	(w).
-<!<#vk53::activeWinMoveResize(0, 0, 0, UAhalfH / 8)	; Increase height	(s).
-<!<#vk41::activeWinMoveResize(0, 0, -UAhalfW / 8, 0)	; Decrease width	(a).
-<!<#vk44::activeWinMoveResize(0, 0, UAhalfW / 8, 0)	; Increase width	(d).
+<!<#vk57::	; Decrease height	(w).
+	GoSub, WhatMonitor
+	activeWinMoveResize(0, 0, 0, -UA%winCenterIsOnMonN%halfH / 8)
+Return
+<!<#vk53::	; Increase height	(s).
+	GoSub, WhatMonitor
+	activeWinMoveResize(0, 0, 0, UA%winCenterIsOnMonN%halfH / 8)
+Return
+<!<#vk41::	; Decrease width	(a).
+	GoSub, WhatMonitor
+	activeWinMoveResize(0, 0, -UA%winCenterIsOnMonN%halfW / 8, 0)
+Return
+<!<#vk44::	; Increase width	(d).
+	GoSub, WhatMonitor
+	activeWinMoveResize(0, 0, UA%winCenterIsOnMonN%halfW / 8, 0)
+Return
 	;}
 	;{ Move the active window	(LWIn + LShift + w/s/a/d)
-<+<#vk57::activeWinMoveResize(0, -UAhalfH / 8, 0, 0)	; Move top		(w).
-<+<#vk53::activeWinMoveResize(0, UAhalfH / 8, 0, 0)	; Move bottom	(s).
-<+<#vk41::activeWinMoveResize(-UAhalfW / 8, 0, 0, 0)	; Move left		(a).
-<+<#vk44::activeWinMoveResize(UAhalfW / 8, 0, 0, 0)	; Move right	(d).
+<+<#vk57::	; Move top	(w).
+	GoSub, WhatMonitor
+	activeWinMoveResize(0, -UA%winCenterIsOnMonN%halfH / 8, 0, 0)
+Return
+<+<#vk53::	; Move bottom	(s).
+	GoSub, WhatMonitor
+	activeWinMoveResize(0, UA%winCenterIsOnMonN%halfH / 8, 0, 0)
+Return
+<+<#vk41::	; Move left	(a).
+	GoSub, WhatMonitor
+	activeWinMoveResize(-UA%winCenterIsOnMonN%halfW / 8, 0, 0, 0)
+Return
+<+<#vk44::	; Move right	(d).
+	GoSub, WhatMonitor
+	activeWinMoveResize(UA%winCenterIsOnMonN%halfW / 8, 0, 0, 0)
+Return
 	;}
 	;{ Quarter the active window	(LWin + LCtrl + q/e/z/c)
-<#<^vk51::WinMove, A,, UALeft, UATop, UAcenterX, UAcenterY			; Top left		(q).
-<#<^vk45::WinMove, A,, UAcenterX, UATop, UAcenterX, UAcenterY		; Top right		(e).
-<#<^vk5A::WinMove, A,, UALeft, UAcenterY, UAcenterX, UAcenterY		; Bottom left	(z).
-<#<^vk43::WinMove, A,, UAcenterX, UAcenterY, UAcenterX, UAcenterY	; Bottom right	(c).
+<#<^vk51::	; Top left	(q).
+	GoSub, WhatMonitor
+; MsgBox, % "UA" winCenterIsOnMonN "Left: '" UA%winCenterIsOnMonN%Left "'`n" "UA" winCenterIsOnMonN "Top: '" UA%winCenterIsOnMonN%Top "'`n" "UA" winCenterIsOnMonN "centerX: '" UA%winCenterIsOnMonN%centerX "'`n" "UA" winCenterIsOnMonN "centerY: '" UA%winCenterIsOnMonN%centerY "'`n"
+	WinMove, A,, UA%winCenterIsOnMonN%Left, UA%winCenterIsOnMonN%Top, UA%winCenterIsOnMonN%halfW, UA%winCenterIsOnMonN%halfH
+	WinMove
+Return
+<#<^vk45::	; Top right	(e).
+	GoSub, WhatMonitor
+	WinMove, A,, UA%winCenterIsOnMonN%centerX, UA%winCenterIsOnMonN%Top, UA%winCenterIsOnMonN%halfW, UA%winCenterIsOnMonN%halfH
+Return
+<#<^vk5A::	; Bottom left	(z).
+	GoSub, WhatMonitor
+	WinMove, A,, UA%winCenterIsOnMonN%Left, UA%winCenterIsOnMonN%centerY, UA%winCenterIsOnMonN%halfW, UA%winCenterIsOnMonN%halfH
+Return
+<#<^vk43::	; Bottom right	(c).
+	GoSub, WhatMonitor
+	WinMove, A,, UA%winCenterIsOnMonN%centerX, UA%winCenterIsOnMonN%centerY, UA%winCenterIsOnMonN%halfW, UA%winCenterIsOnMonN%halfH
+Return
 	;}
 	;{ Half the active window	(LWin + LCtrl + w/x/a/d)
-<#<^vk57::WinMove, A,, UALeft, UATop, UARight - UALeft, UAcenterY		; Top		(w).
-<#<^vk58::WinMove, A,, UALeft, UAcenterY, UARight - UALeft, UAcenterY	; Bottom	(x).
-<#<^vk41::WinMove, A,, UALeft, UATop, UAcenterX, UABottom - UATop		; Left		(a).
-<#<^vk44::WinMove, A,, UAcenterX, UATop, UAcenterX, UABottom - UATop	; Right		(d).
+<#<^vk57::	; Top	(w).
+	GoSub, WhatMonitor
+	WinMove, A,, UA%winCenterIsOnMonN%Left, UA%winCenterIsOnMonN%Top, UA%winCenterIsOnMonN%Right - UA%winCenterIsOnMonN%Left, (UA%winCenterIsOnMonN%Bottom - UA%winCenterIsOnMonN%Top) / 2
+Return
+<#<^vk58::	; Bottom	(x).
+	GoSub, WhatMonitor
+	WinMove, A,, UA%winCenterIsOnMonN%Left, UA%winCenterIsOnMonN%centerY, UA%winCenterIsOnMonN%Right - UA%winCenterIsOnMonN%Left, (UA%winCenterIsOnMonN%Bottom - UA%winCenterIsOnMonN%Top) / 2
+Return
+<#<^vk41::	; Left	(a).
+	GoSub, WhatMonitor
+	WinMove, A,, UA%winCenterIsOnMonN%Left, UA%winCenterIsOnMonN%Top, (UA%winCenterIsOnMonN%Right - UA%winCenterIsOnMonN%Left) / 2, UA%winCenterIsOnMonN%Bottom - UA%winCenterIsOnMonN%Top
+Return
+<#<^vk44::	; Right	(d).
+	GoSub, WhatMonitor
+	WinMove, A,, UA%winCenterIsOnMonN%centerX, UA%winCenterIsOnMonN%Top, (UA%winCenterIsOnMonN%Right - UA%winCenterIsOnMonN%Left) / 2, UA%winCenterIsOnMonN%Bottom - UA%winCenterIsOnMonN%Top
+Return
 	;}
 ;}
 ;{ Functions
@@ -280,6 +342,15 @@ activeWinMoveResize(dx, dy, dw, dh)
 {
 	WinGetPos, X, Y, W, H, A
 	WinMove, A,, (X + dx), (Y + dy), (W + dw), (H + dh)
+}
+		;}
+		;{ Get the coordinates of the center of the active window.
+getActiveWindowCenterCoords()
+{
+	WinGetPos, x, y, w, h, A
+	centerX := (w / 2) + x
+	centerY := (h / 2) + y
+	Return, % centerX "|" centerY
 }
 		;}
 		;{ moveWinWithCursor(buttonHeld)
@@ -301,7 +372,6 @@ moveWinWithCursor(buttonHeld)
 		WinMove,,, winX2, winY2
 		Sleep 15
 	}
-	Gosub, CleanVars
 }
 		;}
 	;}
@@ -328,6 +398,20 @@ CleanVars:
 	currOpacity := hwndUnderCursor := x1 := y1 := id := winClass := maximized := winX1 := winY1 := x2 := y2 := winX2 := winY2 := ID := IDactive := control := key := value := Class := classA := properTargetWin := Hwnd := Height := m_x := m_y := hw_m_target := onTop := procName := XWin := YWin := ""
 Return
 	;}
+	;{ Define on what monitor lays the center of the active window.
+WhatMonitor:
+	centerCoord := getActiveWindowCenterCoords()
+	StringSplit, centerCoord, centerCoord, |
+	Loop, %monCount%
+	{
+		If ((mon%A_Index%Left < centerCoord1) && (centerCoord1 < mon%A_Index%Right)) && ((mon%A_Index%Top < centerCoord2) && (centerCoord2 < mon%A_Index%Bottom))
+		{
+			winCenterIsOnMonN := A_Index
+			Break
+		}
+	}
+Return
+;}
 	;{ Exit
 ; Removing hooks upon exit.
 Exit:

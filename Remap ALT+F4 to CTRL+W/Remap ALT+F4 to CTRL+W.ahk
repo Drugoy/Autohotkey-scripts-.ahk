@@ -66,7 +66,7 @@ GroupAdd, pasteCMD, ahk_exe cmd.exe	; Windows console.
 GroupAdd, pasteCMD, ahk_exe powershell.exe	; Powershell.
 ;}
 ;{ [ahk_group minWin] Minimize by "Ctrl + W".
-GroupAdd, minWin, Microsoft Outlook ahk_class rctrl_renwnd32 ahk_exe outlook.exe	; Outlook.
+; GroupAdd, minWin, Microsoft Outlook ahk_class rctrl_renwnd32 ahk_exe outlook.exe	; Outlook.
 ;}
 
 ;{ Commands
@@ -111,10 +111,10 @@ GroupAdd, minWin, Microsoft Outlook ahk_class rctrl_renwnd32 ahk_exe outlook.exe
 	Return
 	;}
 	;{ [ahk_group minWin]: "Ctrl + W" -> WinMinimize.
-#IfWinActive, ahk_group minWin
-	^vk57::	; "Ctrl + W"
-		WinMinimize
-	Return
+; #IfWinActive, ahk_group minWin
+; 	^vk57::	; "Ctrl + W"
+; 		WinMinimize
+; 	Return
 	;}
 #IfWinActive
 ;}

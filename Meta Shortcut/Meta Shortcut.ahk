@@ -1,6 +1,6 @@
 ﻿/* Meta Shortcut
-Version: 4
-Last time modified: 2014.05.29 14:05
+Version: 5
+Last time modified: 2014.05.29 14:25
 
 Summary: a single file that can store multiple shortcuts and provides access to them via dropdown menu.
 
@@ -70,7 +70,10 @@ Else	; User did drag'n'drop at least one file.
 			If (smartLinks) && (A_LoopFileName ~= "iS)^.*\.url$")	; If the dropped down file is an *.url - the script will just use the URL it contains, instead of pointing to that *.url file itself.
 			{
 				IniRead, urlPath, %A_LoopFileName%, InternetShortcut, URL
-				FileAppend, `n%A_LoopFileName%|%urlPath%, %settingstxt%
+				If (urlPath == "ERROR")	; Safe check against incorrect URLs.
+					MsgBox, % "There was a problem retrieving the URL from the file, so the shortcut to that URL was not saved."
+				Else
+					FileAppend, `n%A_LoopFileName%|%urlPath%, %settingstxt%
 			}
 			Else
 				FileAppend, `n%A_LoopFileName%|%A_LoopFileLongPath%, %settingstxt%

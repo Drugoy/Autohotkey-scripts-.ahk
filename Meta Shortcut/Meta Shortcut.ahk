@@ -1,6 +1,6 @@
 ﻿/* Meta Shortcut
-Version: 3
-Last time modified: 2014.05.27 14:05
+Version: 4
+Last time modified: 2014.05.29 14:05
 
 Summary: a single file that can store multiple shortcuts and provides access to them via dropdown menu.
 
@@ -58,7 +58,7 @@ If (%0% == 0)	; User wanted to access the already stored shortcuts.
 				thisIconNumberInLib := chopString(icoPath, "`,")
 				Menu, ShortcutsList, Icon, %A_Index%. %singleRecordPart1%, %thisIconLibPath%, %thisIconNumberInLib%
 			}
-			paths.Insert(singleRecordPart1, singleRecordPart2)	; Here we do bindings (using array) so we'll know later what to run.
+			paths.Insert(A_Index ". " singleRecordPart1, singleRecordPart2)	; Here we do bindings (using array) so we'll know later what to run.
 		}
 		Menu, ShortcutsList, Show, %A_GuiX%, %A_GuiY%	; Show the constructed menu.
 	}

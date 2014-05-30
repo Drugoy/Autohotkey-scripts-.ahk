@@ -1,6 +1,6 @@
 ﻿/* Remap ALT+F4 to CTRL+W
-Version: 1.2
-Last time modified: 2013.05.26 12:10
+Version: 1.3
+Last time modified: 2013.05.30 15:20
 
 Makes "Ctrl+W" hotkey work as "Alt+F4" for lots of different programs and system windows. I like Ctrl+W more than Alt+F4, as it's keys are closer to each other.
 
@@ -9,7 +9,7 @@ REG.EXE add HKCU\Console /v QuickEdit /t REG_DWORD /d 1 /f
 
 Script author: Drugoy a.k.a. Drugmix
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
-https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/Remap ALT+F4 to CTRL+W/Remap ALT+F4 to CTRL+W.ahk
+https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/Remap%20ALT+F4%20to%20CTRL+W/Remap%20ALT+F4%20to%20CTRL+W.ahk
 */
 
 #SingleInstance, Force
@@ -66,19 +66,19 @@ GroupAdd, pasteCMD, ahk_exe cmd.exe	; Windows console.
 GroupAdd, pasteCMD, ahk_exe powershell.exe	; Powershell.
 ;}
 ;{ [ahk_group minWin] Minimize by "Ctrl + W".
-; GroupAdd, minWin, Microsoft Outlook ahk_class rctrl_renwnd32 ahk_exe outlook.exe	; Outlook.
+GroupAdd, minWin, Microsoft Outlook ahk_class rctrl_renwnd32 ahk_exe outlook.exe	; Outlook.
 ;}
 
 ;{ Commands
 	;{ [ahk_group altF4]: "Ctrl + W" -> "Alt + F4".
 #IfWinActive, ahk_group altF4
-	^vk57::
+	^vk57::	; "Ctrl + W"
 		Send !{F4}
 	Return
 	;}
 	;{ [ahk_group closeWin]: "Ctrl + W" -> WinClose.
 #IfWinActive, ahk_group closeWin
-	^vk57::
+	^vk57::	; "Ctrl + W"
 		WinClose
 	Return
 	;}
@@ -94,12 +94,16 @@ GroupAdd, pasteCMD, ahk_exe powershell.exe	; Powershell.
 		}
 		Else
 		{
-			If (A_ThisHotkey == "^vk43")	; "CTRL + C"
+			If (A_ThisHotkey == "^vk43")    ; "CTRL + C"
 			{
-				Hotkey, %A_ThisHotkey%, Off
-				Send ^c	; Stop execution.
-				Hotkey, %A_ThisHotkey%, On
-				Return
+				Hotkey, IfWinActive, ahk_group pasteCMD
+				{
+					Hotkey, %A_ThisHotkey%, Off
+					Send ^c ; Stop execution.
+					Hotkey, %A_ThisHotkey%, On
+				}
+				Hotkey, IfWinActive
+					Return
 			}
 		}
 		ControlClick,,,, Right	; Send "Right Click" to paste.
@@ -111,10 +115,17 @@ GroupAdd, pasteCMD, ahk_exe powershell.exe	; Powershell.
 	Return
 	;}
 	;{ [ahk_group minWin]: "Ctrl + W" -> WinMinimize.
-; #IfWinActive, ahk_group minWin
-; 	^vk57::	; "Ctrl + W"
-; 		WinMinimize
-; 	Return
+#IfWinActive, ahk_group minWin
+	^vk57::	; "Ctrl + W"
+		WinMinimize
+	Return
+	;}
+	;{ Add "Alt + D" and "Ctrl + L" hotkeys to Windows Explorer that will focus the address bar and select the current address.
+#IfWinActive, ahk_class CabinetWClass ahk_exe explorer.exe
+	!vk44::	; "Alt + D"
+	^vk4C::	; "Ctrl + L"
+		Send {F4}^a	; F4 is default Windows Explorer hotkey to set focus to address bar and open a drop-down list. Then send "Ctrl + A" to select the address.
+	Return
 	;}
 #IfWinActive
 ;}

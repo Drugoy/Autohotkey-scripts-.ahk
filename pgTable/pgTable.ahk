@@ -1,4 +1,14 @@
-﻿#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
+﻿/* MasterScript.ahk
+Version: 1
+Last time modified: 17:10 17.07.2014
+
+Description: a script to draw a pseudo-graphical borders to the copied table.
+
+Script author: Drugoy a.k.a. Drugmix
+Contacts: idrugoy@gmail.com, drug0y@ya.ru
+https://github.com/Drugoy/Autohotkey-scripts-.ahk/blob/master/pgTable/pgTable.ahkerScript.ahk
+*/
+#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 ; #Warn  ; Enable warnings to assist with detecting common errors.
 SendMode, Input  ; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir, %A_ScriptDir%  ; Ensures a consistent starting directory.
@@ -11,11 +21,11 @@ SetWorkingDir, %A_ScriptDir%  ; Ensures a consistent starting directory.
 	border21 := "─║╓╥╖╟╫╢╙╨╜"
 	border12 := "═│╒╤╕╞╪╡╘╧╛"
 	;}
-border := borderThin	; Specify the choice of border style here
+border := borderDouble	; Specify the choice of border style here
 useTopBorder := 1	; Choose whether to add a top border to the table
-useRowSeparatingBorders := 1	; Choose whether to use horizontal borders betweel rows
+useRowSeparatingBorders := 0	; Choose whether to use horizontal borders betweel rows
 useBottomBorder := 1	; Choose whether to add a bottom border to the table
-horizontalCellPadding := 1	; Choose the number of spaces to be added as horizontal paddings (to the left and to the right from each cell's value)
+horizontalCellPadding := 0	; Choose the number of spaces to be added as horizontal paddings (to the left and to the right from each cell's value)
 textAlign := 1	; Choose how to align text in cells: left/center/right = -1/0/1
 	;}
 ;}
@@ -77,7 +87,7 @@ F12::
 				If (useBottomBorder)
 				{
 					If (A_Index == 1)	; Parsing leftmost cell.
-						bottomBorder := "`n" SubStr(border, 9, 1)	; └
+						bottomBorder := SubStr(border, 9, 1)	; └
 					Loop, % thisColMaxWidth + 2 * horizontalCellPadding
 						bottomBorder .= SubStr(border, 1, 1)	; ─
 					If (A_Index != columns)
@@ -91,11 +101,11 @@ F12::
 			If (A_Index == 1)	; Parsing leftmost cell.
 				output .= SubStr(border, 2, 1)	; │
 			cellLeftSpacing := cellRightSpacing := horizontalCellPadding	; Counting the number of spaces to add at left from the value.
-			If (align == "1")
+			If (textAlign == "1")	; Right text alignment
 				cellLeftSpacing += thisColMaxWidth - thisCellWidth
-			Else If (align == "-1")
+			Else If (textAlign == "-1")	; Left text alignment
 				cellRightSpacing += thisColMaxWidth - thisCellWidth
-			Else If (thisColMaxWidth - thisCellWidth)	; 
+			Else If (textAlign == "0") && (thisColMaxWidth - thisCellWidth)	; 
 			{
 				cellLeftSpacing += Ceil((thisColMaxWidth - thisCellWidth)/2)
 				cellRightSpacing += Floor((thisColMaxWidth - thisCellWidth)/2)
@@ -107,8 +117,9 @@ F12::
 			;}
 			output .= (cellLeftSpacing ? cellLeftSpacing : "") inputArray[A_Index, thisRow] (cellRightSpacing ? cellRightSpacing : "") SubStr(border, 2, 1)	; │
 		}
+		output .= "`n"	; Finish a row.
 		If (useRowSeparatingBorders) && (A_Index != rows)	; Concatenate a row separating border to the currently formed row.
-			output .= "`n" rowSeparator
+			output .= rowSeparator
 	}
 	output := topBorder output bottomBorder
 	;}
@@ -131,16 +142,4 @@ getColMaxWidth(colN)
 	}
 	Return this
 }
-;}
-
-;{ Debugging
-; input =
-; (
-; 23a	b	c	d
-; e	f	gqwe	hqw
-; i	jw	k	lw
-; )
-; MsgBox, % rows	; Rows in the table.
-; MsgBox, % inputArray.MaxIndex()	; Columns in the table.
-; MsgBox, % inputArray[3, 2]	; Return the value of a cellwith x=3, y=2.
 ;}

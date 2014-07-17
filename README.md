@@ -116,7 +116,7 @@ this	is	a	table
 with	3 rows	and	4 columns
 and it	is	absolutely	awesome
 ```
->
+for example into
 ```
 ┌────────┬────────┬────────────┬───────────┐
 │  this  │   is   │      a     │   table   │
@@ -125,4 +125,12 @@ and it	is	absolutely	awesome
 ├────────┼────────┼────────────┼───────────┤
 │ and it │   is   │ absolutely │  awesome  │
 └────────┴────────┴────────────┴───────────┘
+```
+or for another example into
+```
+╔══════╦══════╦══════════╦═════════╗
+║  this║    is║         a║    table║
+║  with║3 rows║       and║4 columns║
+║and it║    is║absolutely║  awesome║
+╚══════╩══════╩══════════╩═════════╝
 ```

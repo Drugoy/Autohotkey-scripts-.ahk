@@ -1,4 +1,4 @@
-#### Autohotkey scripts .ahk
+﻿#### Autohotkey scripts .ahk
 
 My collection of autohotkey scripts. Some scripts are written by me, some are modified by me, some are completely created by others.
 
@@ -96,7 +96,7 @@ The script requries some pre-configuration before it can be used, so read the he
 Unselect the file type when renaming files in XP (just like it is by default in Windows 7).
 
 ##### [TransliterateText](TransliterateText)
-Quite an unstable script yet. It adds ru<>en transliteration of the last word/line/whole text like qwerty<>йцукен.
+Quite an unstable script yet. It adds ru<>en transliteration of the last word/line/whole text like qwerty<>Р№С†СѓРєРµРЅ.
 
 ##### [VDesktops](VDesktops)
 Adds pseudo-virtual desktops: first, hit "Win+Shift+0/1/2/3" to bind windows to desktops and then hit "Win+0/1/2/3" to switch to those desktops.
@@ -106,3 +106,23 @@ Right click the "minimize" button to minimize a window into a trayicon. Left/Mid
 
 ##### [hyde](hyde)
 Nearly blackhat: hyde.dll hides a process from the task manager on Windows 2000 - Windows 7 x86 & x64 bit OSes. Your process can inject it into other processes however you like. The example uses SetWindowsHookEx with a CBT hook (the dll exports a CBTProc) to inject it into all running processes.
+
+##### [pgTable](pgTable)
+This script let's you convert a copied table into a table with pseudo-graphical borders.
+Copy a table, hit F12, paste the table with pseudo-graphical borders.
+The script also has settings, that let you specify padding and text alignment in cells, border style, whether to use separators between rows, whether to add a top border, whether to add bottom border.
+```
+this	is	a	table
+with	3 rows	and	4 columns
+and it	is	absolutely	awesome
+```
+>
+```
+┌────────┬────────┬────────────┬───────────┐
+│  this  │   is   │      a     │   table   │
+├────────┼────────┼────────────┼───────────┤
+│  with  │ 3 rows │     and    │ 4 columns │
+├────────┼────────┼────────────┼───────────┤
+│ and it │   is   │ absolutely │  awesome  │
+└────────┴────────┴────────────┴───────────┘
+```

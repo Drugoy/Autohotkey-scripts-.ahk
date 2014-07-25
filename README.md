@@ -96,7 +96,7 @@ The script requries some pre-configuration before it can be used, so read the he
 Unselect the file type when renaming files in XP (just like it is by default in Windows 7).
 
 ##### [TransliterateText](TransliterateText)
-Quite an unstable script yet. It adds ru<>en transliteration of the last word/line/whole text like qwerty<>Р№С†СѓРєРµРЅ.
+Quite an unstable script yet. It adds ru<>en transliteration of the last word/line/whole text like qwerty<>йцукен.
 
 ##### [VDesktops](VDesktops)
 Adds pseudo-virtual desktops: first, hit "Win+Shift+0/1/2/3" to bind windows to desktops and then hit "Win+0/1/2/3" to switch to those desktops.

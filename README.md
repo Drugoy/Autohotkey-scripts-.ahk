@@ -92,6 +92,19 @@ One of them is [MasterScript.ahk](ScriptManager.ahk/MasterScript.ahk), which is 
 A very ascetic yet powerful screenshotter that lets you select the area to make screenshot of, then uses a lossless compression to minimize the file's size, then automatically uploads the screenshot to Imgur and finally copies (and/or opens) the path to the screenshot. Supports drag'n'drop of images to upload them to Imgur.
 The script requries some pre-configuration before it can be used, so read the header in the script's code.
 
+##### [StringyLauncher](StringyLauncher)
+This is a launcher (run programs by typing keywords). It follows the rules specified in "rules.ini" file.
+The syntax for this file is the following:
+0. You'd better set codepage to 65001 (UTF-8).
+1. Each rule should be on it's own line.
+2. Each rule consists of keyword(s) + path. All of them should be separated with pipes.
+3. To bring support of launching files directly from archives:
+	a. You should bind a keyword "archiver" to your archiver: currently, the script supports only 7-Zip (specify path to 7z.exe) and WinRar (specify path to WinRAR.exe, UnRAR.exe or RAR.exe).
+	b. The syntax for such rules is the following: say, you need to launch "\archived_folder\with\test.exe" from "arch.rar", then the rule should be so: "keyword`|C:\path\to\arch.rar!archived_folder\with\test.exe".
+Notes:
+1. Currently the launching is limited to one place: all triggers work only if they were typed to "Win+R" or "Start>Run" (or "Пуск>Выполнить" in Windows with "ru" locale). To remove this limit you need to delete line "#IfWinActive, ahk_exe explorer.exe ahk_class #32770" but then you should consider adding some closing char to your keywords, otherwise the launcher will work out right after you finished typing a keyword.
+2. You may specify a temporary folder to which archives will get unpacked to. And you also may specify not to remove the unpacked files after you closed the launched program that was in an archive.
+
 ##### [TheEnd](TheEnd)
 Unselect the file type when renaming files in XP (just like it is by default in Windows 7).
 

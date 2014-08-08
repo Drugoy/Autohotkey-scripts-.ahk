@@ -21,12 +21,12 @@ SetWorkingDir, %A_ScriptDir%  ; Ensures a consistent starting directory.
 	border21 := "─║╓╥╖╟╫╢╙╨╜"
 	border12 := "═│╒╤╕╞╪╡╘╧╛"
 	;}
-border := borderDouble	; Specify the choice of border style here
+border := borderThin	; Specify the choice of border style here
 useTopBorder := 1	; Choose whether to add a top border to the table
-useRowSeparatingBorders := 0	; Choose whether to use horizontal borders betweel rows
+useRowSeparatingBorders := 1	; Choose whether to use horizontal borders betweel rows
 useBottomBorder := 1	; Choose whether to add a bottom border to the table
 horizontalCellPadding := 0	; Choose the number of spaces to be added as horizontal paddings (to the left and to the right from each cell's value)
-textAlign := 1	; Choose how to align text in cells: left/center/right = -1/0/1
+textAlign := 0	; Choose how to align text in cells: left/center/right = -1/0/1
 	;}
 ;}
 
@@ -55,7 +55,7 @@ F12::
 		{
 			thisColMaxWidth := getColMaxWidth(A_Index)
 			thisCellWidth := StrLen(inputArray[A_Index, thisRow])
-			If (thisRow == 1)	; While parsing first row the script, based on the specified settings decides whether to build table's top border, bottom border and row separating horizontal borders.
+			If (thisRow == 1)	; While parsing first row, the script (based on the specified settings) decides whether to build table's top border, bottom border and row separating horizontal borders.
 			{
 				;{ Build the table's top border.
 				If (useTopBorder)

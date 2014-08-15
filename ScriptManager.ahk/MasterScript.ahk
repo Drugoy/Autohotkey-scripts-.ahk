@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
 Version: 3.1
-Last time modified: 2014.08.15 17:56:35
+Last time modified: 11:25 05.12.2013
 
 Description: a script manager for *.ahk scripts.
 
@@ -21,7 +21,7 @@ http://forum.script-coding.com/viewtopic.php?id=8724
 
 ; Path and name of the file name to store script's settings.
 settings := A_ScriptDir "\" SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4) "_settings.ini"
-; msgbox % settings
+
 ; Specify a value in milliseconds.
 memoryScanInterval := 1000
 
@@ -32,7 +32,7 @@ rememberPosAndSize := 1
 quitAssistantsNicely := 1
 
 ; Pipe-separated list of process to ignore by the "Process Assistant" parser.
-ignoreTheseProcesses := "C:\Windows\System32\DllHost.exe|C:\Windows\Servicing\TrustedInstaller.exe|C:\Windows\System32\audiodg.exe|C:\Windows\System32\svchost.exe|C:\Windows\System32\SearchFilterHost.exe|C:\Windows\System32\SearchProtocolHost.exe|C:\Windows\System32\wbem\unescapp.exe|usbhdd.exe|SearchFilterHost.exe|SearchProtocolHost.exe"
+ignoreTheseProcesses := "C:\Windows\System32\DllHost.exe|C:\Windows\Servicing\TrustedInstaller.exe|C:\Windows\System32\audiodg.exe|C:\Windows\System32\svchost.exe|C:\Windows\System32\SearchFilterHost.exe|C:\Windows\System32\SearchProtocolHost.exe|C:\Windows\System32\wbem\unescapp.exe"
 ;}
 
 ;{ Initialization.
@@ -92,7 +92,7 @@ Gui, Add, Button, x+0 gDeleteSelected, Delete selected
 
 ; Folders Tree (left pane).
 Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.
-IniRead, bookmarkedFolders, %settings%, Bookmarks, Folders, 0	; Check if there are some previously saved bookmarked folders.
+IniRead, bookmarkedFolders, %settings%, Bookmarks, Folders	; Check if there are some previously saved bookmarked folders.
 DriveGet, fixedDrivesList, List, FIXED	; Fixed logical disks.
 DriveGet, removableDrivesList, List, REMOVABLE	; Removable logical disks.
 If bookmarkedFolders
@@ -175,9 +175,7 @@ If rememberPosAndSize
 }
 Else
 	sw_W := 800, sw_H := 600, sw_X := (UARight - sw_W) / 2, sw_Y := (UABottom - sw_H) / 2
-; msgbox % sw_X "|" sw_Y "|" sw_W "|" sw_H
-; msgbox % rememberPosAndSize
-; Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 6 " h" sw_H - 28, Manage Scripts
+Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 6 " h" sw_H - 28, Manage Scripts
 Gui, +Resize +MinSize666x222
 GroupAdd ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId") ; Create an ahk_group "ScriptHwnd_A" and make all the current process's windows get into that group.
 Return
@@ -262,10 +260,8 @@ ExitApp:
 	If rememberPosAndSize
 	{
 		DetectHiddenWindows, Off
-; msgbox % "1`nsw_X: '" sw_X "'`nsw_Y: '" sw_Y "'`nsw_W: '" sw_W "'`nsw_H: '" sw_H "'"
 		IfWinExist, ahk_group ScriptHwnd_A
 			WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
-; msgbox % "2`nsw_X: '" sw_X "'`nsw_Y: '" sw_Y "'`nsw_W: '" sw_W "'`nsw_H: '" sw_H "'"
 		If (sw_X != -32000) && (sw_Y != -32000)
 		{
 			IniWrite, %sw_X%, %settings%, Script's window, posX
@@ -309,7 +305,6 @@ AssistantsList:
 			{
 				procBinder.Insert({"ruleGroupN": ruleGroupN, "type": type, "side": side, "value": A_LoopField})
 				rowShift++
-; msgbox % "procBinder.Insert(k {""ruleGroupN"": ruleGroupN, ""type"": type, ""side"": side, ""value"": A_LoopField}): '`nprocBinder.Insert(" k " {""ruleGroupN"": " ruleGroupN ", ""type"": " type ", ""side"": " side ", ""value"": " A_LoopField "})"
 				If (ruleIndex != ruleGroupN)	; New rule (thus, left side).
 				{
 					ruleIndex := ruleGroupN
@@ -420,9 +415,7 @@ BookmarksList:
 			Else	; If the file doesn't exist - remove that bookmark.
 			{
 				bookmarksModified := 1
-				msgbox 1 bookmarksToDelete: '%bookmarksToDelete%'`n
 				bookmarksToDelete ((!bookmarksToDelete) ? (bookmarksToDelete := A_IndexMy) : (bookmarksToDelete .= "," A_IndexMy))
-				msgbox 2 bookmarksToDelete: '%bookmarksToDelete%'`n
 			}
 		}
 	}
@@ -580,7 +573,7 @@ Return
 AddNewRule:
 InputBox, ruleAdd, Add new 'Process Assistant' rule,
 (
-'Process Assistant' feature works so: you create rules for it, where you specify Trigger Condition (or 'TC' further in this text) - which process should be assisted with Triggered Action (or 'TA' further in this text) - with which *.ahk script and then just whenever the specified process appears - the corresponding script will get executed and whenever the specified process dies - the corresponding script will get closed too.
+'Process Assistant' feature works so: you create rules for it, where you specify Trigger Condition) (or 'TC' further in this text) - which process should be assisted with Triggered Action (or 'TA' further in this text) - with which *.ahk script and then just whenever the specified process appears - the corresponding script will get executed and whenever the specified process dies - the corresponding script will get closed too.
 In the "Settings" section of the script (in it's source code) you may select a way how to close the scripts. By default, it uses a gentle method which lets the scripts execute their "OnExit" subroutine.
 
 There are the following rules for 'Process Assistant' rule creation:
@@ -655,15 +648,6 @@ Return
 	}
 	Else If (activeControl == "FolderTree")
 		TV_Modify(0)
-Return
-
-f6::
-	checkRunTriggers()	; ProcessAssistant's main routine.
-Return
-f8::
-	thisMaxIndex := scriptsSnapshot.MaxIndex()
-	Loop, %thisMaxIndex%
-		Msgbox % "[" A_Index "/" thisMaxIndex "]`n" scriptsSnapshot[A_Index, "pid"]
 Return
 #IfWinActive
 ;}
@@ -845,24 +829,17 @@ resumeProcess(pids)	; Resume processes of selected scripts.
 ProcessCreate_OnObjectReady(obj)
 {
 	Process := obj.TargetInstance
-	; msgbox % "1 Process.ExecutablePath: '" Process.ExecutablePath "'"
-
+	If !(Process.ExecutablePath)
+		Return
 	Loop, Parse, ignoreTheseProcesses, |
-		If (((Process.ExecutablePath) ? (Process.ExecutablePath) : (Process.Name)) ~= "Si)^\Q" A_LoopField "\E$")
+		If (Process.ExecutablePath ~= "Si)^\Q" A_LoopField "\E$")
 			Return
-	; msgbox % "Process.Caption: '" Process.Caption "'`nProcess.CommandLine: '" Process.CommandLine "'`nProcess.CreationClassName: '" Process.CreationClassName "'`nProcess.CreationDate: '" Process.CreationDate "'`nProcess.CSCreationClassName: '" Process.CSCreationClassName "'`nProcess.CSName: '" Process.CSName "'`nProcess.Description: '" Process.Description "'`nProcess.ExecutablePath: '" Process.ExecutablePath "'`nProcess.ExecutionState: '" Process.ExecutionState "'`nProcess.Handle: '" Process.Handle "'`nProcess.HandleCount: '" Process.HandleCount "'`nProcess.InstallDate: '" Process.InstallDate "'`nProcess.KernelModeTime: '" Process.KernelModeTime "'`nProcess.MaximumWorkingSetSize: '" Process.MaximumWorkingSetSize "'`nProcess.MinimumWorkingSetSize: '" Process.MinimumWorkingSetSize "'`nProcess.Name: '" Process.Name "'`nProcess.OSCreationClassName: '" Process.OSCreationClassName "'`nProcess.OSName: '" Process.OSName "'`nProcess.OtherOperationCount: '" Process.OtherOperationCount "'`nProcess.OtherTransferCount: '" Process.OtherTransferCount "'`nProcess.PageFaults: '" Process.PageFaults "'`nProcess.PageFileUsage: '" Process.PageFileUsage "'`nProcess.ParentProcessId: '" Process.ParentProcessId "'`nProcess.PeakPageFileUsage: '" Process.PeakPageFileUsage "'`nProcess.PeakVirtualSize: '" Process.PeakVirtualSize "'`nProcess.PeakWorkingSetSize: '" Process.PeakWorkingSetSize "'`nProcess.Priority: '" Process.Priority "'`nProcess.PrivatePageCount: '" Process.PrivatePageCount "'`nProcess.ProcessId: '" Process.ProcessId "'`nProcess.QuotaNonPagedPoolUsage: '" Process.QuotaNonPagedPoolUsage "'`nProcess.QuotaPagedPoolUsage: '" Process.QuotaPagedPoolUsage "'`nProcess.QuotaPeakNonPagedPoolUsage: '" Process.QuotaPeakNonPagedPoolUsage "'`nProcess.QuotaPeakPagedPoolUsage: '" Process.QuotaPeakPagedPoolUsage "'`nProcess.ReadOperationCount: '" Process.ReadOperationCount "'`nProcess.ReadTransferCount: '" Process.ReadTransferCount "'`nProcess.SessionId: '" Process.SessionId "'`nProcess.Status: '" Process.Status "'`nProcess.TerminationDate: '" Process.TerminationDate "'`nProcess.ThreadCount: '" Process.ThreadCount "'`nProcess.UserModeTime: '" Process.UserModeTime "'`nProcess.VirtualSize: '" Process.VirtualSize "'`nProcess.WindowsVersion: '" Process.WindowsVersion "'`nProcess.WorkingSetSize: '" Process.WorkingSetSize "'`nProcess.WriteOperationCount: '" Process.WriteOperationCount "'`nCountProcess.WriteTransferCount: '" Process.WriteTransferCount "'`nTime: '" A_Now "'"
-	; msgbox % "2 Process.ExecutablePath: '" Process.ExecutablePath "'"
 	processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
-	; msgbox % "'" Process.CommandLine "'"
 	If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
 	{
 		scriptsSnapshot.Insert({"pid": Process.ProcessId, "name": scriptName, "path": scriptPath})
 		Gui, ListView, ManageProcesses
 		LV_Add(, scriptsSnapshot.MaxIndex(), Process.ProcessId, scriptName, scriptPath)
-; maxIndex1 := processesSnapshot.MaxIndex()
-; maxIndex2 := scriptsSnapshot.MaxIndex()
-; msgbox % "processesSnapshot.MaxIndex: '" maxIndex1 "'`nscriptsSnapshot.MaxIndex: '" maxIndex2 "'"
-		; checkKillTriggers(scriptPath, 1)
 		thisProcess := scriptPath
 	}
 	Else
@@ -879,19 +856,16 @@ ProcessCreate_OnObjectReady(obj)
 			StringTrimRight, toBeRun, toBeRun, 1
 	}
 	checkRunTriggers(thisProcess)
-; maxIndex1 := processesSnapshot.MaxIndex()
-; maxIndex2 := scriptsSnapshot.MaxIndex()
-; msgbox % "processesSnapshot.MaxIndex: '" maxIndex1 "'`nscriptsSnapshot.MaxIndex: '" maxIndex2 "'"
 }
 
 ProcessDelete_OnObjectReady(obj)
 {
 	Process := obj.TargetInstance
+	If !(Process.ExecutablePath)
+		Return
 	Loop, Parse, ignoreTheseProcesses, |
-		If (((Process.ExecutablePath) ? (Process.ExecutablePath) : (Process.Name)) ~= "Si)^\Q" A_LoopField "\E$")
+		If (Process.ExecutablePath ~= "Si)^\Q" A_LoopField "\E$")
 			Return
-	; msgbox % "Process.Caption: '" Process.Caption "'`nProcess.CommandLine: '" Process.CommandLine "'`nProcess.CreationClassName: '" Process.CreationClassName "'`nProcess.CreationDate: '" Process.CreationDate "'`nProcess.CSCreationClassName: '" Process.CSCreationClassName "'`nProcess.CSName: '" Process.CSName "'`nProcess.Description: '" Process.Description "'`nProcess.ExecutablePath: '" Process.ExecutablePath "'`nProcess.ExecutionState: '" Process.ExecutionState "'`nProcess.Handle: '" Process.Handle "'`nProcess.HandleCount: '" Process.HandleCount "'`nProcess.InstallDate: '" Process.InstallDate "'`nProcess.KernelModeTime: '" Process.KernelModeTime "'`nProcess.MaximumWorkingSetSize: '" Process.MaximumWorkingSetSize "'`nProcess.MinimumWorkingSetSize: '" Process.MinimumWorkingSetSize "'`nProcess.Name: '" Process.Name "'`nProcess.OSCreationClassName: '" Process.OSCreationClassName "'`nProcess.OSName: '" Process.OSName "'`nProcess.OtherOperationCount: '" Process.OtherOperationCount "'`nProcess.OtherTransferCount: '" Process.OtherTransferCount "'`nProcess.PageFaults: '" Process.PageFaults "'`nProcess.PageFileUsage: '" Process.PageFileUsage "'`nProcess.ParentProcessId: '" Process.ParentProcessId "'`nProcess.PeakPageFileUsage: '" Process.PeakPageFileUsage "'`nProcess.PeakVirtualSize: '" Process.PeakVirtualSize "'`nProcess.PeakWorkingSetSize: '" Process.PeakWorkingSetSize "'`nProcess.Priority: '" Process.Priority "'`nProcess.PrivatePageCount: '" Process.PrivatePageCount "'`nProcess.ProcessId: '" Process.ProcessId "'`nProcess.QuotaNonPagedPoolUsage: '" Process.QuotaNonPagedPoolUsage "'`nProcess.QuotaPagedPoolUsage: '" Process.QuotaPagedPoolUsage "'`nProcess.QuotaPeakNonPagedPoolUsage: '" Process.QuotaPeakNonPagedPoolUsage "'`nProcess.QuotaPeakPagedPoolUsage: '" Process.QuotaPeakPagedPoolUsage "'`nProcess.ReadOperationCount: '" Process.ReadOperationCount "'`nProcess.ReadTransferCount: '" Process.ReadTransferCount "'`nProcess.SessionId: '" Process.SessionId "'`nProcess.Status: '" Process.Status "'`nProcess.TerminationDate: '" Process.TerminationDate "'`nProcess.ThreadCount: '" Process.ThreadCount "'`nProcess.UserModeTime: '" Process.UserModeTime "'`nProcess.VirtualSize: '" Process.VirtualSize "'`nProcess.WindowsVersion: '" Process.WindowsVersion "'`nProcess.WorkingSetSize: '" Process.WorkingSetSize "'`nProcess.WriteOperationCount: '" Process.WriteOperationCount "'`nCountProcess.WriteTransferCount: '" Process.WriteTransferCount "'`nTime: '" A_Now "'"
-	; msgbox % "2 Process.ExecutablePath: '" Process.ExecutablePath "'"
 	For k, v In processesSnapshot
 		If (v.pid == Process.ProcessId)
 			processesSnapshot.Remove(A_Index)
@@ -909,39 +883,23 @@ ProcessDelete_OnObjectReady(obj)
 			If (this)
 				LV_Modify(A_Index,, A_Index)	; FIXME: This better be called after some delay since the last call of this function.
 		}
-		; noTrayOrphans()
-		; msgbox x
+		noTrayOrphans()
 		checkKillTriggers(scriptPath)
 	}
 	Else
-	{
-		; msgbox y
 		checkKillTriggers(Process.ExecutablePath)
-	}
 }
 	;}
 	;{ Functions needed for 'Process Assistant' to work.
 checkRunTriggers(rule = 0)
 {	; OPTIMIZEME
-; Used by: Tab #3 'Manage process assistants' - LV 'AssistantsList'; functions: ProcessCreate_OnObjectReady().
+; Used by: 
 ; Input: none.
 ; Output: none.
-
-; processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
-; scriptsSnapshot.Insert({"pid": Process.ProcessId, "name": scriptName, "path": scriptPath})
-; procBinder.Insert({"ruleGroupN": ruleGroupN, "type": type, "side": side, "value": A_LoopField})
-	; maxIndex := procBinder.MaxIndex()
 	For, k, v In procBinder
 	{
-		; isItFirstRuleInSubGroup := ((v.side != procBinder[k - 1, "side"]) ? 1 : 0)
-		; isItLastRuleInSubGroup := ((v.side != procBinder[k + 1, "side"]) ? 1 : 0)
-		; isItLastRuleInGroup := ((v.ruleGroupN != procBinder[k + 1, "rulegGoupN"]) ? 1 : 0)
-		; isItFirstRuleInGroup := ((v.ruleGroupN != procBinder[k - 1, "ruleGroupN"]) ? 1 : 0)
-; msgbox % "1`nk: '" k "'`nv.value: '" v.value "'`nv.side: '" v.side "'`nv.type: '" v.type "'`nstopperIndex: '" stopperIndex "'`nnoTriggerFound: '" noTriggerFound "'"
-; msgbox % "1 START-DEBUG: '" v.value "'`nnoTriggerFound: '" noTriggerFound "'`nstopperIndex: '" stopperIndex "'`nruleIndex: '" ruleIndex "'`nv.side: '" v.side "'`nprocBinder[k + 1, ""side""]: '" procBinder[k + 1, "side"] "'`nv.type: '" v.type "'`n"
-		If (v.ruleGroupN != procBinder[k - 1, "ruleGroupN"])	; || ((v.side != procBinder[k - 1, "side"]) && (v.type == 2))	; First rule in a group.
+		If (v.ruleGroupN != procBinder[k - 1, "ruleGroupN"])	; First rule in a group.
 			ruleIndex := stopperIndex := noTriggerFound := 0
-; msgbox % "2 START-DEBUG: '" v.value "'`nnoTriggerFound: '" noTriggerFound "'`nstopperIndex: '" stopperIndex "'`nruleIndex: '" ruleIndex "'`nv.side: '" v.side "'`nprocBinder[k + 1, ""side""]: '" procBinder[k + 1, "side"] "'`nv.type: '" v.type "'`n"
 		ruleIndex++	; Counter of the rules in a sub-group (or in a group, if type == 0)
 		If ((v.side == 2 || !v.type) && stopperIndex)	; No need in deep parsing, local instructions are enough.
 			stuffToRun := (stuffToRun ? stuffToRun "|" v.value : v.value)
@@ -952,24 +910,20 @@ checkRunTriggers(rule = 0)
 		isAhkProc := ((SubStr(v.value, -2) == "ahk") ? 1 : 0)	; isAhkProc: 1 - an ahk-script is being parsed; 0 - non-ahk process is being parsed.
 		If (rule)	; A new process appeared.
 		{
-			; If ((rule ~= "Si)^.*\Q" v.value "\E$") || ((rule ~= "Si)^.*\Q" v.value "\E$") && (SubStr(rule, -2) == "exe"))) && ((v.side == 1) && (v.type))
 			If ((rule ~= "Si)^.*\Q" v.value "\E$") || ((rule ~= "Si)^.*\Q" v.value "\E$") && (SubStr(rule, -2) == "exe"))) && ((v.side == 1 && v.type) || !v.type)
 			{
 				stopperIndex := k	; A TC found, which is eough to trigger the whole TA-group (or + TC-group in case of !v.type).
-; msgbox % "k: '" k "'`nruleIndex: '" ruleIndex "'`n"
 				Loop, % ruleIndex - 1
 					stuffToRun := ((stuffToRun) ? (stuffToRun "|" procBinder[k - ruleIndex + A_Index, "value"]) : (procBinder[k - ruleIndex + A_Index, "value"]))
 			}
 		}
 		Else If (!v.type || (v.side == 1))	; Not a new process appeared, but an initial check is getting executed.
 		{
-; msgbox % "k: '" k "'`nv.value: '" v.value "'`nv.type: '" v.type "'`nv.ruleGroupN: '" v.ruleGroupN "'`nv.side: '" v.side "'`nstopperIndex: '" stopperIndex "'`nisAhkProc: '" isAhkProc "'`n"
 			For i, j In (isAhkProc ? scriptsSnapshot : processesSnapshot)	; Need to find out if it's running (and thus is a trigger to run the whole group).
 			{
 				If (((j.path ~= "Si)^.*\Q" v.value "\E$") && (isAhkProc)) || ((j.exe ~= "Si)^.*\Q" v.value "\E$") && !(isAhkProc)))	; A rule was found running, need to trigger the whole group.
 				{
 					stopperIndex := k	; A TC found, which is enough to trigger the whole TA-group (or + TC-group in case of !v.type).
-; msgbox % "k: '" k "'`nruleIndex: '" ruleIndex "'`n"
 					If !(v.type)
 						Loop, % ruleIndex - 1
 							stuffToRun := ((stuffToRun) ? (stuffToRun "|" procBinder[k - ruleIndex + A_Index, "value"]) : (procBinder[k - ruleIndex + A_Index, "value"]))
@@ -979,18 +933,14 @@ checkRunTriggers(rule = 0)
 		}
 		If (v.side != procBinder[k + 1, "side"]) && (v.type) && !(stopperIndex)
 			noTriggerFound := 1
-; msgbox % "DEBUG: '" v.value "'`nnoTriggerFound: '" noTriggerFound "'`nstopperIndex: '" stopperIndex "'`nruleIndex: '" ruleIndex "'`nv.side: '" v.side "'`nprocBinder[k + 1, ""side""]: '" procBinder[k + 1, "side"] "'`nrule: '" rule "'`nv.type: '" v.type "'`n"
-; msgbox % "2`nk: '" k "'`nv.value: '" v.value "'`nv.side: '" v.side "'`nv.type: '" v.type "'`nstopperIndex: '" stopperIndex "'`nnoTriggerFound: '" noTriggerFound "'"
 	}
 	If stuffToKill
 	{
 		Sort, stuffToKill, U D|	; Removing duplicates, if there are any of them.
-; msgbox % "checkRunTriggers(" rule ")`nstuffToKill: '" stuffToKill "'"
 		setRunState(stuffToKill, 0)	; Check if everything from 'stuffToRun' is already running, and run if something is not yet running.
 	}
 	If stuffToRun
 	{
-; msgbox % "checkRunTriggers(" rule ")`nstuffToRun: '" stuffToRun "'`ntoBeRun: '" toBeRun "'`n"
 		Sort, stuffToRun, U D|	; Removing duplicates, if there are any of them.
 		If toBeRun
 			Loop, Parse, stuffToRun, |
@@ -1001,13 +951,6 @@ checkRunTriggers(rule = 0)
 		Else
 			setRunState(stuffToRun, 1)
 	}
-
-; 1>x1|x2|x3>y1|y2|y3|y4|y5
-; 1>a1|a2>b1|b2|b3|b4
-; 2>i1|i2|i3|i4|i5|i6|i7>j1|j2
-; The array gets fulfilled in the following format:
-; array.Insert({"type": 1, "lineNumber": 1, "side": 1, "value": "x1"})
-; array.Insert({"type": 1, "lineNumber": 1, "value": "b4"})
 }
 
 checkKillTriggers(path)	; A selective check of the specified process to trigger any rules.
@@ -1015,11 +958,9 @@ checkKillTriggers(path)	; A selective check of the specified process to trigger 
 ; Used by: functions: ProcessDelete_OnObjectReady()
 ; Input: 'path' - a Process.CommandLine/scriptPath of a just died process/script.
 ; Output: none.
-; msgbox checkKillTriggers() was called with that arg:`npath: '%path%'
 ruleIndex := 0
 	For k, v In procBinder
 	{
-; msgbox % "1 START-DEBUG: '" v.value "'`nnoTriggerFound: '" noTriggerFound "'`nstopperIndex: '" stopperIndex "'`nruleIndex: '" ruleIndex "'`nv.side: '" v.side "'`nprocBinder[k + 1, ""side""]: '" procBinder[k + 1, "side"] "'`nv.type: '" v.type "'`n"
 		isAhkProc := ((SubStr((procBinder[k - (ruleIndex + 1) + A_Index, "value"]), -2) == "ahk") ? 1 : 0)
 		If (v.ruleGroupN != procBinder[k - 1, "ruleGroupN"])	; First rule in a group.
 			ruleIndex := stopperIndex := noTriggerFound := 0
@@ -1069,13 +1010,10 @@ ruleIndex := 0
 				}
 			}
 		}
-; msgbox % "DEBUG: '" v.value "'`nnoTriggerFound: '" noTriggerFound "'`nstopperIndex: '" stopperIndex "'`nruleIndex: '" ruleIndex "'`nv.side: '" v.side "'`nprocBinder[k + 1, ""side""]: '" procBinder[k + 1, "side"] "'`nrule: '" rule "'`nv.type: '" v.type "'`nstuffToKill: '" stuffToKill "'`n"
 	}
 	If (stuffToKill)
 	{
-	; msgbox 1 stuffToKill: '%stuffToKill%'`n
 		Sort, killThem, U D|
-	; msgbox 2 stuffToKill: '%stuffToKill%'`n
 		setRunState(stuffToKill, 0)
 	}
 }
@@ -1088,24 +1026,17 @@ setRunState(input, runOrKill)	; Checks the running state of the input and runs o
 	Loop, Parse, input, |
 	{
 		match := !runOrKill
-		; index := A_Index
 		For k, v in ((SubStr(A_LoopField, -2) == "ahk") ? scriptsSnapshot : processesSnapshot)
 		{
-	; msgbox % "v.path: '" v.path "'`nA_LoopField: '" A_LoopField "'`nindex: '" index "'`nrunOrKill: '" runOrKill "'`n"
 			If (RegExMatch((SubStr(A_LoopField, -2) == "ahk" ? v.path : v.exe), "Si)^.*\Q" A_LoopField "\E$"))
 			{
-	; msgbox % "x`n`nv.path: '" v.path "'`nA_LoopField: '" A_LoopField "'`nindex: '" index "'`nrunOrKill: '" runOrKill "'`n"
 				match := runOrKill
 				Break
 			}
 		}
 		If ((match != runOrKill) && runOrKill) || ((match == runOrKill) && !runOrKill)
 			stuffToRunOrKill := stuffToRunOrKill ? stuffToRunOrKill "|" ((runOrKill) ? (A_LoopField) : (v.pid)) : ((runOrKill) ? (A_LoopField) : (v.pid))
-		; ((runOrKill) ? (A_LoopField) : (v.pid))
-		; ((stuffToRunOrKill) ? (stuffToRunOrKill "|" runOrKill) : (runOrKill))
-			; stuffToRunOrKill := (stuffToRunOrKill ? stuffToRunOrKill "|" runOrKill ? A_LoopField : v.pid : (runOrKill ? A_LoopField : v.pid))
 	}
-; msgbox input: '%input%'`nrunOrKill: '%runOrKill%'`nstuffToRunOrKill: '%stuffToRunOrKill%'`nquitAssistantsNicely: '%quitAssistantsNicely%'`n
 	If stuffToRunOrKill
 		((runOrKill) ? (run(stuffToRunOrKill)) : (quitAssistantsNicely ? exit(stuffToRunOrKill) : kill(stuffToRunOrKill)))
 }
@@ -1171,106 +1102,6 @@ WM_DEVICECHANGE(wp, lp)	; Add/remove data to the 'FolderTree" TV about connected
 	}
 }
 	;}
-; 	;{ NoTrayOrphans() - a bunch of functions to remove tray icons of dead processes.
-; noTrayOrphans()
-; {
-; 	TrayInfo := trayIcons(sExeName, "ahk_class Shell_TrayWnd", "ToolbarWindow32" . getTrayBar()) "`n"
-; 		. trayIcons(sExeName, "ahk_class NotifyIconOverflowWindow", "ToolbarWindow321")
-; 	Loop, Parse, TrayInfo, `n
-; 	{
-; 		ProcessName := StrX(A_Loopfield, "| Process: ", " |")
-; 		ProcesshWnd := StrX(A_Loopfield, "| hWnd: ", " |")
-; 		ProcessuID := StrX(A_Loopfield, "| uID: ", " |")
-; 		If !ProcessName && ProcesshWnd
-; 			removeTrayIcon(ProcesshWnd, ProcessuID)
-; 	}
-; }
-; 
-; trayIcons(sExeName, traywindow, control)
-; {
-; 	DetectHiddenWindows, On
-; 	WinGet, pidTaskbar, PID, %traywindow%
-; 	hProc := DllCall("OpenProcess", "Uint", 0x38, "int", 0, "Uint", pidTaskbar)
-; 	pProc := DllCall("VirtualAllocEx", "Uint", hProc, "Uint", 0, "Uint", 32, "Uint", 0x1000, "Uint", 0x4)
-; 	SendMessage, 0x418, 0, 0, %control%, %traywindow%
-; 	Loop, %ErrorLevel%
-; 	{
-; 		SendMessage, 0x417, A_Index - 1, pProc, %control%, %traywindow%
-; 		VarSetCapacity(btn, 32, 0), VarSetCapacity(nfo, 32, 0)
-; 		DllCall("ReadProcessMemory", "Uint", hProc, "Uint", pProc, "Uint", &btn, "Uint", 32, "Uint", 0)
-; 		iBitmap := NumGet(btn, 0)
-; 		idn := NumGet(btn, 4)
-; 		Statyle := NumGet(btn, 8)
-; 		If dwData := NumGet(btn, 12)
-; 			iString := NumGet(btn, 16)
-; 		Else
-; 		{
-; 			dwData := NumGet(btn, 16, "int64")
-; 			iString := NumGet(btn, 24, "int64")
-; 		}
-; 		DllCall("ReadProcessMemory", "Uint", hProc, "Uint", dwData, "Uint", &nfo, "Uint", 32, "Uint", 0)
-; 		If NumGet(btn,12)
-; 		{
-; 			hWnd := NumGet(nfo, 0)
-; 			uID := NumGet(nfo, 4)
-; 			nMsg := NumGet(nfo, 8)
-; 			hIcon := NumGet(nfo, 20)
-; 		}
-; 		Else
-; 		{
-; 			hWnd := NumGet(nfo, 0, "int64")
-; 			uID := NumGet(nfo, 8)
-; 			nMsg := NumGet(nfo, 12)
-; 			hIcon := NumGet(nfo, 24)
-; 		}
-; 		WinGet, pid, PID, ahk_id %hWnd%
-; 		WinGet, sProcess, ProcessName, ahk_id %hWnd%
-; 		WinGetClass, sClass, ahk_id %hWnd%
-; 		If !sExeName || (sExeName == sProcess) || (sExeName == pid)
-; 		{
-; 			VarSetCapacity(sTooltip, 128)
-; 			VarSetCapacity(wTooltip, 128*2)
-; 			DllCall("ReadProcessMemory", "Uint", hProc, "Uint", iString, "Uint", &wTooltip, "Uint", 128*2, "Uint", 0)
-; 			DllCall("WideCharToMultiByte", "Uint", 0, "Uint", 0, "str", wTooltip, "int", -1, "str", sTooltip, "int", 128, "Uint", 0, "Uint", 0)
-; 			sTrayIcons .= "idx: " A_Index - 1 " | idn: " idn " | Pid: " pid " | uID: " uID " | MessageID: " nMsg " | hWnd: " hWnd " | Class: " sClass " | Process: " sProcess " | Icon: " hIcon " | Tooltip: " wTooltip "`n"
-; 		}
-; 	}
-; 	DllCall("VirtualFreeEx", "Uint", hProc, "Uint", pProc, "Uint", 0, "Uint", 0x8000)
-; 	DllCall("CloseHandle", "Uint", hProc)
-; 	Return sTrayIcons
-; }
-; 
-; getTrayBar()
-; {
-; 	ControlGet, hParent, hWnd,, TrayNotifyWnd1, ahk_class Shell_TrayWnd
-; 	ControlGet, hChild, hWnd,, ToolbarWindow321, ahk_id %hParent%
-; 	Loop
-; 	{
-; 		ControlGet, hWnd, hWnd,, ToolbarWindow32%A_Index%, ahk_class Shell_TrayWnd
-; 		If (hWnd == hChild)
-; 			idxTB := A_Index
-; 		If !hWnd || (hWnd == hChild)
-; 			Break
-; 	}
-; 	Return idxTB
-; }
-; 
-; StrX(H, BS = "", ES = "", Tr = 1, ByRef OS = 1)
-; {
-; 	Return (SP := InStr(H, BS, 0, OS)) && (L := InStr(H, ES, 0, SP + StrLen(BS))) && (OS := L + StrLen(ES)) ? SubStr(H, SP := Tr ? SP + StrLen(BS) : SP, (Tr ? L : L + StrLen(ES)) -SP) : ""
-; }
-; 
-; removeTrayIcon(hWnd, uID, nMsg = 0, hIcon = 0, nRemove = 2)
-; {
-; 	NumPut(VarSetCapacity(ni,444,0), ni)
-; 	NumPut(hWnd, ni, 4)
-; 	NumPut(uID, ni, 8)
-; 	NumPut(1|2|4, ni, 12)
-; 	NumPut(nMsg, ni, 16)
-; 	NumPut(hIcon, ni, 20)
-; 	Return DllCall("shell32\Shell_NotifyIconA", "Uint", nRemove, "Uint", &ni)
-; }
-; 	;}
 	;{ NoTrayOrphans() - a bunch of functions to remove tray icons of dead processes.
 ; Initially that function was there: http://www.autohotkey.com/board/topic/80624-notrayorphans/?p=512781
 ; Thanks to N. Nazzal a.k.a. Chef: http://www.autohotkey.com/board/user/13176-nazzal/
@@ -1313,7 +1144,7 @@ tray_icons()
 			If NumGet(btn, 12, "uInt")
 				hWnd := NumGet(nfo, 0), uID := NumGet(nfo, 4), nMsg := NumGet(nfo, 8), hIcon := NumGet(nfo,20)
 			Else
-				hWnd := NumGet(nfo, 0, "Int64"), uID := NumGet(nfo, 8, "uInt"), nMsg := NumGet(nfo, 12, "uInt")
+				hWnd := NumGet(nfo, 0, "Int64"), uID := NumGet(nfo, 8, "uInt"), nMsg := NumGet(nfo,12,"uInt")
 			WinGet, pid, PID, ahk_id %hWnd%
 			WinGet, sProcess, ProcessName, ahk_id %hWnd%
 			WinGetClass, sClass, ahk_id %hWnd%

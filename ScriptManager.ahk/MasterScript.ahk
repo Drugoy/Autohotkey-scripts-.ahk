@@ -573,7 +573,7 @@ Return
 AddNewRule:
 InputBox, ruleAdd, Add new 'Process Assistant' rule,
 (
-'Process Assistant' feature works so: you create rules for it, where you specify Trigger Condition) (or 'TC' further in this text) - which process should be assisted with Triggered Action (or 'TA' further in this text) - with which *.ahk script and then just whenever the specified process appears - the corresponding script will get executed and whenever the specified process dies - the corresponding script will get closed too.
+'Process Assistant' feature works so: you create rules for it, where you specify Trigger Condition (or 'TC' further in this text) - which process should be assisted with Triggered Action (or 'TA' further in this text) - with which *.ahk script and then just whenever the specified process appears - the corresponding script will get executed and whenever the specified process dies - the corresponding script will get closed too.
 In the "Settings" section of the script (in it's source code) you may select a way how to close the scripts. By default, it uses a gentle method which lets the scripts execute their "OnExit" subroutine.
 
 There are the following rules for 'Process Assistant' rule creation:
@@ -829,10 +829,8 @@ resumeProcess(pids)	; Resume processes of selected scripts.
 ProcessCreate_OnObjectReady(obj)
 {
 	Process := obj.TargetInstance
-	If !(Process.ExecutablePath)
-		Return
 	Loop, Parse, ignoreTheseProcesses, |
-		If (Process.ExecutablePath ~= "Si)^\Q" A_LoopField "\E$")
+		If (((Process.ExecutablePath) ? (Process.ExecutablePath) : (Process.Name)) ~= "Si)^\Q" A_LoopField "\E$")
 			Return
 	processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
 	If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
@@ -861,10 +859,8 @@ ProcessCreate_OnObjectReady(obj)
 ProcessDelete_OnObjectReady(obj)
 {
 	Process := obj.TargetInstance
-	If !(Process.ExecutablePath)
-		Return
 	Loop, Parse, ignoreTheseProcesses, |
-		If (Process.ExecutablePath ~= "Si)^\Q" A_LoopField "\E$")
+		If (((Process.ExecutablePath) ? (Process.ExecutablePath) : (Process.Name)) ~= "Si)^\Q" A_LoopField "\E$")
 			Return
 	For k, v In processesSnapshot
 		If (v.pid == Process.ProcessId)
@@ -883,7 +879,7 @@ ProcessDelete_OnObjectReady(obj)
 			If (this)
 				LV_Modify(A_Index,, A_Index)	; FIXME: This better be called after some delay since the last call of this function.
 		}
-		noTrayOrphans()
+		; noTrayOrphans()
 		checkKillTriggers(scriptPath)
 	}
 	Else
@@ -893,7 +889,7 @@ ProcessDelete_OnObjectReady(obj)
 	;{ Functions needed for 'Process Assistant' to work.
 checkRunTriggers(rule = 0)
 {	; OPTIMIZEME
-; Used by: 
+; Used by: Tab #3 'Manage process assistants' - LV 'AssistantsList'; functions: ProcessCreate_OnObjectReady().
 ; Input: none.
 ; Output: none.
 	For, k, v In procBinder
@@ -1144,7 +1140,7 @@ tray_icons()
 			If NumGet(btn, 12, "uInt")
 				hWnd := NumGet(nfo, 0), uID := NumGet(nfo, 4), nMsg := NumGet(nfo, 8), hIcon := NumGet(nfo,20)
 			Else
-				hWnd := NumGet(nfo, 0, "Int64"), uID := NumGet(nfo, 8, "uInt"), nMsg := NumGet(nfo,12,"uInt")
+				hWnd := NumGet(nfo, 0, "Int64"), uID := NumGet(nfo, 8, "uInt"), nMsg := NumGet(nfo, 12, "uInt")
 			WinGet, pid, PID, ahk_id %hWnd%
 			WinGet, sProcess, ProcessName, ahk_id %hWnd%
 			WinGetClass, sClass, ahk_id %hWnd%

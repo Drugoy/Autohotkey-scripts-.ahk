@@ -1,6 +1,6 @@
 ﻿/* StringyLauncher
-Version: 1
-Last time modified: 2014.08.08 16:23
+Version: 2
+Last time modified: 2014.08.16 21:18
 
 This script is a launcher. It requires you to first create a "rules.ini" file with the rules for this launcher.
 The syntax for this file is the following:
@@ -20,25 +20,29 @@ Contacts: idrugoy@gmail.com, drug0y@ya.ru
 https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/StringyLauncher/StringyLauncher.ahk
 */
 
+;{ Directives
 #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 #SingleInstance, Force
 ; #Warn  ; Enable warnings to assist with detecting common errors.
-SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
-SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
+SetWorkingDir, %A_ScriptDir%  ; Ensures a consistent starting directory.
 ; #Include Hotstring.ahk	; Not needed if the lib put to the "%AutoHotkey%/Lib" folder.
 #MaxThreadsPerHotkey, 20
-
-;{ Settings:
-Global extractTo := A_Temp "\executor"	; Path where to extract archives' contents to.
-cleanAfterUnpacking := 1	; 1 - remove files after the closing a launched program within from archive. 0 - leave them.
 ;}
 
+;{ Settings
+Global extractTo := A_Temp "\executor"	; Path where to extract archives' contents to.
+cleanAfterUnpacking := 1	; 1 - remove files after the closing a launched program within from archive. 0 - leave them.
+verbose := 1	; 1 - display a traytip (with basic info) when a trigger works out. 0 - do not use traytips.
+;}
+
+;{ Startup routine
 launcherArray := {}
-Loop, Read, %A_ScriptDir%\rules.ini	; This files contents consist of lines that each consists of two parts separated with a pipe. Left part is the hotstring trigger text and the right part is the full path.
+FileRead, rules, %A_ScriptDir%\rules.ini	; This file's contents consist of lines that each consists of two parts separated with a pipe. Left part is the hotstring trigger text and the right part is the full path.
+Loop, Parse, rules, `n, `r
 {
-	If (A_LoopReadLine)	; A safe check against empty lines.
+	If (A_LoopField)	; A safe check against empty lines.
 	{
-		tmp := StrSplit(A_LoopReadLine, "|")
+		tmp := StrSplit(A_LoopField, "|")
 		Loop, % tmp.MaxIndex() - 1	; Each rule consists of N keywords + 1 trigger. N = tmp.MaxIndex() - 1.
 		{
 			If (tmp[A_Index] == "archiver")	; If the leftmost  part of a line is "archiver".
@@ -52,13 +56,28 @@ Loop, Read, %A_ScriptDir%\rules.ini	; This files contents consist of lines that 
 	}
 }
 Return
+;}
 
+;{ Label and a help` hotstring
 #IfWinActive, ahk_exe explorer.exe ahk_class #32770
 
 subRoutine:
+	If verbose	; Show traytips only if the setting says so.
+		TrayTip, % A_ScriptName, % "keyword: " $ "`n" "Launching: " launcherArray[$], 5, 1
 	launch(launcherArray[$])
 Return
 
+:*:help``::
+	ControlGetFocus, activeControl, A
+	If (activeControl == "Edit1")	; Win+R window: "Execute" (or "Выполнить" in Ru OS locale).
+		WinClose
+	MsgBox,, % A_ScriptName, % rules
+Return
+
+#IfWinActive
+;}
+
+;{ Functions
 launch(input)
 {
 	ControlGetFocus, activeControl, A
@@ -96,3 +115,4 @@ waitAndRemove(runWait, fileRemoveDir)
 	RunWait, %runWait%
 	FileRemoveDir, %fileRemoveDir%, 1	; Remove the unpacked stuff after it got closed.
 }
+;}

@@ -1,6 +1,6 @@
-﻿/* SilentScreenshotter v1.1
+﻿/* SilentScreenshotter v1.2
 
-Last modified: 21:10 04.12.2013
+Last modified: 2014.08.17 20:23:16
 
 Changelog: added AHK_x64 support.
 
@@ -9,6 +9,7 @@ This script takes *.png screenshots of the specified area and uploads them to im
 Script author: Drugoy a.k.a. Drugmix
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
 https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/SilentScreenshotter/
+Thanks to: maestrith, GeekDude.
 
 Requirements:
 0. Some very basic .ahk knowledge for one-time script configuration.
@@ -27,12 +28,11 @@ Before step "4e" - you may cancel screenshotting process by hitting Escape butto
 */
 ;{ Initialization before settings
 #SingleInstance, Off
+#NoEnv
 SetWorkingDir, %A_ScriptDir%
 FileInstall, optipng.exe, optipng.exe
 CoordMode, Mouse, Screen
 SetBatchLines, -1
-If !Temp	; If there is no env.var. "Temp" - use "Tmp" instead.
-	Temp := Tmp
 ;}
 ;{ Settings
 If A_IsCompiled
@@ -45,7 +45,7 @@ If A_IsCompiled
 ; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
 imgurClientID=
 ; Specify path and screenshot's name.
-;imgPath=`%Temp`%\
+;imgPath=`%A_Temp`%\
 ; Specify locally saved image's name.
 ;imgName=`%A_Now`%
 ; Specify desired file format (most of common formats are supported).
@@ -60,7 +60,7 @@ imgurClientID=
 ;tempScreenshot=1
 		), settings.ini, settings
 	}
-	IniRead, imgPath, settings.ini, settings, imgPath, % Temp "\"
+	IniRead, imgPath, settings.ini, settings, imgPath, % A_Temp "\"
 	IniRead, imgName, settings.ini, settings, imgName, % A_Now
 	IniRead, imgExtension, settings.ini, settings, imgExtension, .png
 	IniRead, optimizePNG, settings.ini, settings, optimizePNG, 7
@@ -79,6 +79,7 @@ Else
 	clipURL := 2	; 0 = the image's URL will be opened in browser; 1 = copy to clipboard; 2 = do both.
 	tempScreenshot := 0	; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
 	imgurClientID := ""	; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
+	Global proxy := ""	; If you use proxy, specify it here in the "user:password@proxy:port" format.
 	; ListLines, Off	; Uncomment this if the script is fully working for you and you'd like to save a bit of RAM by sacrificing script's self-debugging ability.
 }
 ;}
@@ -205,7 +206,7 @@ Swap(ByRef a, ByRef b)	; A function to exchange values of two variables without 
 	a ^= b
 }
 
-upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autohotkey.com/board/user/910-maestrith/
+upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autohotkey.com/board/user/910-maestrith/ and GeekDude https://github.com/G33kDude
 {	; Upload to Imgur using it's API.
 	http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
 	img := ComObjCreate("WIA.ImageFile")
@@ -217,6 +218,13 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 	; img := ip.apply(img)
 	data := img.filedata.binarydata
 	http.Open("POST", "https://api.imgur.com/3/upload")
+	If proxy
+	{
+		proxy := StrSplit(proxy, "@")
+		auth := StrSplit(proxy[1], ":")
+		http.SetCredentials(auth[1], auth[2], 1) ; HTTPREQUEST_SETCREDENTIALS_FOR_PROXY = 1
+		http.SetProxy(2, proxy[2])
+	}
 	http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
 	http.SetRequestHeader("Content-Length", size)
 	Try

@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 3.1
-Last time modified: 11:25 05.12.2013
+Version: 3.2
+Last time modified: 2014.08.17 21:26:29
 
 Description: a script manager for *.ahk scripts.
 
@@ -18,23 +18,17 @@ http://forum.script-coding.com/viewtopic.php?id=8724
 ; 3. [If possible:] Add more info about processes to 'ManageProcesses' LV: hotkey suspend state, script's pause state.
 ;}
 ;{ Settings block.
-
 ; Path and name of the file name to store script's settings.
-settings := A_ScriptDir "\" SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4) "_settings.ini"
-
+Global settings := A_ScriptDir "\" SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4) "_settings.ini"
 ; Specify a value in milliseconds.
 memoryScanInterval := 1000
-
 ; 1 = Make script store info (into the settings file) about it's window's size and position between script's closures. 0 = do not store that info in the settings file.
 rememberPosAndSize := 1
-
 ; 1 = use "exit" to end scripts, let them execute their 'OnExit' sub-routine. 0 = use "kill" to end scripts, that just instantly stops them, so scripts won't execute their 'OnExit' subroutines.
 quitAssistantsNicely := 1
-
 ; Pipe-separated list of process to ignore by the "Process Assistant" parser.
 ignoreTheseProcesses := "C:\Windows\System32\DllHost.exe|C:\Windows\Servicing\TrustedInstaller.exe|C:\Windows\System32\audiodg.exe|C:\Windows\System32\svchost.exe|C:\Windows\System32\SearchFilterHost.exe|C:\Windows\System32\SearchProtocolHost.exe|C:\Windows\System32\wbem\unescapp.exe"
 ;}
-
 ;{ Initialization.
 #NoEnv	; Recommended for performance and compatibility with future AutoHotkey releases.
 #SingleInstance, Force
@@ -42,7 +36,7 @@ ignoreTheseProcesses := "C:\Windows\System32\DllHost.exe|C:\Windows\Servicing\Tr
 GroupAdd, ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId")
 DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
 OnExit, ExitApp
-Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global conditions, Global triggeredActions, Global toBeRun, Global rules, Global quitAssistantsNicely, Global ignoreTheseProcesses, token := 1
+Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global bookmarkedScripts := [], Global conditions, Global triggeredActions, Global toBeRun, Global rules, Global quitAssistantsNicely, Global ignoreTheseProcesses, Global bookmarks, token := 1
 
 ; Hooking ComObjects to track processes.
 oSvc := ComObjGet("winmgmts:")
@@ -68,7 +62,6 @@ ImageListID := IL_Create(4)	; Create an ImageList to hold 1 icon.
 	; IL_Add(ImageListID, "shell32.dll", 288)	; Neat 'Bookmark' icon.
 	; IL_Add(ImageListID, "shell32.dll", 298)	; 'Folders tree' icon.
 ;}
-
 ;{ GUI Creation.
 	;{ Tray menu.
 Menu, Tray, NoStandard
@@ -89,39 +82,44 @@ Gui, Add, Text, x26 y26, Choose a folder:
 Gui, Add, Button, x301 y21 gRunSelected, Run selected
 Gui, Add, Button, x+0 gBookmarkSelected, Bookmark selected
 Gui, Add, Button, x+0 gDeleteSelected, Delete selected
-
-; Folders Tree (left pane).
+			;{ Folders Tree (left pane).
 Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.
-IniRead, bookmarkedFolders, %settings%, Bookmarks, Folders	; Check if there are some previously saved bookmarked folders.
-DriveGet, fixedDrivesList, List, FIXED	; Fixed logical disks.
-DriveGet, removableDrivesList, List, REMOVABLE	; Removable logical disks.
+IniRead, bookmarkedFolders, %settings%, Bookmarks, Folders, 0	; Check if there are some previously saved bookmarked folders.
 If bookmarkedFolders
 	Loop, Parse, bookmarkedFolders, |
 		buildTree(A_LoopField, TV_Add(A_LoopField,, "Icon4"))
-Loop, Parse, fixedDrivesList	; Add all fixed disks to the TreeView.
-	buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon2"))
-If removableDrivesList
+DriveGet, fixedDrivesList, List, FIXED	; Fixed logical disks.
+If !ErrorLevel
+	Loop, Parse, fixedDrivesList	; Add all fixed disks to the TreeView.
+		buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon2"))
+DriveGet, removableDrivesList, List, REMOVABLE	; Removable logical disks.
+If !ErrorLevel
 	Loop, Parse, removableDrivesList	; Add all removable disks to the TreeView.
 		buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon3"))
 
 OnMessage(0x219, "WM_DEVICECHANGE")	; Track removable devices connecting/disconnecting to update the Folder Tree.
-
-; File list (right pane).
+			;}
+			;{ File list (right pane).
 Gui, Add, ListView, AltSubmit x+0 +Resize +Grid gFileList vFileList HwndFileListHwnd, Name|Size (bytes)|Created|Modified
-; Set the static widths for some of it's columns
-LV_ModifyCol(2, 76)
-LV_ModifyCol(3, 117)
-LV_ModifyCol(4, 117)
-
-; Bookmarks (bottom pane).
+; Set the static widths for some of it's columns.
+LV_ModifyCol(2, 76)	; Size (bytes).
+LV_ModifyCol(3, 117)	; Created.
+LV_ModifyCol(4, 117)	; Modified.
+			;}
+			;{ Bookmarks (bottom pane).
 Gui, Add, Text, vtextBS, Bookmarked scripts:
 Gui, Add, ListView, AltSubmit +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
-GoSub, BookmarksList	; Fulfill 'BookmarksList' LV.
+				;{ Fulfill 'BookmarksList' LV.
+IniRead, bookmarks, %settings%, Bookmarks, scripts, 0
+If bookmarks
+	fillBookmarksList()
+				;}
 ; Set the static widths for some of it's columns
-LV_ModifyCol(1, 20)
-LV_ModifyCol(4, 76)
-LV_ModifyCol(5, 117)
-LV_ModifyCol(6, 117)
+LV_ModifyCol(1, 20)	; #.
+LV_ModifyCol(4, 76)	; Size.
+LV_ModifyCol(5, 117)	; Created.
+LV_ModifyCol(6, 117)	; Modified.
+			;}
 		;}
 		;{ Tab #2: 'Manage processes'.
 Gui, Tab, Manage processes
@@ -142,7 +140,7 @@ Gui, Add, ListView, x0 y+0 +Resize +Grid vManageProcesses, #|PID|Name|Path
 LV_ModifyCol(1, 20)
 LV_ModifyCol(2, 40)
 
-; Fulfill processesSnapshot[] and scriptsSnapshot[] arrays with data and 'ManageProcesses' LV.
+			;{ Fulfill processesSnapshot[] and scriptsSnapshot[] arrays with data and 'ManageProcesses' LV.
 For Process In oSvc.ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on "If RegExMatch" rules).
 {	; A list of accessible parameters related to the running processes: http://msdn.microsoft.com/en-us/library/windows/desktop/aa394372%28v=vs.85%29.aspx
 	processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
@@ -152,6 +150,7 @@ For Process In oSvc.ExecQuery("Select * from Win32_Process")	; Parsing through a
 		LV_Add(, scriptsSnapshot.MaxIndex(), Process.ProcessId, scriptName, scriptPath)
 	}
 }
+			;}
 		;}
 		;{ Tab #3: 'Manage process assistants'.
 Gui, Tab, Manage process assistants
@@ -181,7 +180,6 @@ GroupAdd ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId") ; Create an a
 Return
 	;}
 ;}
-
 ;{ Labels.
 	;{ G-Labels of main GUI.
 GuiShow:
@@ -262,7 +260,7 @@ ExitApp:
 		DetectHiddenWindows, Off
 		IfWinExist, ahk_group ScriptHwnd_A
 			WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
-		If (sw_X != -32000) && (sw_Y != -32000)
+		If (sw_X != -32000) && (sw_Y != -32000) && sw_W
 		{
 			IniWrite, %sw_X%, %settings%, Script's window, posX
 			IniWrite, %sw_Y%, %settings%, Script's window, posY
@@ -329,17 +327,16 @@ Return
 		;{ FolderTree
 FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as well as trigger "FileList" ListView update.
 	Global activeControl := A_ThisLabel
-	If (A_GuiEvent == "") || (A_GuiEvent == "Normal") || (A_GuiEvent == "S") || (A_GuiEvent == "+")	; In case of script's initialization, user's left click, keyboard selection or tree expansion - (re)fill the 'FileList' listview.
+	If (A_GuiEvent == "Normal") || (A_GuiEvent == "S") || (A_GuiEvent == "+")	; In case of script's initialization, user's left click, keyboard selection or tree expansion - (re)fill the 'FileList' listview.
 	{
-		If (A_GuiEvent == "Normal")	; If user left clicked anything in the TreeView.
+		If (A_GuiEvent == "Normal") && (A_EventInfo != 0)	; If user left clicked an empty space at right from a folder's name in the TreeView.
 		{
-			If (A_EventInfo != 0)	; If user clicked an empty space at right from a folder's name.
-				TV_Modify(A_EventInfo, "Select")	; Forcefully select that line.
-			Else If (A_EventInfo == 0)	; If user clicked an empty space (not the one at right from a folder's name).
-				TV_Modify(0)	; Remove selection and thus make 'FileList' ListView show the root folder's contents.
+			TV_Modify(A_EventInfo, "Select")	; Forcefully select that line.
+			Return	; We should react only to A_GuiEvents with "S" and "+" values.
 		}
+		;{ Determine the full path of the selected folder:
 		Gui, TreeView, FolderTree
-		TV_GetText(selectedItemPath, A_EventInfo)	; Determine the full path of the selected folder:
+		TV_GetText(selectedItemPath, A_EventInfo)
 		Loop	; Build the full path to the selected folder.
 		{
 			parentID :=	(A_Index == 1) ? TV_GetParent(A_EventInfo) : TV_GetParent(parentID)
@@ -348,31 +345,34 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 			TV_GetText(parentText, parentID)
 			selectedItemPath = %parentText%\%selectedItemPath%
 		}
-		If (A_GuiEvent == "") && !(token)
-			Return
+		;}
+		;{ Rebuild TreeView, if it was expanded.
 		If (A_GuiEvent == "+")	; If a tree got expanded.
 		{
 			Loop, %selectedItemPath%\*.*, 2	; Parse all the children of the selected item.
 			{
 				thisChildID := TV_GetChild(A_EventInfo)	; Get first child's ID.
-				If thisChildID
+				If thisChildID	; && A_EventInfo
 					TV_Delete(thisChildID)
 			}
 			buildTree(selectedItemPath, A_EventInfo)	; Add children and grandchildren to the selected item.
 		}
-		Gui, ListView, FileList	; Put the files into the ListView:
-		LV_Delete()	; Delete old data.
+		;}
+		;{ Put the files into the ListView.
+		Gui, ListView, FileList
 		GuiControl, -Redraw, FileList	; Improve performance by disabling redrawing during load.
+		LV_Delete()	; Delete old data.
 		token := memorizePath := FileCount := TotalSize := 0	; Init prior to loop below.
 		Loop, %selectedItemPath%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
 		{
-			FormatTime, created, %A_LoopFileTimeCreated%, dd.MM.yyyy (HH:mm:ss)
-			FormatTime, modified, %A_LoopFileTimeModified%, dd.MM.yyyy (HH:mm:ss)
+			FormatTime, created, %A_LoopFileTimeCreated%, yyyy.MM.dd   HH:mm:ss
+			FormatTime, modified, %A_LoopFileTimeModified%, yyyy.MM.dd   HH:mm:ss
 			LV_Add("", A_LoopFileName, Round(A_LoopFileSize / 1024, 1) . " KB", created, modified)
 			FileCount++
 			TotalSize += A_LoopFileSize
 		}
 		GuiControl, +Redraw, FileList
+		;}
 		GoSub, StatusbarUpdate
 	}
 Return
@@ -385,62 +385,8 @@ Return
 		;}
 		;{ BookmarksList
 BookmarksList:
-	If (A_GuiEvent == "Normal") || (A_GuiEvent == "*") || (bookmarksModified == 1)
+	If (A_GuiEvent == "Normal")
 		Global activeControl := A_ThisLabel
-	If !((A_GuiEvent == "") || (bookmarksModified == 1)) || !FileExist(settings) || (A_GuiEvent == "C")	; Filter events out: (re)fill the listview only if the script just started, or if the user has just added/removed (a) bookmark(s). That won't fill anything if there are no bookmarks at all.
-		Return
-	If bookmarksModified	; That variable is used as token for adding and deleting bookmarks.
-		GoSub, BookmarksModified	; First update the bookmarks file, and only then fill the listview.
-	A_IndexMy := nBookmarks := bookmarks := token := ""
-	Gui, ListView, BookmarksList
-	LV_Delete()	; Clear all rows.
-	IniRead, bookmarks, %settings%, Bookmarks, list
-	If bookmarks
-	{
-		StringSplit, bookmarks, bookmarks, |
-		While (A_IndexMy < bookmarks0)
-		{
-			A_IndexMy++
-			thisBookmark := bookmarks%A_IndexMy%
-			IfExist, %thisBookmark%	; Define whether the previously bookmared file exists.
-			{	; If the file exists - display it in the list.
-				SplitPath, thisBookmark, name	; Get file's name from it's path.
-				FileGetSize, size, %thisBookmark%	; Get file's size.
-				FileGetTime, created, %thisBookmark%, C	; Get file's creation date.
-				FormatTime, created, %created%, dd.MM.yyyy (HH:mm:ss)	; Transofrm creation date into a readable format.
-				FileGetTime, modified, %thisBookmark%	; Get file's last modification date.
-				FormatTime, modified, %modified%, dd.MM.yyyy (HH:mm:ss)	; Transofrm creation date into a readable format.
-				LV_Insert(A_IndexMy, "", A_IndexMy, name, thisBookmark, Round(size / 1024, 1) . " KB", created, modified)	; Add the listitem.
-			}
-			Else	; If the file doesn't exist - remove that bookmark.
-			{
-				bookmarksModified := 1
-				bookmarksToDelete ((!bookmarksToDelete) ? (bookmarksToDelete := A_IndexMy) : (bookmarksToDelete .= "," A_IndexMy))
-			}
-		}
-	}
-	If bookmarksModified
-		GoSub, BookmarksModified
-Return
-
-BookmarksModified:
-	If bookmarksToDelete
-	{
-		Loop, Parse, bookmarks, |
-			If (!RegExMatch(bookmarksToDelete, "\b" A_Index "\b"))
-				nBookmarks .= (StrLen(nBookmarks) ? "|" : "") A_LoopField
-		bookmarks := nBookmarks
-	}
-	Loop ; Remove double pipes.
-	{
-		IfInString, bookmarks, ||
-			StringReplace, bookmarks, bookmarks, ||, |, All
-		Else
-			Break
-	}
-	IniWrite, %bookmarks%, %settings%, Bookmarks, list
-	bookmarksToDelete := bookmarksModified := ""
-	GoSub, BookmarksList
 Return
 		;}
 	;}
@@ -471,18 +417,14 @@ BookmarkSelected:	; G-Label of "Bookmark selected" button.
 		selected := getScriptNames()
 		If !selected
 			Return
-		IniRead, bookmarks, %settings%, Bookmarks, list
 		selected := selectedItemPath "\" selected
 		StringReplace, selected, selected, |, |%selectedItemPath%\, All
 		StringReplace, selected, selected, \\, \, All
-		bookmarks := ((bookmarks) ? (bookmarks "|" selected) : (selected))
-		IniWrite, %bookmarks%, %settings%, Bookmarks, list
-		bookmarksModified := 1
-		GoSub, BookmarksList
+		fillBookmarksList(selected)
 	}
 	Else If (activeControl == "FolderTree")	; Bookmark a folder.
 	{
-		bookmarkedFolders .= (bookmarkedFolders) ? ("|" selectedItemPath) : (selectedItemPath)
+		bookmarkedFolders ? bookmarkedFolders .= "|" selectedItemPath : bookmarkedFolders := selectedItemPath
 		IniWrite, %bookmarkedFolders% , %settings%, Bookmarks, folders
 		buildTree(selectedItemPath, TV_Add(selectedItemPath,, "Vis Icon4"))
 	}
@@ -492,11 +434,7 @@ DeleteSelected:	; G-Label of "Delete selected" button.
 	If (activeControl == "BookmarksList")	; In case the last active GUI element was "BookmarksList" ListView.
 	{
 		Gui, ListView, %activeControl%
-		bookmarksToDelete := getRowNs()
-		If !bookmarksToDelete
-			Return
-		bookmarksModified := 1
-		GoSub, %activeControl%
+		LV_GetCount("Selected") ? fillBookmarksList(,getRowNs()) : Return	; Do nothing, if nothing was selected, otherwise call fillBookmarksList().
 	}
 	Else If (activeControl == "FileList")	; In case the last active GUI element was "FileList" ListView.
 	{
@@ -513,15 +451,14 @@ DeleteSelected:	; G-Label of "Delete selected" button.
 				FileDelete, %A_LoopField%
 			selected := getRowNs()
 			Loop, Parse, selected, |
-				LV_Delete(A_LoopField + 1 - A_Index)	; That trick lets us delete the rows considering their position change after the 1st delete. Another way to do this is to sort rows' numbers in backwards order, but that would require exte computing efforts.
+				LV_Delete(A_LoopField + 1 - A_Index)	; That trick lets us delete the rows considering their position change after the 1st delete. Another way to do this is to sort rows' numbers in backwards order, but that would require extra calculations.
 		}
 	}
-	Else If (activeControl == "FolderTree")	; In case the last active GUI element was "FileList" TreeView.
-	{
+	Else If (activeControl == "FolderTree")	; In case the last active GUI element was "FolderTree" TreeView.
+	{	; Then we should delete a bookmarked folder.
 		If bookmarkedFolders Contains %selectedItemPath%
 		{
-			StringReplace, bookmarkedFolders, bookmarkedFolders, %selectedItemPath%
-			StringReplace, bookmarkedFolders, bookmarkedFolders, ||,, 1
+			bookmarkedFolders := subtract(bookmarkedFolders, selectedItemPath)
 			IniWrite, %bookmarkedFolders%, %settings%, Bookmarks, folders
 			TV_Delete(TV_GetSelection())
 		}
@@ -573,7 +510,7 @@ Return
 AddNewRule:
 InputBox, ruleAdd, Add new 'Process Assistant' rule,
 (
-'Process Assistant' feature works so: you create rules for it, where you specify Trigger Condition (or 'TC' further in this text) - which process should be assisted with Triggered Action (or 'TA' further in this text) - with which *.ahk script and then just whenever the specified process appears - the corresponding script will get executed and whenever the specified process dies - the corresponding script will get closed too.
+'Process Assistant' feature works so: you create rules for it, where you specify Trigger Condition) (or 'TC' further in this text) - which process should be assisted with Triggered Action (or 'TA' further in this text) - with which *.ahk script and then just whenever the specified process appears - the corresponding script will get executed and whenever the specified process dies - the corresponding script will get closed too.
 In the "Settings" section of the script (in it's source code) you may select a way how to close the scripts. By default, it uses a gentle method which lets the scripts execute their "OnExit" subroutine.
 
 There are the following rules for 'Process Assistant' rule creation:
@@ -630,7 +567,6 @@ DeleteRules:
 Return
 	;}
 ;}
-
 ;{ HOTKEYS
 #IfWinActive ahk_group ScriptHwnd_A
 ~Delete::
@@ -651,7 +587,6 @@ Return
 Return
 #IfWinActive
 ;}
-
 ;{ FUNCTIONS
 	;{ Functions to gather data.
 getRowNs()	; Get selected rows' numbers.
@@ -706,6 +641,29 @@ getScriptPaths()	; Get scripts' paths of the selected rows.
 	Loop, Parse, rowNs, |
 		 (A_Index == 1) ? (scriptsPaths := scriptsSnapshot[A_LoopField, "path"]) : (scriptsPaths .= "|" scriptsSnapshot[A_LoopField, "path"])
 	Return scriptsPaths
+}
+	;}
+	;{ Function to parse data.
+subtract(minuend, subtrahends, separator1 := "|", separator2 := "|")
+{
+; Used by: Tab #1 button: 'Delete selected'.
+; Input: 'minuend' - a string, that represents a pseudo-array of items separated with 'separator1'; 'subtrahends' - a single value or multiple values (separated with the 'separator2') to be subtracted from 'minuend'; 'separator1' - the char used to separate values in the 'minuend' pseudo-array; 'separator1' - the char used to separate values in the 'subtrahend' pseudo-array.
+; Output: difference - the result of substraction: minuend - subtrahend.
+	minuendArray := [], subtrahendsArray := [], difference := ""
+	Loop, Parse, minuend, %separator1%
+		minuendArray.Insert(A_LoopField)
+	Loop, Parse, subtrahends, %separator2%
+		subtrahendsArray.Insert(A_LoopField)
+	For a, b in minuendArray
+	{
+		token := 0
+		For k, v in subtrahendsArray
+			If (b == v)
+				token := 1, subtrahendsArray.Remove(k), Break
+		If !token
+			difference ? difference .= "|" b : difference := b
+	}
+	Return difference
 }
 	;}
 	;{ Functions of process control.
@@ -829,8 +787,10 @@ resumeProcess(pids)	; Resume processes of selected scripts.
 ProcessCreate_OnObjectReady(obj)
 {
 	Process := obj.TargetInstance
+	If !(Process.ExecutablePath)
+		Return
 	Loop, Parse, ignoreTheseProcesses, |
-		If (((Process.ExecutablePath) ? (Process.ExecutablePath) : (Process.Name)) ~= "Si)^\Q" A_LoopField "\E$")
+		If (Process.ExecutablePath ~= "Si)^\Q" A_LoopField "\E$")
 			Return
 	processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
 	If (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
@@ -859,8 +819,10 @@ ProcessCreate_OnObjectReady(obj)
 ProcessDelete_OnObjectReady(obj)
 {
 	Process := obj.TargetInstance
+	If !(Process.ExecutablePath)
+		Return
 	Loop, Parse, ignoreTheseProcesses, |
-		If (((Process.ExecutablePath) ? (Process.ExecutablePath) : (Process.Name)) ~= "Si)^\Q" A_LoopField "\E$")
+		If (Process.ExecutablePath ~= "Si)^\Q" A_LoopField "\E$")
 			Return
 	For k, v In processesSnapshot
 		If (v.pid == Process.ProcessId)
@@ -1037,11 +999,11 @@ setRunState(input, runOrKill)	; Checks the running state of the input and runs o
 		((runOrKill) ? (run(stuffToRunOrKill)) : (quitAssistantsNicely ? exit(stuffToRunOrKill) : kill(stuffToRunOrKill)))
 }
 	;}
-	;{ Fulfill 'TreeView' GUI.
+	;{ Fulfill 'FolderTree' TV.
 buildTree(folder, parentItemID = 0)
 {
 ; Used by: script's initialization; Tab #1 'Manage files' - TVs: 'FolderTree'.
-; Input: folder's path and parentItemID (ID of an item in a TreeView)
+; Input: folder's path and parentItemID (ID of an item in a TreeView).
 ; Output: none.
 	If folder
 		Loop, %folder%\*, 2   ; Inception: retrieve all of Folder's sub-folders.
@@ -1049,12 +1011,12 @@ buildTree(folder, parentItemID = 0)
 			parent := TV_Add(A_LoopFileName, parentItemID, "Icon1")	; Add all of those sub-folders to the TreeView.
 			Loop, %A_LoopFileFullPath%\*, 2   ; We need to go deeper (c).
 			{
-				TV_Add(A_LoopFileName, parent, "Icon2")
-				Break	; No need to add more than 1 item: that's needed just to make the parent item expandable (wnyways it's contents will get re-constructed when that item gets expanded).
+				TV_Add("Please, close and re-open the parental folder", parent, "Icon2")
+				Break	; No need to add more than 1 item: that's needed just to make the parent item expandable (anyways it's contents will get re-constructed when that item gets expanded).
 			}
 		}
 }
-
+		;{ Track removable drives appearing/disappearing and rebuild TreeView when needed.
 WM_DEVICECHANGE(wp, lp)	; Add/remove data to the 'FolderTree" TV about connected/disconnected removable disks.
 {
 ; Used by: script's initialization. For some reason it's called twice every time a disk got (dis)connected.
@@ -1095,6 +1057,53 @@ WM_DEVICECHANGE(wp, lp)	; Add/remove data to the 'FolderTree" TV about connected
 			If driveID
 				TV_Delete(driveID)
 		}
+	}
+}
+		;}
+	;}
+	;{ Fulfill 'BookmarksList' LV.
+fillBookmarksList(add = 0, remove = 0)
+{
+; Used by: script's initialization; Tab #1 'Manage files' - buttons: 'Bookmark selected', 'Delete selected'.
+; Input: paths of scripts to be bookmarked and paths of scripts to be removed from bookmarks.
+; Output: none.
+	Gui, ListView, BookmarksList
+	If !(remove)
+	{
+		LV_Delete()	; Clear all rows.
+		If add	; If there are scripts to be bookmarked - they should be added to the ini.
+		{
+			bookmarks ? bookmarks .= "|" add : bookmarks := add
+			IniWrite, %bookmarks%, %settings%, Bookmarks, scripts
+		}
+		Loop, Parse, bookmarks, |, `n`r
+		{
+			IfExist, % A_LoopField	; Define whether the previously bookmared file exists.
+			{	; If the file exists - display it in the list.
+				bookmarkedScripts.Insert(A_LoopField)
+				SplitPath, A_LoopField, name	; Get file's name from it's path.
+				FileGetSize, size, %A_LoopField%	; Get file's size.
+				FileGetTime, created, %A_LoopField%, C	; Get file's creation date.
+				FormatTime, created, %created%, yyyy.MM.dd   HH:mm:ss	; Transofrm creation date into a readable format.
+				FileGetTime, modified, %A_LoopField%	; Get file's last modification date.
+				FormatTime, modified, %modified%, yyyy.MM.dd   HH:mm:ss	; Transofrm creation date into a readable format.
+				LV_Add("", A_Index, name, A_LoopField, Round(size / 1024, 1) . " KB", created, modified)	; Add the listitem.
+			}
+			; Else	; The file doesn't exist. Delete it?
+		}
+	}
+	Else
+	{
+		Loop, Parse, remove, |
+			For k in bookmarkedScripts
+				If (k == A_LoopField)
+					bookmarkedScripts.Remove(k)
+		bookmarks := ""
+		For k, v in bookmarkedScripts
+			bookmarks .= v "|"
+		StringTrimRight, bookmarks, bookmarks, 1
+		IniWrite, %bookmarks%, %settings%, Bookmarks, scripts
+		fillBookmarksList()
 	}
 }
 	;}

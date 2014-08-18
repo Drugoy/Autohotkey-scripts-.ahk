@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 3.2
-Last time modified: 2014.08.17 21:26:29
+Version: 3.3
+Last time modified: 2014.08.18 13:52:24
 
 Description: a script manager for *.ahk scripts.
 
@@ -36,7 +36,7 @@ ignoreTheseProcesses := "C:\Windows\System32\DllHost.exe|C:\Windows\Servicing\Tr
 GroupAdd, ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId")
 DetectHiddenWindows, On	; Needed for "pause" and "suspend" commands.
 OnExit, ExitApp
-Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global bookmarkedScripts := [], Global conditions, Global triggeredActions, Global toBeRun, Global rules, Global quitAssistantsNicely, Global ignoreTheseProcesses, Global bookmarks, token := 1
+Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global bookmarkedScripts := [], Global conditions, Global triggeredActions, Global toBeRun, Global rules, Global quitAssistantsNicely, Global ignoreTheseProcesses, Global bookmarks
 
 ; Hooking ComObjects to track processes.
 oSvc := ComObjGet("winmgmts:")
@@ -85,15 +85,15 @@ Gui, Add, Button, x+0 gDeleteSelected, Delete selected
 			;{ Folders Tree (left pane).
 Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%ImageListID%	; Add TreeView for navigation in the FileSystem.
 IniRead, bookmarkedFolders, %settings%, Bookmarks, Folders, 0	; Check if there are some previously saved bookmarked folders.
-If bookmarkedFolders
+If (bookmarkedFolders)
 	Loop, Parse, bookmarkedFolders, |
 		buildTree(A_LoopField, TV_Add(A_LoopField,, "Icon4"))
 DriveGet, fixedDrivesList, List, FIXED	; Fixed logical disks.
-If !ErrorLevel
+If !(ErrorLevel)
 	Loop, Parse, fixedDrivesList	; Add all fixed disks to the TreeView.
 		buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon2"))
 DriveGet, removableDrivesList, List, REMOVABLE	; Removable logical disks.
-If !ErrorLevel
+If !(ErrorLevel)
 	Loop, Parse, removableDrivesList	; Add all removable disks to the TreeView.
 		buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon3"))
 
@@ -111,7 +111,7 @@ Gui, Add, Text, vtextBS, Bookmarked scripts:
 Gui, Add, ListView, AltSubmit +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
 				;{ Fulfill 'BookmarksList' LV.
 IniRead, bookmarks, %settings%, Bookmarks, scripts, 0
-If bookmarks
+If (bookmarks)
 	fillBookmarksList()
 				;}
 ; Set the static widths for some of it's columns
@@ -165,7 +165,7 @@ GoSub, AssistantsList	; Fulfill the list with the data.
 	;{ Finish GUI creation.
 Gui, Submit, NoHide
 SysGet, UA, MonitorWorkArea	; Getting Usable Area info.
-If rememberPosAndSize
+If (rememberPosAndSize)
 {
 	IniRead, sw_W, %settings%, Script's window, sizeW, 800
 	IniRead, sw_H, %settings%, Script's window, sizeH, 600
@@ -234,7 +234,7 @@ GuiSize:	; Expand or shrink the ListView in response to the user's resizing of t
 Return
 
 GuiClose:
-	If rememberPosAndSize
+	If (rememberPosAndSize)
 		WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
 	Gui, Hide
 Return
@@ -255,12 +255,12 @@ TabSwitch:
 Return
 
 ExitApp:
-	If rememberPosAndSize
+	If (rememberPosAndSize)
 	{
 		DetectHiddenWindows, Off
 		IfWinExist, ahk_group ScriptHwnd_A
 			WinGetPos, sw_X, sw_Y, sw_W, sw_H, Manage Scripts ahk_class AutoHotkeyGUI
-		If (sw_X != -32000) && (sw_Y != -32000) && sw_W
+		If (sw_X != -32000) && (sw_Y != -32000) && (sw_W)
 		{
 			IniWrite, %sw_X%, %settings%, Script's window, posX
 			IniWrite, %sw_Y%, %settings%, Script's window, posY
@@ -283,7 +283,7 @@ AssistantsList:
 	Gui, ListView, AssistantsList
 	rowShift := ruleIndex := tcRows := taRows := 0
 	IniRead, rules, %settings%, Assistants
-	If !rules	; There is nothing to do if there are no rules yet.
+	If !(rules)	; There is nothing to do if there are no rules yet.
 		Return
 	rules := Trim(rules, "`n")
 	StringSplit, rule, rules, `n
@@ -340,7 +340,7 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 		Loop	; Build the full path to the selected folder.
 		{
 			parentID :=	(A_Index == 1) ? TV_GetParent(A_EventInfo) : TV_GetParent(parentID)
-			If !parentID	; No more ancestors.
+			If !(parentID)	; No more ancestors.
 				Break
 			TV_GetText(parentText, parentID)
 			selectedItemPath = %parentText%\%selectedItemPath%
@@ -352,7 +352,7 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 			Loop, %selectedItemPath%\*.*, 2	; Parse all the children of the selected item.
 			{
 				thisChildID := TV_GetChild(A_EventInfo)	; Get first child's ID.
-				If thisChildID	; && A_EventInfo
+				If (thisChildID)	; && A_EventInfo
 					TV_Delete(thisChildID)
 			}
 			buildTree(selectedItemPath, A_EventInfo)	; Add children and grandchildren to the selected item.
@@ -362,7 +362,7 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 		Gui, ListView, FileList
 		GuiControl, -Redraw, FileList	; Improve performance by disabling redrawing during load.
 		LV_Delete()	; Delete old data.
-		token := memorizePath := FileCount := TotalSize := 0	; Init prior to loop below.
+		FileCount := TotalSize := 0	; Init prior to loop below.
 		Loop, %selectedItemPath%\*.ahk	; This omits folders and shows only .ahk-files in the ListView.
 		{
 			FormatTime, created, %A_LoopFileTimeCreated%, yyyy.MM.dd   HH:mm:ss
@@ -396,7 +396,7 @@ RunSelected:	; G-Label of "Run selected" button.
 	{
 		Gui, ListView, FileList
 		selected := selectedItemPath "\" getScriptNames()
-		If !selected
+		If !(selected)
 			Return
 		StringReplace, selected, selected, |, |%selectedItemPath%\, All
 	}
@@ -404,7 +404,7 @@ RunSelected:	; G-Label of "Run selected" button.
 	{
 		Gui, ListView, BookmarksList
 		selected := getScriptNames()
-		If !selected
+		If !(selected)
 			Return
 	}
 	run(selected)
@@ -415,7 +415,7 @@ BookmarkSelected:	; G-Label of "Bookmark selected" button.
 	{
 		Gui, ListView, FileList
 		selected := getScriptNames()
-		If !selected
+		If !(selected)
 			Return
 		selected := selectedItemPath "\" selected
 		StringReplace, selected, selected, |, |%selectedItemPath%\, All
@@ -440,7 +440,7 @@ DeleteSelected:	; G-Label of "Delete selected" button.
 	{
 		Gui, ListView, %activeControl%
 		selected := getScriptNames()
-		If !selected
+		If !(selected)
 			Return
 		Msgbox, 1, Confirmation required, Are you sure want to delete the selected file(s)?`n%selected%
 		IfMsgBox, OK
@@ -660,7 +660,7 @@ subtract(minuend, subtrahends, separator1 := "|", separator2 := "|")
 		For k, v in subtrahendsArray
 			If (b == v)
 				token := 1, subtrahendsArray.Remove(k), Break
-		If !token
+		If !(token)
 			difference ? difference .= "|" b : difference := b
 	}
 	Return difference
@@ -672,7 +672,7 @@ run(paths)	; Runs selected scripts.
 ; Used by: Tab #1 'Manage files' - LVs: 'FileList', 'BookmarksList'; buttons: 'Run selected', 'Kill and re-execute'; functions: setRunState().
 ; Input: path or paths (separated by pipes, if many).
 ; Output: none.
-	If !paths
+	If !(paths)
 		Return
 	toBeRun := paths
 	Loop, Parse, paths, |
@@ -689,7 +689,7 @@ exit(pids)	; Closes processes nicely (uses PostMessage).
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Exit'.
 ; Input: PID(s) (separated by pipes, if many).
 ; Output: none.
-	If !pids
+	If !(pids)
 		Return
 	Loop, Parse, pids, |
 		PostMessage, 0x111, 65307,,, ahk_pid %A_LoopField%
@@ -700,7 +700,7 @@ kill(pids)	; Kills processes unnicely (uses "Process, Close").
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill', 'Kill and re-execute'; functions: setRunState().
 ; Input: PID(s) (separated by pipes, if many).
 ; Output: none.
-	If !pids
+	If !(pids)
 		Return
 	Loop, Parse, pids, |
 		Process, Close, %A_LoopField%
@@ -711,7 +711,7 @@ killNreexecute(pids)	; Kills processes unnicely (uses "Process, Close") and then
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill and re-execute'.
 ; Input: PID(s) (separated by pipes, if many).
 ; Output: none.
-	If !pids
+	If !(pids)
 		Return
 	scriptsPaths := getScriptPaths()
 	kill(pids)
@@ -723,7 +723,7 @@ reload(pids)	; Reload (uses PostMessage) selected scripts.
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Reload'.
 ; Input: PID(s) (separated by pipes, if many).
 ; Output: none.
-	If !pids
+	If !(pids)
 		Return
 	Loop, Parse, pids, |
 		PostMessage, 0x111, 65303,,, ahk_pid %A_LoopField%
@@ -734,7 +734,7 @@ pause(pids)	; Pause selected scripts.
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: '(Un) pause'.
 ; Input: PID(s) (separated by pipes, if many).
 ; Output: none.
-	If !pids
+	If !(pids)
 		Return
 	Loop, Parse, pids, |
 		PostMessage, 0x111, 65403,,, ahk_pid %A_LoopField%
@@ -745,7 +745,7 @@ suspendHotkeys(pids)	; Suspend hotkeys of selected scripts.
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill and re-execute'.
 ; Input: PID(s) (separated by pipes, if many).
 ; Output: none.
-	If !pids
+	If !(pids)
 		Return
 	Loop, Parse, pids, |
 		PostMessage, 0x111, 65404,,, ahk_pid %A_LoopField%
@@ -756,7 +756,7 @@ suspendProcess(pids)	; Suspend processes of selected scripts.
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Suspend process''.
 ; Input: PID(s) (separated by pipes, if many).
 ; Output: none.
-	If !pids
+	If !(pids)
 		Return
 	Loop, Parse, pids, |
 	{
@@ -772,7 +772,7 @@ resumeProcess(pids)	; Resume processes of selected scripts.
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Resume process'.
 ; Input: PID(s) (separated by pipes, if many).
 ; Output: none.
-	If !pids
+	If !(pids)
 		Return
 	Loop, Parse, pids, |
 	{
@@ -892,19 +892,19 @@ checkRunTriggers(rule = 0)
 		If (v.side != procBinder[k + 1, "side"]) && (v.type) && !(stopperIndex)
 			noTriggerFound := 1
 	}
-	If stuffToKill
+	If (stuffToKill)
 	{
 		Sort, stuffToKill, U D|	; Removing duplicates, if there are any of them.
 		setRunState(stuffToKill, 0)	; Check if everything from 'stuffToRun' is already running, and run if something is not yet running.
 	}
-	If stuffToRun
+	If (stuffToRun)
 	{
 		Sort, stuffToRun, U D|	; Removing duplicates, if there are any of them.
-		If toBeRun
+		If (toBeRun)
 			Loop, Parse, stuffToRun, |
 				IfNotInString, toBeRun, %A_LoopField%
 					((runThem) ? (runThem .= "|" A_LoopField) : (runThem := A_LoopField))
-		If runThem
+		If (runThem)
 			setRunState(runThem, 1)	; Check if everything from 'stuffToRun' is already running, and run if something is not yet running.
 		Else
 			setRunState(stuffToRun, 1)
@@ -995,7 +995,7 @@ setRunState(input, runOrKill)	; Checks the running state of the input and runs o
 		If ((match != runOrKill) && runOrKill) || ((match == runOrKill) && !runOrKill)
 			stuffToRunOrKill := stuffToRunOrKill ? stuffToRunOrKill "|" ((runOrKill) ? (A_LoopField) : (v.pid)) : ((runOrKill) ? (A_LoopField) : (v.pid))
 	}
-	If stuffToRunOrKill
+	If (stuffToRunOrKill)
 		((runOrKill) ? (run(stuffToRunOrKill)) : (quitAssistantsNicely ? exit(stuffToRunOrKill) : kill(stuffToRunOrKill)))
 }
 	;}
@@ -1005,7 +1005,7 @@ buildTree(folder, parentItemID = 0)
 ; Used by: script's initialization; Tab #1 'Manage files' - TVs: 'FolderTree'.
 ; Input: folder's path and parentItemID (ID of an item in a TreeView).
 ; Output: none.
-	If folder
+	If (folder)
 		Loop, %folder%\*, 2   ; Inception: retrieve all of Folder's sub-folders.
 		{
 			parent := TV_Add(A_LoopFileName, parentItemID, "Icon1")	; Add all of those sub-folders to the TreeView.
@@ -1022,39 +1022,24 @@ WM_DEVICECHANGE(wp, lp)	; Add/remove data to the 'FolderTree" TV about connected
 ; Used by: script's initialization. For some reason it's called twice every time a disk got (dis)connected.
 ; Input: unknown.
 ; Output: none.
-	If ((wp == 0x8000 || wp == 0x8004) && NumGet(lp + 4, "uInt") == 2)
+	If ((wp == 0x8000 || wp == 0x8004) && (NumGet(lp + 4, "uInt") == 2))
 	{
 		dbcv_unitmask := NumGet(lp + 12, "uInt")
 		Loop, 26	; The number of letters in latin alphabet.
 		{
 			driveLetter := Chr(Asc("A") + A_Index - 1)
 		} Until (dbcv_unitmask >> (A_Index - 1))&1
-		If (wp == 0x8000)	; A new drive got connected.
+		If (wp == 0x8000) || (wp == 0x8004)	; A new drive got connected.
 		{
 			Loop
 			{
-				If (A_Index == 1)
-					driveID := TV_GetChild(0)
-				Else
-					driveID := TV_GetNext(driveID)
+				driveID := TV_GetNext(driveID)
 				TV_GetText(thisDrive, driveID)
 				StringLeft, thisDrive, thisDrive, 1
 			} Until (driveLetter == thisDrive) || !(driveID)
-			If (driveLetter != thisDrive)
+			If (wp == 0x8000) && (driveLetter != thisDrive)
 				buildTree(driveLetter ":", TV_Add(driveLetter ":",, "Icon3"))
-		}
-		Else If (wp == 0x8004)	; A drive got removed.
-		{
-			Loop
-			{
-				If (A_Index == 1)
-					driveID := TV_GetChild(0)
-				Else
-					driveID := TV_GetNext(driveID)
-				TV_GetText(thisDrive, driveID)
-				StringLeft, thisDrive, thisDrive, 1
-			} Until (driveLetter == thisDrive) || !(driveID)
-			If driveID
+			Else If (wp == 0x8004) && (driveID)
 				TV_Delete(driveID)
 		}
 	}
@@ -1071,7 +1056,7 @@ fillBookmarksList(add = 0, remove = 0)
 	If !(remove)
 	{
 		LV_Delete()	; Clear all rows.
-		If add	; If there are scripts to be bookmarked - they should be added to the ini.
+		If (add)	; If there are scripts to be bookmarked - they should be added to the ini.
 		{
 			bookmarks ? bookmarks .= "|" add : bookmarks := add
 			IniWrite, %bookmarks%, %settings%, Bookmarks, scripts

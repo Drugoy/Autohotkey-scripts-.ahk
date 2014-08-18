@@ -1,8 +1,6 @@
-﻿/* SilentScreenshotter v1.2
+﻿/* SilentScreenshotter v1.3
 
-Last modified: 2014.08.17 20:23:16
-
-Changelog: added AHK_x64 support.
+Last modified: 2014.08.18 11:22:51
 
 This script takes *.png screenshots of the specified area and uploads them to imgur.com and depending on user's setting - it either stores the URL of the uploaded image into the clipboard or opens it instantly. It also supports image files to be drag'n'dropped onto the script to upload them.
 
@@ -79,7 +77,12 @@ Else
 	clipURL := 2	; 0 = the image's URL will be opened in browser; 1 = copy to clipboard; 2 = do both.
 	tempScreenshot := 0	; 0 = the local screenshot won't get deleted after it got uploaded to the server, 1 = it will be removed as soon as the file got uploaded to the server.
 	imgurClientID := ""	; Paste here your imgur's client ID that can be obtained for free (registration is required, but you may use fake email) here: https://api.imgur.com/oauth2/addclient
-	Global proxy := ""	; If you use proxy, specify it here in the "user:password@proxy:port" format.
+	Global proxy := 0	; 0 - you are not using a proxy; 1 - you use a proxy.
+	;{
+		Global proxyUser := ""	; Specify username here (if your proxy requies authentication).
+		Global proxyPass := ""	; Specify password here (if your proxy requies authentication).
+		Global proxyAddr := ""	; Specify proxy's address here in "proxyaddress:port" format.
+	;}
 	; ListLines, Off	; Uncomment this if the script is fully working for you and you'd like to save a bit of RAM by sacrificing script's self-debugging ability.
 }
 ;}
@@ -220,10 +223,8 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 	http.Open("POST", "https://api.imgur.com/3/upload")
 	If proxy
 	{
-		proxy := StrSplit(proxy, "@")
-		auth := StrSplit(proxy[1], ":")
-		http.SetCredentials(auth[1], auth[2], 1) ; HTTPREQUEST_SETCREDENTIALS_FOR_PROXY = 1
-		http.SetProxy(2, proxy[2])
+		http.SetCredentials(proxyUser, proxyPass, 1) ; HTTPREQUEST_SETCREDENTIALS_FOR_PROXY = 1
+		http.SetProxy(2, proxyAddr)
 	}
 	http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
 	http.SetRequestHeader("Content-Length", size)

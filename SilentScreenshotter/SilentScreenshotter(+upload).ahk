@@ -69,7 +69,7 @@ imgurClientID=
 }
 Else
 {
-	imgPath := Temp "\"	; Specify path and screenshot's name.
+	imgPath := A_Temp "\"	; Specify path and screenshot's name.
 	imgName := A_Now	; Specify locally saved image's name.
 	imgExtension := ".png"	; Specify desired file format (most of common formats are supported).
 	optimizePNG := 0	; Use values from 0 to 7 to specify the compression level: 0 = no compression, 7 = max compression. Compression is always lossless, but works only for PNG.

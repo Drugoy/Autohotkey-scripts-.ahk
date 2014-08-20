@@ -1,6 +1,6 @@
-﻿/* SilentScreenshotter v1.3
+﻿/* SilentScreenshotter v1.4
 
-Last modified: 2014.08.18 11:22:51
+Last modified: 2014.08.20 15:22:53
 
 This script takes *.png screenshots of the specified area and uploads them to imgur.com and depending on user's setting - it either stores the URL of the uploaded image into the clipboard or opens it instantly. It also supports image files to be drag'n'dropped onto the script to upload them.
 
@@ -31,6 +31,7 @@ SetWorkingDir, %A_ScriptDir%
 FileInstall, optipng.exe, optipng.exe
 CoordMode, Mouse, Screen
 SetBatchLines, -1
+OnExit, Exit
 ;}
 ;{ Settings
 If A_IsCompiled
@@ -130,6 +131,10 @@ PrintScreen:: ; Since we use the same hotkey trice, we have to distinguish the c
 KeyWait, PrintScreen
 If !firstHit_EventFired	; The user hit PrintScreen - this is a first step.
 {
+	SysGet, x0, 76
+	SysGet, y0, 77
+	SysGet, w0, 78
+	SysGet, h0, 79
 	firstHit_EventFired := 1
 	MouseGetPos, x1, y1
 	Gui, 1: -Caption +E0x80000 +HWNDhwnd1 +LastFound +AlwaysOnTop +ToolWindow +OwnDialogs ; Create a GUI to use it as a canvas for GDI+ drawing.
@@ -140,15 +145,15 @@ If !firstHit_EventFired	; The user hit PrintScreen - this is a first step.
 		MouseGetPos, x2, y2
 		If !(x1 == x2 || y1 == y2) ; Draw a rectangular to indicate the area to get screenshoted.
 		{
-			hbm := CreateDIBSection(A_ScreenWidth, A_ScreenHeight)
+			hbm := CreateDIBSection(w0, h0)
 			hdc := CreateCompatibleDC()
 			obm := SelectObject(hdc, hbm)
 			G := Gdip_GraphicsFromHDC(hdc)
 			Gdip_SetSmoothingMode(G, 4)
 			pPen := Gdip_CreatePen(0xffff0000, 1)
-			Gdip_DrawLines(G, pPen, x1 "," y1 "|" x2 "," y1 "|" x2 "," y2 "|" x1 "," y2 "|" x1 "," y1)
+			Gdip_DrawLines(G, pPen, x1-x0 "," y1-y0 "|" x2-x0 "," y1-y0 "|" x2-x0 "," y2-y0 "|" x1-x0 "," y2-y0 "|" x1-x0 "," y1-y0)
 			Gdip_DeleteBrush(pPen)
-			UpdateLayeredWindow(hwnd1, hdc, 0, 0, A_ScreenWidth, A_ScreenHeight)
+			UpdateLayeredWindow(hwnd1, hdc, x0, y0, w0, h0)
 			SelectObject(hdc, obm)
 			DeleteObject(hbm)
 			DeleteDC(hdc)
@@ -188,8 +193,6 @@ Else	; User has to hit PrintScreen once again (for the 3rd time) to take a scree
 	x1 := x2 := x3 := y1 := y2 := y3 := pPen := pBitmap := obm := hbm := hdc := hwnd1 := G := ""
 }
 Return
-
-OnExit, Exit
 
 Exit:
 	Gdip_Shutdown(pToken)

@@ -1,6 +1,6 @@
 ﻿/* StringyLauncher
-Version: 2
-Last time modified: 2014.08.16 21:18
+Version: 3
+Last time modified: 2014.09.20 14:53
 
 This script is a launcher. It requires you to first create a "rules.ini" file with the rules for this launcher.
 The syntax for this file is the following:
@@ -31,7 +31,7 @@ SetWorkingDir, %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 ;{ Settings
 Global extractTo := A_Temp "\executor"	; Path where to extract archives' contents to.
-cleanAfterUnpacking := 1	; 1 - remove files after the closing a launched program within from archive. 0 - leave them.
+Global deleteUnpackedUponExit := 1	; 1 - remove files after the closing a launched program within from archive. 0 - leave them.
 verbose := 1	; 1 - display a traytip (with basic info) when a trigger works out. 0 - do not use traytips.
 ;}
 
@@ -60,9 +60,8 @@ Return
 
 ;{ Label and a help` hotstring
 #IfWinActive, ahk_exe explorer.exe ahk_class #32770
-
 subRoutine:
-	If verbose	; Show traytips only if the setting says so.
+	If (verbose)	; Show traytips only if the setting says so.
 		TrayTip, % A_ScriptName, % "keyword: " $ "`n" "Launching: " launcherArray[$], 5, 1
 	launch(launcherArray[$])
 Return
@@ -83,7 +82,7 @@ launch(input)
 	ControlGetFocus, activeControl, A
 	If (activeControl == "Edit1")	; Win+R window: "Execute" (or "Выполнить" in Ru OS locale).
 	{
-		WinClose	; Close the "Execute" (or "Выполнить" in Ru OS locale) window.
+		WinClose, A	; Close the "Execute" (or "Выполнить" in Ru OS locale) window.
 		IfInString, input, !	; Paths with "!" are the ones pointing to the files inside archives.
 ; Example path to an executable inside an archive: C:\Test.rar!subfolder\runme.exe
 		{
@@ -95,24 +94,23 @@ launch(input)
 				RunWait, % """" archiver """ x """ partialPath[1] """ """ extractTo archiveName "\"""	; Use WinRAR archiver to unpack the files.
 			Else
 			{
-				Msgbox % "Sorry, there was a problem with unpacking an archive.`nYou need to add a rule to rules.ini with trigger ""archive"" that points to an archiver with command line interface.`nCurrently only 7-Zip (7z.exe) and WinRar (WinRAR.exe/UnRAR.exe/RAR.exe) are supported."
+				MsgBox, % "Sorry, there was a problem with unpacking an archive.`nYou need to add a rule to rules.ini with trigger ""archive"" that points to an archiver with command line interface.`nCurrently only 7-Zip (7z.exe) and WinRar (WinRAR.exe/UnRAR.exe/RAR.exe) are supported."
 				Return
 			}
-			If cleanAfterUnpacking	; Clean the unpacked files from the temporary folder after the program got closed.
-			{
-				Global runThis := extractTo archiveName "\" partialPath[2]
-				Global removeThis := extractTo archiveName
-				waitAndRemove(runThis, removeThis)
-			}
+			runThis := extractTo archiveName "\" partialPath[2]
+			If (deleteUnpackedUponExit)	; If user chose to delete unpacked files upon exit of the launched program.
+				waitAndRemove(runThis, extractTo archiveName)	; Use a function with RunWait+FileRemoveDir.
+			Else
+				Run, %runThis%
 		}
 		Else	; The path points to a file outside archive.
 			Run, %input%
 	}
 }
 
-waitAndRemove(runWait, fileRemoveDir)
+waitAndRemove(executable, fileRemoveDir)
 {
-	RunWait, %runWait%
+	RunWait, %executable%
 	FileRemoveDir, %fileRemoveDir%, 1	; Remove the unpacked stuff after it got closed.
 }
 ;}

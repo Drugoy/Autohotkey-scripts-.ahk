@@ -1,6 +1,6 @@
 ﻿/* Meta Shortcut
-Version: 5
-Last time modified: 2014.05.29 14:25
+Version: 6
+Last time modified: 2014.11.06 21:16
 
 Summary: a single file that can store multiple shortcuts and provides access to them via dropdown menu.
 
@@ -19,25 +19,23 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/Meta%20Shortcut/Me
 #NoEnv
 #NoTrayIcon
 #SingleInstance, Force
-SetWorkingDir %A_ScriptDir%
+SetWorkingDir, %A_ScriptDir%
 
 smartLinks := true	; Defines how to handle *.url files when they get drag'n'dropped onto this script's file: true - store the URL from the *.url file (you may delete the file, the link shortcut will still work); false - use the link to the *.url file itself (if it gets deleted - the link will be broken).
+useThisBrowser := ""	; Define here the path to your browser, if you wish to use non-default one for opening http:// and ftp:// urls. For example: "iexplore.exe" will force to use Internet Explorer.
 
 ; Here we create var %settingstxt% that contains a name of the txt file (which is equal to the script's name, except it has a *.txt extension).
 SplitPath, A_ScriptFullPath,,,, settingstxt
 settingstxt .= ".txt"
 ; And then we check if that file already exists.
-IfNotExist %settingstxt%	; Nothing to show: settings file doesn't yet exist.
-	settingsExist := false
-
+IfExist, %settingstxt%	; Nothing to show: settings file doesn't yet exist.
+	settingsExist := 1
 
 ; This is a check: did user just run the script (to access stored shortcuts), or he drag'n'dropped a file(s) onto script to add the shortcut(s).
 
 If (%0% == 0)	; User wanted to access the already stored shortcuts.
 {
-	If (settingsExist = false)	; The user has not yet added at least one shortcut.
-		Msgbox You wanted to access the already stored shortcuts, but you don't have any settings file with at least one record yet.`nTo create one - just drag'n'drop any file you would like to have a shortcut to onto the this script's file.
-	Else	; There is at least one shortcut.
+	If (settingsExist)	; There is at least one shortcut.
 	{
 		FileRead, settings, %settingstxt%
 		paths := {}	; Initiating an array. We will use it to add bindings between MenuItem and the path to run when it will be selected.
@@ -62,6 +60,8 @@ If (%0% == 0)	; User wanted to access the already stored shortcuts.
 		}
 		Menu, ShortcutsList, Show, %A_GuiX%, %A_GuiY%	; Show the constructed menu.
 	}
+	Else	; The user has not yet added at least one shortcut.
+		Msgbox You wanted to access the already stored shortcuts, but you don't have any settings file with at least one record yet.`nTo create one - just drag'n'drop any file you would like to have a shortcut to onto the this script's file.
 }
 Else	; User did drag'n'drop at least one file.
 	Loop, %0%	; Usually %0% contains the number of command line parameters, but when the user drag'n'drops files onto the script - each of the dropped file gets sent to script as a separate command line parameter, so %0% contains the number of dropped files.
@@ -73,16 +73,16 @@ Else	; User did drag'n'drop at least one file.
 				If (urlPath == "ERROR")	; Safe check against incorrect URLs.
 					MsgBox, % "There was a problem retrieving the URL from the file, so the shortcut to that URL was not saved."
 				Else
-					FileAppend, `n%A_LoopFileName%|%urlPath%, %settingstxt%
+					FileAppend, % (settingsExist ? "`n" : "") A_LoopFileName "|" urlPath, %settingstxt%
 			}
 			Else
-				FileAppend, `n%A_LoopFileName%|%A_LoopFileLongPath%, %settingstxt%
+				FileAppend, % (settingsExist ? "`n" : "") A_LoopFileName "|" A_LoopFileLongPath, %settingstxt%
 		}
 ExitApp
 
 ;{ Label to open selected file (or URL).
 LaunchFiles:
-	Run, % paths[A_ThisMenuItem]	; Since we used arrays - we know what the selected MenuItem is bound to. So we just run the bound path
+	Run, % ((chopString(paths[A_ThisMenuItem], ":", 1) ~= "https?|ftp") ? (useThisBrowser ? useThisBrowser " " : "") : "") """" paths[A_ThisMenuItem] """"	; Since we used arrays - we know what the selected MenuItem is bound to. So we just run the path bound to the selected MenuItem.
 Return
 ;}
 

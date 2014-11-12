@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 3.4
-Last time modified: 2014.10.27 21:57:11
+Version: 3.5
+Last time modified: 2014.11.12 22:23
 
 Description: a script manager for *.ahk scripts.
 
@@ -11,10 +11,14 @@ http://auto-hotkey.com/boards/viewtopic.php?f=6&t=109&p=1612
 http://forum.script-coding.com/viewtopic.php?id=8724
 */
 ;{ TODO:
-; 1. Handle scripts' tray icons: hide/restore/cleanup orphans.
-;	a. Add a button to hide/restore script's tray icon.
-; 2. Bug: SilentScreenshotter has incorrect icon.
-; 3. Bug: 'ManageProcesses' LV has wrong sorting order for '#' column (1>10>11>2 instead of 1>2>...>10>11).
+; 1. Consider adding control over scripts' icons (cleanup orphans and hide/restore or delete normal icons).
+; 2. Bug: 'ManageProcesses' LV has wrong sorting order for '#' column (1>10>11>2 instead of 1>2>...>10>11).
+; 3. Bug: group process control: this script's process should be parsed last.
+; 4. Bug: sometimes some LVs/TV items get wrong icons or no icons.
+; 5. Sometimes we get outdated and unrefreshable data in the 'Manage Processes' tab.
+; 6. Improve/Rewrite/Test 'Process Assistant'.
+; 7. The script still has some FIXMEs.
+; 8. Add context menus with commands duplicating buttons' functions.
 ;}
 ;{ Settings block.
 ; Path and name of the file name to store script's settings.
@@ -32,11 +36,11 @@ quitAssistantsNicely := 1
 ; #Warn	; Recommended for catching common errors.
 DetectHiddenWindows, On	; Needed for 'pause' and 'suspend' commands.
 OnExit, ExitApp
-Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global toBeRun := [], Global conditions, Global triggeredActions, Global rules, Global quitAssistantsNicely, Global bookmarks
+Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global toBeRun := [], Global conditions, Global triggeredActions, Global rules, Global quitAssistantsNicely, Global bookmarks, wParam := 0, Global currentPID := DllCall("GetCurrentProcessId")
 
 IniRead, ignoreTheseProcesses, %settings%, Process Manager, IgnoreThese, 0	; Learn what processes should be absolutely ignored by all parsers.
 If (ignoreTheseProcesses)
-	Global ignoreTheseProcesses := ASV2Arr(ignoreTheseProcesses)
+	Global ignoreTheseProcesses := ASV2Arr(ignoreTheseProcesses)	; Convert ASV to an array.
 
 ; Hooking ComObjects to track processes.
 oSvc := ComObjGet("winmgmts:")
@@ -85,11 +89,11 @@ Gui, Add, StatusBar
 SB_SetParts(60, 85)
 	;}
 	;{ Add tabs and their contents.
-Gui, Add, Tab2, AltSubmit x0 y0 w497 h46 Choose1 +Theme -Background gTabSwitch vactiveTab, Manage files|Manage processes|Manage process assistants	; AltSubmit here is needed to make variable 'activeTab' get active tab's number, not name.
+Gui, Add, Tab2, AltSubmit x0 y0 w565 h46 Choose1 +Theme -Background gTabSwitch vactiveTab, Manage files|Manage processes|Manage process assistants	; AltSubmit here is needed to make variable 'activeTab' get active tab's number, not name.
 		;{ Tab #1: 'Manage files'.
 Gui, Tab, Manage files
 Gui, Add, Text, x26 y26, Choose a folder:
-Gui, Add, Button, x230 y21 gRunSelected, Run selected
+Gui, Add, Button, x298 y21 gRunSelected, Run selected
 Gui, Add, Button, x+0 gBookmarkSelected, Bookmark selected
 Gui, Add, Button, x+0 gDeleteSelected, Delete selected
 			;{ Folders Tree (left pane).
@@ -106,12 +110,12 @@ DriveGet, removableDrivesList, List, REMOVABLE	; Removable logical disks.
 If !(ErrorLevel)
 	Loop, Parse, removableDrivesList	; Add all removable disks to the TreeView.
 		buildTree(A_LoopField ":", TV_Add(A_LoopField ":",, "Icon3"))
-
+TV_Modify(TV_GetNext(), "Select")	; Forcefully select topmost item in the TV.
 OnMessage(0x219, "WM_DEVICECHANGE")	; Track removable devices connecting/disconnecting to update the Folder Tree.
 			;}
 			;{ File list (right pane).
 Gui, Add, ListView, AltSubmit x+0 +Resize +Grid gFileList vFileList HwndFileListHwnd, Name|Size (bytes)|Created|Modified
-LV_SetImageList(IL3)	; Assign ImageList 'IL1' to the current ListView.
+LV_SetImageList(IL3)	; Assign ImageList 'IL3' to the current ListView.
 ; Set the static widths for some of it's columns.
 LV_ModifyCol(2, 76)	; Size (bytes).
 LV_ModifyCol(3, 117)	; Created.
@@ -120,7 +124,7 @@ LV_ModifyCol(4, 117)	; Modified.
 			;{ Bookmarks (bottom pane).
 Gui, Add, Text, vtextBS, Bookmarked scripts:
 Gui, Add, ListView, AltSubmit +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
-LV_SetImageList(IL3)	; Assign ImageList 'IL1' to the current ListView.
+LV_SetImageList(IL3)	; Assign ImageList 'IL3' to the current ListView.
 ; Set the static widths for some of it's columns.
 				;{ Fulfill 'BookmarksList' LV.
 IniRead, bookmarks, %settings%, Bookmarks, scripts, 0
@@ -128,7 +132,7 @@ If (bookmarks)
 	bookmarks := ASV2Arr(bookmarks), fillBookmarksList()
 				;}
 ; Set the static widths for some of it's columns
-LV_ModifyCol(1, 20)	; #.
+LV_ModifyCol(1, 36)	; #.
 LV_ModifyCol(4, 76)	; Size.
 LV_ModifyCol(5, 117)	; Created.
 LV_ModifyCol(6, 117)	; Modified.
@@ -138,20 +142,22 @@ LV_ModifyCol(6, 117)	; Modified.
 Gui, Tab, Manage processes
 
 ; Add buttons to trigger functions.
-Gui, Add, Button, x1 y21 gExit, Exit
-Gui, Add, Button, x+0 gKill, Kill
+Gui, Add, Button, x1 y21 gKill, Kill
 Gui, Add, Button, x+0 gkillNreexecute, Kill and re-execute
+Gui, Add, Button, x+0 gOpen, Open
 Gui, Add, Button, x+0 gReload, Reload
-Gui, Add, Button, x+0 gPause, (Un) pause
+Gui, Add, Button, x+0 gEdit, Edit
 Gui, Add, Button, x+0 gSuspendHotkeys, (Un) suspend hotkeys
+Gui, Add, Button, x+0 gPause, (Un) pause
+Gui, Add, Button, x+0 gExit, Exit
 Gui, Add, Button, x+0 gToggleSuspendProcess, (Un) suspend process
 
 ; Add the main "ListView" element and define it's size, contents, and a label binding.
 Gui, Add, ListView, x0 y+0 +Resize +Grid +Count25 vManageProcesses, #|PID|Name|Path
-LV_SetImageList(IL2)	; Assign ImageList 'IL1' to the current ListView.
+LV_SetImageList(IL2)	; Assign ImageList 'IL2' to the current ListView.
 ; Set the static widths for some of it's columns
 LV_ModifyCol(1, 36)
-LV_ModifyCol(2, 40)
+LV_ModifyCol(2, 42)
 
 			;{ Fulfill processesSnapshot[] and scriptsSnapshot[] arrays with data and 'ManageProcesses' LV.
 For Process In oSvc.ExecQuery("Select * from Win32_Process")	; Parsing through a list of running processes to filter out non-ahk ones (filters are based on 'If RegExMatch(…)' rules).
@@ -167,7 +173,7 @@ For Process In oSvc.ExecQuery("Select * from Win32_Process")	; Parsing through a
 		;}
 		;{ Tab #3: 'Manage process assistants'.
 Gui, Tab, Manage process assistants
-Gui, Add, Button, x303 y21 gAddNewRule, Add new rule
+Gui, Add, Button, x371 y21 gAddNewRule, Add new rule
 Gui, Add, Button, x+0 gDeleteRules, Delete selected rule(s)
 Gui, Add, ListView, x0 y+0 +Resize +Grid vAssistantsList, #|Type|Trigger condition|Scripts to execute
 LV_ModifyCol(1, 20)
@@ -188,7 +194,7 @@ Else
 	sw_X := (UARight - sw_W) / 2, sw_Y := (UABottom - sw_H) / 2, sw_W := 800, sw_H := 600
 Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 6 " h" sw_H - 28, Manage Scripts
 Gui, +Resize +MinSize666x222
-GroupAdd, ScriptHwnd_A, % "ahk_pid " DllCall("GetCurrentProcessId") ; Create an ahk_group "ScriptHwnd_A" and make all the current process's windows get into that group.
+GroupAdd, ScriptHwnd_A, % "ahk_pid " currentPID ; Create an ahk_group "ScriptHwnd_A" and make all the current process's windows get into that group.
 SetTimer, MemoryScan, %memoryScanInterval%	; Set a timer to perform periodic scan of running scripts to update their status icons in the LV.
 Return
 	;}
@@ -205,6 +211,7 @@ GuiShow:
 Return
 
 GuiSize:	; Expand or shrink the ListView in response to the user's resizing of the window.
+; FIXME: this is laggy and can be fixed by wisely delaying the resizings of items in the inactive tabs.
 	If (A_EventInfo != 1)
 	{	; The window has been resized or maximized. Resize GUI items to match the window's size.
 		workingAreaHeight := A_GuiHeight - 86
@@ -219,21 +226,21 @@ GuiSize:	; Expand or shrink the ListView in response to the user's resizing of t
 			GuiControl, -Redraw, ManageProcesses
 		Else If (activeTab == 3)
 			GuiControl, -Redraw, AssistantsList
-		GuiControl, Move, FolderTree, % " h" . (workingAreaHeight * 0.677)
+		GuiControl, Move, FolderTree, % " h" (workingAreaHeight * 0.677)
 		ControlGetPos,, FT_yCoord, FT_Width, FT_Height,, ahk_id %FolderTreeHwnd%
-		GuiControl, Move, textBS, % "x0 y" . (FT_yCoord + FT_Height - 30)
-		GuiControl, Move, FileList, % "w" . (A_GuiWidth - FT_Width + 30) . " h" . (workingAreaHeight * 0.677)
+		GuiControl, Move, textBS, % "x0 y" (FT_yCoord + FT_Height - 30)
+		GuiControl, Move, FileList, % "w" (A_GuiWidth - FT_Width + 30) " h" (workingAreaHeight * 0.677)
 		Gui, ListView, FileList
 		LV_ModifyCol(1, A_GuiWidth - (FT_Width + 330))
-		GuiControl, Move, BookmarksList, % "x0 y" . (FT_yCoord + FT_Height - 17) . "w" . (A_GuiWidth + 1) . " h" . (8 + workingAreaHeight * 0.323)
+		GuiControl, Move, BookmarksList, % "x0 y" (FT_yCoord + FT_Height - 17) "w" (A_GuiWidth + 1) " h" (8 + workingAreaHeight * 0.323)
 		Gui, ListView, BookmarksList
 		LV_ModifyCol(2, (A_GuiWidth - 349) * 0.35)
 		LV_ModifyCol(3, (A_GuiWidth - 349) * 0.65)
-		GuiControl, Move, ManageProcesses, % "w" . (A_GuiWidth + 1) . " h" . (workingAreaHeight + 20)
+		GuiControl, Move, ManageProcesses, % "w" (A_GuiWidth + 1) " h" (workingAreaHeight + 20)
 		Gui, ListView, ManageProcesses
-		LV_ModifyCol(3, (A_GuiWidth - 78) * 0.3)
-		LV_ModifyCol(4, (A_GuiWidth - 78) * 0.7)
-		GuiControl, Move, AssistantsList, % "w" . (A_GuiWidth + 1) . " h" . (workingAreaHeight + 20)
+		LV_ModifyCol(3, (A_GuiWidth - 80) * 0.3)
+		LV_ModifyCol(4, (A_GuiWidth - 80) * 0.7)
+		GuiControl, Move, AssistantsList, % "w" (A_GuiWidth + 1) " h" (workingAreaHeight + 20)
 		Gui, ListView, AssistantsList
 		LV_ModifyCol(3, (A_GuiWidth - 79) * 0.6)
 		LV_ModifyCol(4, (A_GuiWidth - 79) * 0.4)
@@ -440,7 +447,8 @@ BookmarkSelected:	; G-Label of "Bookmark selected" button.
 	}
 	Else If (activeControl == "FolderTree")	; Bookmark a folder.
 	{
-		bookmarkedFolders ? bookmarkedFolders .= "|" selectedItemPath : bookmarkedFolders := selectedItemPath
+; OutputDebug, Executing G-Label 'BookmarkSelected'`, current activeControl == "FolderTree"
+		bookmarkedFolders := sum(bookmarkedFolders, selectedItemPath)
 		IniWrite, %bookmarkedFolders% , %settings%, Bookmarks, folders
 		buildTree(selectedItemPath, TV_Add(selectedItemPath,, "Vis Icon4"))
 	}
@@ -483,11 +491,6 @@ DeleteSelected:	; G-Label of "Delete selected" button.
 Return
 	;}
 	;{ Tab #2: gLabels of buttons.
-Exit:
-	Gui, ListView, ManageProcesses
-	exit(getPIDs())
-Return
-
 Kill:
 	Gui, ListView, ManageProcesses
 	kill(getPIDs())
@@ -498,29 +501,26 @@ killNreexecute:
 	killNreexecute(getPIDs())
 Return
 
-Reload:
-	Gui, ListView, ManageProcesses
-	reload(getPIDs())
-Return
-
-Pause:
-	Gui, ListView, ManageProcesses
-	pause(getPIDs())
-Return
-
-SuspendHotkeys:
-	Gui, ListView, ManageProcesses
-	suspendHotkeys(getPIDs())
-Return
-
 ToggleSuspendProcess:
 	Gui, ListView, ManageProcesses
 	toggleSuspendProcess(getPIDs())
 Return
 
-ResumeProcess:
+Exit:
+	wParam++	; 65307.
+Pause:
+	wParam++	; 65306.
+SuspendHotkeys:
+	wParam++	; 65305.
+Edit:
+	wParam++	; 65304.
+Reload:
+	wParam += 3	; 65303.
+Open:
+	wParam += 65300
 	Gui, ListView, ManageProcesses
-	resumeProcess(getPIDs())
+	commandScript(getPIDs(), wParam)
+	wParam := 0
 Return
 	;}
 	;{ Tab #3: gLabels of buttons.
@@ -561,7 +561,7 @@ DeleteRules:
 	For k, v in selectedRows
 	{
 		LV_GetText(selectedRow, v, 1)	; 'ManageProcesses' LV Column #1 is either blank or contains the number of the rule.
-		rulesToDelete ? rulesToDelete .= "|" selectedRow : rulesToDelete := selectedRow
+		rulesToDelete := sum(rulesToDelete, selectedRow)
 	}
 	Sort, rulesToDelete, N U D|	; Sorting the numbers of the rules to be deleted so there are no duplicates.
 	Loop, Parse, rulesToDelete, |	; Getting the number of items in the 'rulesToDelete'.
@@ -674,7 +674,15 @@ isProcessSuspended(pid)	; Retrieves another process's suspension state.
 
 getScriptState(pid)	; Returns script's state (hotkeys suspended? script paused?).
 {
-	script_id := (pid == DllCall("GetCurrentProcessId") ? A_ScriptHwnd : WinExist("ahk_pid " pid))	; Fix for this process: WinExist returns wrong Hwnd, so we use A_ScriptHwnd for this script's process.
+	If (pid == currentPID)
+		script_id := A_ScriptHwnd	; Fix for this script's process: WinExist returns wrong Hwnd, so we use A_ScriptHwnd for this script's process.
+	Else
+	{
+		WinGet, this, list, ahk_pid %pid%
+		Loop, %this%
+			If (mainMenu := DllCall("GetMenu", "UInt", script_id := this%A_Index%))
+				Break
+	}
 	; Force the script to update its Pause/Suspend checkmarks.
 	SendMessage, 0x211,,,, ahk_id %script_id%  ; WM_ENTERMENULOOP
 	SendMessage, 0x212,,,, ahk_id %script_id%  ; WM_EXITMENULOOP
@@ -699,6 +707,7 @@ memoryScanfunc()
 		Else
 			LV_Modify(A_Index, "Icon" 1 + (getScriptState(this)))
 	}
+	; activeControl := temp	; Restore data of active contol.
 }
 	;}
 	;{ Functions to parse data.
@@ -719,6 +728,16 @@ subtract(minuend, subtrahends, separator1 := "|", separator2 := "|")	; Return th
 			difference ? difference .= separator1 b : difference := b
 	}
 	Return difference	; This function could be more universal and return data in desired state: either in a variable or in an array.
+}
+
+sum(augend, addend, separator := "|")	; ASV string concatenation.
+{
+	If IsObject(addend)	; If 'addend' is an array.
+		For k, v in addend
+			augend ? augend .= separator v : augend := v
+	Else
+		augend ? augend .= separator addend : augend := addend
+	Return augend
 }
 
 arr2ASV(arr, separator := "|")	; Parses the input array and outputs it's values as a string with anchor-separated values.
@@ -742,27 +761,17 @@ run(paths)	; Runs selected scripts.
 ; Used by: Tab #1 'Manage files' - LVs: 'FileList', 'BookmarksList'; buttons: 'Run selected', 'Kill and re-execute'; functions: setRunState().
 ; Input: an array of paths.
 ; Output: none.
-	If (paths.MaxIndex() == 0)
-		Return
-	toBeRun := paths
-	For k, v In paths
+	If (paths.MaxIndex())
 	{
-		If (SubStr(v, -2) == "ahk")
-			Run, "%A_AhkPath%" "%v%"
-		Else
-			Run, %v%
+		toBeRun := paths
+		For k, v In paths
+		{
+			If (SubStr(v, -2) = "ahk")
+				Run, "%A_AhkPath%" "%v%"
+			Else
+				Run, %v%
+		}
 	}
-}
-
-exit(PIDs)	; Closes processes nicely (uses PostMessage).
-{
-; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Exit'.
-; Input: an array of PIDs.
-; Output: none.
-	If !(PIDs)
-		Return
-	For k, v In PIDs
-		PostMessage, 0x111, 65307,,, ahk_pid %v%
 }
 
 kill(PIDs)	; Kills processes unnicely (uses "Process, Close").
@@ -770,10 +779,9 @@ kill(PIDs)	; Kills processes unnicely (uses "Process, Close").
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill', 'Kill and re-execute'; functions: setRunState().
 ; Input: an array of PIDs.
 ; Output: none.
-	If !(PIDs)
-		Return
-	For k, v In PIDs
-		Process, Close, %v%
+	If (PIDs.MaxIndex())
+		For k, v In PIDs
+			Process, Close, %v%
 }
 
 killNreexecute(PIDs)	; Kills processes unnicely (uses "Process, Close") and then re-executes them.
@@ -781,72 +789,59 @@ killNreexecute(PIDs)	; Kills processes unnicely (uses "Process, Close") and then
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill and re-execute'.
 ; Input: an array of PIDs.
 ; Output: none.
-	If !(PIDs)
-		Return
-	scriptsPaths := getScriptPaths()
-	kill(PIDs)
-	run(scriptsPaths)
+	If (PIDs.MaxIndex())
+	{
+		scriptsPaths := getScriptPaths()
+		kill(PIDs)
+		run(scriptsPaths)
+	}
 }
 
-reload(PIDs)	; Reload (uses PostMessage) selected scripts.
+commandScript(PIDs, wParam)	; Reload (uses PostMessage) selected scripts.
 {
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Reload'.
-; Input: an array of PIDs.
+; Input: PIDs: an array of PIDs; wParam: 65300 - open, 65303 - reload, 65304 - edit, 65305 or 65404 - suspend hotkeys, 65306 or 65403 - pause, 65307 - exit.
 ; Output: none.
-	If !(PIDs)
-		Return
-	For k, v In PIDs
-		PostMessage, 0x111, 65303,,, ahk_pid %v%
+	If (PIDs.MaxIndex())	; Input is not empty.
+	{
+		For k, v In PIDs
+		{
+			If (v != currentPID)
+				PostMessage, 0x111, wParam,,, ahk_pid %v%
+			Else
+			{
+				If (wParam = 65300)
+					ListLines
+				Else If (wParam = 65303)
+					Reload
+				Else If (wParam = 65304 || wParam = 65403)
+					Pause, Toggle
+				Else If (wParam = 65305 || wParam = 65404)
+					Suspend, Toggle
+				; Else If (wParam = 65306)
+					; Edit
+				Else If (wParam = 65307)
+					ExitApp
+			}
+		}
+	}
 }
 
-pause(PIDs)	; Pause selected scripts.
+toggleSuspendProcess(PIDs)
 {
-; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: '(Un) pause'.
-; Input: an array of PIDs.
-; Output: none.
-	If !(PIDs)
-		Return
-	For k, v In PIDs
-		PostMessage, 0x111, 65403,,, ahk_pid %v%
+	If (PIDs.MaxIndex())	; Input is not empty.
+		For k, v In PIDs
+			isProcessSuspended(v) ? resumeOrSuspendProcess(v) : resumeOrSuspendProcess(v, 0)	; Check current state of the process and toggle it.
 }
 
-toggleSuspendProcess(PIDarr)
-{
-	If (PIDarr.MaxIndex())	; Input is not empty.
-		For k, v In PIDarr
-			isProcessSuspended(v) ? resumeProcess(v) : suspendProcess(v)	; Check current state of the process and toggle it.
-}
-
-suspendHotkeys(PIDs)	; Suspend hotkeys of selected scripts.
-{
-; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Kill and re-execute'.
-; Input: an array of PIDs.
-; Output: none.
-	If !(PIDs)
-		Return
-	For k, v In PIDs
-		PostMessage, 0x111, 65404,,, ahk_pid %v%
-}
-
-suspendProcess(pid)	; Suspend selected script's process.
+resumeOrSuspendProcess(pid, setState = 1)	; Resume or suspend selected pid's process.
 {
 ; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Suspend process''.
-; Input: a single PID.
+; Input: pid: a single PID; setState: 1 - resume [default value], 0 - suspend.
 ; Output: none.
 	If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, (A_PtrSize == 8) ? "Int64" : "Int", pid))
 		Return -1
-	DllCall("ntdll.dll\NtSuspendProcess", "Int", procHWND)
-	DllCall("CloseHandle", (A_PtrSize == 8) ? "Int64" : "Int", procHWND)
-}
-
-resumeProcess(pid)	; Resume selected script's process.
-{
-; Used by: Tab #2 'Manage processes' - LV 'ManageProcesses'; buttons: 'Resume process'.
-; Input: a single PID.
-; Output: none.
-	If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, (A_PtrSize == 8) ? "Int64" : "Int", pid))
-		Return -1
-	DllCall("ntdll.dll\NtResumeProcess", "Int", procHWND)
+	DllCall("ntdll.dll\Nt" (setState ? "Resume" : "Suspend") "Process", "Int", procHWND)
 	DllCall("CloseHandle", (A_PtrSize == 8) ? "Int64" : "Int", procHWND)
 }
 	;}
@@ -936,9 +931,9 @@ checkRunTriggers(rule = 0)
 			ruleIndex := stopperIndex := noTriggerFound := 0
 		ruleIndex++	; Counter of the rules in a sub-group (or in a group, if type == 0)
 		If ((v.side == 2 || !v.type) && stopperIndex)	; No need in deep parsing, local instructions are enough.
-			stuffToRun := (stuffToRun ? stuffToRun "|" v.value : v.value)
+			stuffToRun := sum(stuffToRun, v.value)
 		Else If ((v.type != 1) && !rule && noTriggerFound)
-			stuffToKill := (stuffToKill ? stuffToKill "|" v.value : v.value)
+			stuffToKill := sum(stuffToKill, v.value)
 		If (stopperIndex || noTriggerFound)
 			Continue
 		isAhkProc := ((SubStr(v.value, -2) == "ahk") ? 1 : 0)	; isAhkProc: 1 - an ahk-script is being parsed; 0 - non-ahk process is being parsed.
@@ -948,7 +943,7 @@ checkRunTriggers(rule = 0)
 			{
 				stopperIndex := k	; A TC found, which is eough to trigger the whole TA-group (or + TC-group in case of !v.type).
 				Loop, % ruleIndex - 1
-					stuffToRun := ((stuffToRun) ? (stuffToRun "|" procBinder[k - ruleIndex + A_Index, "value"]) : (procBinder[k - ruleIndex + A_Index, "value"]))
+					stuffToRun := sum(stuffToRun, procBinder[k - ruleIndex + A_Index, "value"])
 			}
 		}
 		Else If (!v.type || (v.side == 1))	; Not a new process appeared, but an initial check is getting executed.
@@ -960,7 +955,7 @@ checkRunTriggers(rule = 0)
 					stopperIndex := k	; A TC found, which is enough to trigger the whole TA-group (or + TC-group in case of !v.type).
 					If !(v.type)
 						Loop, % ruleIndex - 1
-							stuffToRun := ((stuffToRun) ? (stuffToRun "|" procBinder[k - ruleIndex + A_Index, "value"]) : (procBinder[k - ruleIndex + A_Index, "value"]))
+							stuffToRun := sum(stuffToRun, procBinder[k - ruleIndex + A_Index, "value"])
 					Break
 				}
 			}
@@ -989,7 +984,7 @@ checkRunTriggers(rule = 0)
 					}
 				}
 				If !(this)
-					((runThem) ? (runThem .= "|" A_LoopField) : (runThem := A_LoopField))
+					runThem := sum(runThem, A_LoopField)
 			}
 		If (runThem)
 			setRunState(runThem, 1)	; Check if everything from 'stuffToRun' is already running, and run if something is not yet running.
@@ -1013,7 +1008,7 @@ ruleIndex := 0
 		If (stopperIndex)
 		{
 			If !(v.type)
-				stuffToKill := ((stuffToKill) ? (stuffToKill "|" v.value) : (v.value))
+				stuffToKill := sum(stuffToKill, v.value)
 			Else If (noTriggerFound)	; There was a match already, need to finish parsing the rules in the left side.
 			{
 				If (v.side == 1)
@@ -1026,7 +1021,7 @@ ruleIndex := 0
 					}
 				}
 				Else
-					stuffToKill := ((stuffToKill) ? (stuffToKill "|" v.value) : (v.value))
+					stuffToKill := sum(stuffToKill, v.value)
 			}
 			Continue
 		}
@@ -1034,10 +1029,8 @@ ruleIndex := 0
 		{
 			stopperIndex := k
 			If !(v.type)	; The dead process matches a rule with "type = 0".
-			{
 				Loop, % ruleIndex - 1	; Check previous TCs in the rule's TC-group.
-					stuffToKill := ((stuffToKill) ? (stuffToKill "|" procBinder[k - ruleIndex + A_Index, "value"]) : (procBinder[k - ruleIndex + A_Index, "value"]))
-			}
+					stuffToKill := sum(stuffToKill, procBinder[k - ruleIndex + A_Index, "value"])
 			Else If (v.side == 1) && (v.type == 2)	; The dead process matches some TC from a TC-group of a rule with "type = 2".
 			{
 				If (ruleIndex == 1)
@@ -1084,7 +1077,7 @@ setRunState(input, runOrKill)	; Checks the running state of the input and runs o
 			stuffToRunOrKill.Insert(runOrKill ? A_LoopField : v.pid)
 	}
 	If (stuffToRunOrKill)
-		((runOrKill) ? (run(stuffToRunOrKill)) : (quitAssistantsNicely ? exit(stuffToRunOrKill) : kill(stuffToRunOrKill)))
+		((runOrKill) ? (run(stuffToRunOrKill)) : (quitAssistantsNicely ? commandScript(stuffToRunOrKill, 65307) : kill(stuffToRunOrKill)))	; 65307 - exit.
 }
 	;}
 	;{ Fulfill 'FolderTree' TV.
@@ -1177,10 +1170,6 @@ fillBookmarksList(add = 0, remove = 0)
 		}
 	}
 	If (add.MaxIndex() || remove.MaxIndex())	; If the function was called with at least one non-empty argument - the user has modified bookmarks and they have to be re-written to the ini-file.
-	{
-		For k, v in bookmarks
-			writeBookmarks ? writeBookmarks .= "|" v : writeBookmarks := v
-		IniWrite, %writeBookmarks%, %settings%, Bookmarks, scripts
-	}
+		IniWrite, % arr2ASV(bookmarks), %settings%, Bookmarks, scripts
 }
 ;}

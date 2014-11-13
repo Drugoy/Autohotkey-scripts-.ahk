@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 3.5
-Last time modified: 2014.11.12 22:23
+Version: 3.6
+Last time modified: 2014.11.13 21:45
 
 Description: a script manager for *.ahk scripts.
 
@@ -13,12 +13,11 @@ http://forum.script-coding.com/viewtopic.php?id=8724
 ;{ TODO:
 ; 1. Consider adding control over scripts' icons (cleanup orphans and hide/restore or delete normal icons).
 ; 2. Bug: 'ManageProcesses' LV has wrong sorting order for '#' column (1>10>11>2 instead of 1>2>...>10>11).
-; 3. Bug: group process control: this script's process should be parsed last.
-; 4. Bug: sometimes some LVs/TV items get wrong icons or no icons.
-; 5. Sometimes we get outdated and unrefreshable data in the 'Manage Processes' tab.
-; 6. Improve/Rewrite/Test 'Process Assistant'.
-; 7. The script still has some FIXMEs.
-; 8. Add context menus with commands duplicating buttons' functions.
+; 3. Bug: sometimes some LVs/TV items get wrong icons or no icons.
+; 4. Sometimes we get outdated and unrefreshable data in the 'Manage Processes' tab.
+; 5. Improve/Rewrite/Test 'Process Assistant'.
+; 6. The script still has a FIXME, OPTIMIZEME and REWRITEMEs.
+; 7. Add context menus with commands duplicating buttons' functions.
 ;}
 ;{ Settings block.
 ; Path and name of the file name to store script's settings.
@@ -36,7 +35,7 @@ quitAssistantsNicely := 1
 ; #Warn	; Recommended for catching common errors.
 DetectHiddenWindows, On	; Needed for 'pause' and 'suspend' commands.
 OnExit, ExitApp
-Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global toBeRun := [], Global conditions, Global triggeredActions, Global rules, Global quitAssistantsNicely, Global bookmarks, wParam := 0, Global currentPID := DllCall("GetCurrentProcessId")
+Global processesSnapshot := [], Global scriptsSnapshot := [], Global scriptsSnapshotOld := [], Global procBinder := [], Global toBeRun := [], Global conditions, Global triggeredActions, Global rules, Global quitAssistantsNicely, Global bookmarks, wParam := 0, Global currentPID := DllCall("GetCurrentProcessId")
 
 IniRead, ignoreTheseProcesses, %settings%, Process Manager, IgnoreThese, 0	; Learn what processes should be absolutely ignored by all parsers.
 If (ignoreTheseProcesses)
@@ -51,20 +50,20 @@ oSvc.ExecNotificationQueryAsync(createSink, "select * from __InstanceCreationEve
 oSvc.ExecNotificationQueryAsync(deleteSink, "select * from __InstanceDeletionEvent " Command)
 
 ; Create a canvas and add the icons to be used later.
-IL1 := IL_Create(4)	; Create an ImageList to hold 4 icons.
-	IL_Add(IL1, "shell32.dll", 4)	; 'Folder' icon.
-	IL_Add(IL1, "shell32.dll", 80)	; 'Logical disk' icon.
-	IL_Add(IL1, "shell32.dll", 27)	; 'Removable disk' icon.
-	; IL_Add(IL1, "shell32.dll", 87)	; 'Folder with bookmarks' icon.
-	IL_Add(IL1, "shell32.dll", 206)	; 'Folder with bookmarks' icon.
-IL2 := IL_Create(5)	; Create an ImageList to hold 5 icons.
-	IL_Add(IL2, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 8)	; '[H]' default green AHK icon with letter 'H'.
-	IL_Add(IL2, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 3)	; '[S]' default green AHK icon with letter 'S'.
-	IL_Add(IL2, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 4)	; '[H]' default red AHK icon with letter 'H'.
-	IL_Add(IL2, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 5)	; '[S]' default red AHK icon with letter 'S'.
-	IL_Add(IL2, "shell32.dll", 21)	; A sheet with a clock (suspended process).
-IL3 := IL_Create(1)	; Create an ImageList to hold 1 icon.
-	IL_Add(IL3, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 2)	; default icon for AHK script.
+IL_TVObjects := IL_Create(4)	; Create an ImageList to hold 4 icons.
+	IL_Add(IL_TVObjects, "shell32.dll", 4)	; 'Folder' icon.
+	IL_Add(IL_TVObjects, "shell32.dll", 80)	; 'Logical disk' icon.
+	IL_Add(IL_TVObjects, "shell32.dll", 27)	; 'Removable disk' icon.
+	; IL_Add(IL_TVObjects, "shell32.dll", 87)	; 'Folder with bookmarks' icon.
+	IL_Add(IL_TVObjects, "shell32.dll", 206)	; 'Folder with bookmarks' icon.
+IL_scriptStates := IL_Create(5)	; Create an ImageList to hold 5 icons.
+	IL_Add(IL_scriptStates, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 8)	; '[H]' default green AHK icon with letter 'H'.
+	IL_Add(IL_scriptStates, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 3)	; '[S]' default green AHK icon with letter 'S'.
+	IL_Add(IL_scriptStates, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 4)	; '[H]' default red AHK icon with letter 'H'.
+	IL_Add(IL_scriptStates, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 5)	; '[S]' default red AHK icon with letter 'S'.
+	IL_Add(IL_scriptStates, "shell32.dll", 21)	; A sheet with a clock (suspended process).
+IL_LVObject := IL_Create(1)	; Create an ImageList to hold 1 icon.
+	IL_Add(IL_LVObject, A_AhkPath ? A_AhkPath : A_ScriptFullPath, 2)	; default icon for AHK script.
 	
 	; IL_Add(IL1, "shell32.dll", 13)	; 'Process' icon.
 	; IL_Add(IL1, "shell32.dll", 46)	; 'Up to the root folder' icon.
@@ -97,7 +96,7 @@ Gui, Add, Button, x298 y21 gRunSelected, Run selected
 Gui, Add, Button, x+0 gBookmarkSelected, Bookmark selected
 Gui, Add, Button, x+0 gDeleteSelected, Delete selected
 			;{ Folders Tree (left pane).
-Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%IL1%	; Add TreeView for navigation in the FileSystem.
+Gui, Add, TreeView, AltSubmit x0 y+0 +Resize gFolderTree vFolderTree HwndFolderTreeHwnd ImageList%IL_TVObjects%	; Add TreeView for navigation in the FileSystem.
 IniRead, bookmarkedFolders, %settings%, Bookmarks, Folders, 0	; Check if there are some previously saved bookmarked folders.
 If (bookmarkedFolders)
 	Loop, Parse, bookmarkedFolders, |
@@ -115,7 +114,7 @@ OnMessage(0x219, "WM_DEVICECHANGE")	; Track removable devices connecting/disconn
 			;}
 			;{ File list (right pane).
 Gui, Add, ListView, AltSubmit x+0 +Resize +Grid gFileList vFileList HwndFileListHwnd, Name|Size (bytes)|Created|Modified
-LV_SetImageList(IL3)	; Assign ImageList 'IL3' to the current ListView.
+LV_SetImageList(IL_LVObject)	; Assign ImageList 'IL_LVObject' to the current ListView.
 ; Set the static widths for some of it's columns.
 LV_ModifyCol(2, 76)	; Size (bytes).
 LV_ModifyCol(3, 117)	; Created.
@@ -124,7 +123,7 @@ LV_ModifyCol(4, 117)	; Modified.
 			;{ Bookmarks (bottom pane).
 Gui, Add, Text, vtextBS, Bookmarked scripts:
 Gui, Add, ListView, AltSubmit +Resize +Grid gBookmarksList vBookmarksList, #|Name|Full Path|Size|Created|Modified
-LV_SetImageList(IL3)	; Assign ImageList 'IL3' to the current ListView.
+LV_SetImageList(IL_LVObject)	; Assign ImageList 'IL_LVObject' to the current ListView.
 ; Set the static widths for some of it's columns.
 				;{ Fulfill 'BookmarksList' LV.
 IniRead, bookmarks, %settings%, Bookmarks, scripts, 0
@@ -154,7 +153,7 @@ Gui, Add, Button, x+0 gToggleSuspendProcess, (Un) suspend process
 
 ; Add the main "ListView" element and define it's size, contents, and a label binding.
 Gui, Add, ListView, x0 y+0 +Resize +Grid +Count25 vManageProcesses, #|PID|Name|Path
-LV_SetImageList(IL2)	; Assign ImageList 'IL2' to the current ListView.
+LV_SetImageList(IL_scriptStates)	; Assign ImageList 'IL_scriptStates' to the current ListView.
 ; Set the static widths for some of it's columns
 LV_ModifyCol(1, 36)
 LV_ModifyCol(2, 42)
@@ -165,8 +164,9 @@ For Process In oSvc.ExecQuery("Select * from Win32_Process")	; Parsing through a
 	processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
 	If (Process.ExecutablePath == A_AhkPath && RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script) && RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script))
 	{
-		scriptsSnapshot.Insert({"pid": Process.ProcessId, "name": scriptName, "path": scriptPath})
-		LV_Add("Icon" (isProcessSuspended(Process.ProcessId) ? 5 : 1 + getScriptState(Process.ProcessId)), scriptsSnapshot.MaxIndex(), Process.ProcessId, scriptName, scriptPath)	; Add the script to the LV with the proper icon and proper values for all columns.
+		this := (isProcessSuspended(Process.ProcessId) ? 5 : 1 + getScriptState(Process.ProcessId))	; The number from 1 to 5, which is the index of the icon in the 'IL_scriptStates' IL.
+		scriptsSnapshot.Insert({"pid": Process.ProcessId, "name": scriptName, "path": scriptPath, "icon": this})
+		LV_Add("Icon" this, scriptsSnapshot.MaxIndex(), Process.ProcessId, scriptName, scriptPath)	; Add the script to the LV with the proper icon and proper values for all columns.
 	}
 }
 			;}
@@ -202,7 +202,7 @@ Return
 ;{ Labels.
 	;{ MemoryScan.
 MemoryScan:
-	memoryScanfunc()
+	memoryScanFunc()
 Return
 	;}
 	;{ G-Labels of main GUI.
@@ -447,7 +447,6 @@ BookmarkSelected:	; G-Label of "Bookmark selected" button.
 	}
 	Else If (activeControl == "FolderTree")	; Bookmark a folder.
 	{
-; OutputDebug, Executing G-Label 'BookmarkSelected'`, current activeControl == "FolderTree"
 		bookmarkedFolders := sum(bookmarkedFolders, selectedItemPath)
 		IniWrite, %bookmarkedFolders% , %settings%, Bookmarks, folders
 		buildTree(selectedItemPath, TV_Add(selectedItemPath,, "Vis Icon4"))
@@ -696,18 +695,15 @@ getScriptState(pid)	; Returns script's state (hotkeys suspended? script paused?)
 	Return (isSuspended + isPaused)	; 0 - Script is neither paused nor it's hotkeys are suspended; 1 - Script's hotkeys are suspended, but it's not paused; 2 - Script's hotkeys are not suspended, but the script is paused; 3 - script's hotkeys are suspended and the script is paused.
 }
 
-memoryScanfunc()
+memoryScanFunc()	; LAGGY.
 {
 	Gui, ListView, ManageProcesses
-	Loop, % LV_GetCount()	; Repeat as many times as there are running AHK-scripts.
+	For k, v In scriptsSnapshot	; Repeat as many times as there are running AHK-scripts.
 	{
-		LV_GetText(this, A_Index, 2)	; Column #2 is 'PID'.
-		If (isProcessSuspended(this))
-			LV_Modify(A_Index, "Icon5")
-		Else
-			LV_Modify(A_Index, "Icon" 1 + (getScriptState(this)))
+		newState := (isProcessSuspended(v.pid) ? 5 : 1 + getScriptState(v.pid))
+		If (v.icon != newState)
+			LV_Modify(k, "Icon" v.icon := newState)
 	}
-	; activeControl := temp	; Restore data of active contol.
 }
 	;}
 	;{ Functions to parse data.
@@ -766,7 +762,14 @@ run(paths)	; Runs selected scripts.
 		toBeRun := paths
 		For k, v In paths
 		{
-			If (SubStr(v, -2) = "ahk")
+			If (v = A_ScriptFullPath)
+			{
+				If (k != paths.MaxIndex())
+					paths.Insert(v)
+				Else
+					Run, "%A_AhkPath%" "%v%"
+			}
+			Else If (SubStr(v, -2) = "ahk")	; If that's an ahk script then run it as a 1st param for A_AhkPath.
 				Run, "%A_AhkPath%" "%v%"
 			Else
 				Run, %v%
@@ -780,8 +783,15 @@ kill(PIDs)	; Kills processes unnicely (uses "Process, Close").
 ; Input: an array of PIDs.
 ; Output: none.
 	If (PIDs.MaxIndex())
+	{
 		For k, v In PIDs
-			Process, Close, %v%
+		{
+			If (v != currentPID) || (PIDs.MaxIndex() = k)	; Parsing a process of a different script or this script's process but as the last.
+				Process, Close, %v%
+			Else
+				PIDs.Insert(v)
+		}
+	}
 }
 
 killNreexecute(PIDs)	; Kills processes unnicely (uses "Process, Close") and then re-executes them.
@@ -791,9 +801,12 @@ killNreexecute(PIDs)	; Kills processes unnicely (uses "Process, Close") and then
 ; Output: none.
 	If (PIDs.MaxIndex())
 	{
-		scriptsPaths := getScriptPaths()
-		kill(PIDs)
-		run(scriptsPaths)
+		For k, v In PIDs	; If the script is ought to kill self - it should be done after killing and re-executing all other selected scripts.
+			If (v = currentPID)
+				suicide := 1, PIDs.Remove(k)
+		kill(PIDs), run(getScriptPaths())	; REWRITEME: getScriptPaths() relays on LV.
+		If (suicide)	; If the script is ought to kill self it has to re-execute self first before killing old instance.
+			Process, Close, %currentPID%
 	}
 }
 
@@ -806,9 +819,11 @@ commandScript(PIDs, wParam)	; Reload (uses PostMessage) selected scripts.
 	{
 		For k, v In PIDs
 		{
-			If (v != currentPID)
+			If (v != currentPID)	; Parsing a process of a different script.
 				PostMessage, 0x111, wParam,,, ahk_pid %v%
-			Else
+			Else If (k != PIDs.MaxIndex())	; Parsing the process of this script in the middle of the array.
+				PIDs.Insert(v)	; Adding this script's PID to the end of the PIDs array.
+			Else	; Parsing the process of this script as the last item of the array.
 			{
 				If (wParam = 65300)
 					ListLines
@@ -830,8 +845,15 @@ commandScript(PIDs, wParam)	; Reload (uses PostMessage) selected scripts.
 toggleSuspendProcess(PIDs)
 {
 	If (PIDs.MaxIndex())	; Input is not empty.
+	{
 		For k, v In PIDs
-			isProcessSuspended(v) ? resumeOrSuspendProcess(v) : resumeOrSuspendProcess(v, 0)	; Check current state of the process and toggle it.
+		{
+			If (v != currentPID) || (k = PIDs.MaxIndex())
+				isProcessSuspended(v) ? resumeOrSuspendProcess(v) : resumeOrSuspendProcess(v, 0)	; Check current state of the process and toggle it.
+			Else If (k != PIDs.MaxIndex())
+				PIDs.Insert(currentPID)
+		}
+	}
 }
 
 resumeOrSuspendProcess(pid, setState = 1)	; Resume or suspend selected pid's process.
@@ -842,7 +864,7 @@ resumeOrSuspendProcess(pid, setState = 1)	; Resume or suspend selected pid's pro
 	If !(procHWND := DllCall("OpenProcess", "uInt", 0x1F0FFF, "Int", 0, (A_PtrSize == 8) ? "Int64" : "Int", pid))
 		Return -1
 	DllCall("ntdll.dll\Nt" (setState ? "Resume" : "Suspend") "Process", "Int", procHWND)
-	DllCall("CloseHandle", (A_PtrSize == 8) ? "Int64" : "Int", procHWND)
+	DllCall("CloseHandle", "Int" (A_PtrSize == 8) ? "64" : "", procHWND)
 }
 	;}
 	;{ Track new processes and death of old processes.
@@ -857,12 +879,10 @@ ProcessCreate_OnObjectReady(obj)
 	processesSnapshot.Insert({"pid": Process.ProcessId, "exe": Process.ExecutablePath, "cmd": Process.CommandLine})
 	If ((Process.ExecutablePath == A_AhkPath) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*\\(?<Name>.*\.ahk)(""|\s)*$", script)) && (RegExMatch(Process.CommandLine, "Si)^(""|\s)*\Q" A_AhkPath "\E.*""(?<Path>.*\.ahk)(""|\s)*$", script)))	; If it is an uncompiled ahk script.
 	{
-		scriptsSnapshot.Insert({"pid": Process.ProcessId, "name": scriptName, "path": scriptPath})
+		this := (isProcessSuspended(Process.ProcessId) ? 5 : 1 + getScriptState(Process.ProcessId))	; The number from 1 to 5, which is the index of the icon in the 'IL_scriptStates' IL.
+		scriptsSnapshot.Insert({"pid": Process.ProcessId, "name": scriptName, "path": scriptPath, "icon": this})
 		Gui, ListView, ManageProcesses
-		If (isProcessSuspended(Process.ProcessId))
-			LV_Add("Icon5", scriptsSnapshot.MaxIndex(), Process.ProcessId, scriptName, scriptPath)
-		Else
-			LV_Add("Icon" 1 + getScriptState(Process.ProcessId), scriptsSnapshot.MaxIndex(), Process.ProcessId, scriptName, scriptPath)
+		LV_Add("Icon" this, scriptsSnapshot.MaxIndex(), Process.ProcessId, scriptName, scriptPath)
 		checkRunTriggers(scriptPath)
 	}
 	Else	; If this process is not an uncompiled ahk script.

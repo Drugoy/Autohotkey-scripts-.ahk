@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 3.6
-Last time modified: 2014.11.13 21:45
+Version: 3.7
+Last time modified: 2014.11.14 22:30
 
 Description: a script manager for *.ahk scripts.
 
@@ -17,13 +17,12 @@ http://forum.script-coding.com/viewtopic.php?id=8724
 ; 4. Sometimes we get outdated and unrefreshable data in the 'Manage Processes' tab.
 ; 5. Improve/Rewrite/Test 'Process Assistant'.
 ; 6. The script still has a FIXME, OPTIMIZEME and REWRITEMEs.
-; 7. Add context menus with commands duplicating buttons' functions.
 ;}
 ;{ Settings block.
 ; Path and name of the file name to store script's settings.
 Global settings := A_ScriptDir "\" SubStr(A_ScriptName, 1, StrLen(A_ScriptName) - 4) "_settings.ini"
 ; Specify a value in milliseconds.
-memoryScanInterval := 1000
+Global memoryScanInterval := 1000
 ; 1 = Make script store info (into the settings file) about it's window's size and position between script's closures. 0 = do not store that info in the settings file.
 rememberPosAndSize := 1
 ; 1 = use "exit" to end scripts, let them execute their 'OnExit' sub-routine. 0 = use "kill" to end scripts, that just instantly stops them, so scripts won't execute their 'OnExit' subroutines.
@@ -35,7 +34,7 @@ quitAssistantsNicely := 1
 ; #Warn	; Recommended for catching common errors.
 DetectHiddenWindows, On	; Needed for 'pause' and 'suspend' commands.
 OnExit, ExitApp
-Global processesSnapshot := [], Global scriptsSnapshot := [], Global scriptsSnapshotOld := [], Global procBinder := [], Global toBeRun := [], Global conditions, Global triggeredActions, Global rules, Global quitAssistantsNicely, Global bookmarks, wParam := 0, Global currentPID := DllCall("GetCurrentProcessId")
+Global processesSnapshot := [], Global scriptsSnapshot := [], Global procBinder := [], Global toBeRun := [], Global conditions, Global triggeredActions, Global rules, Global quitAssistantsNicely, Global bookmarks, wParam := 0, Global currentPID := DllCall("GetCurrentProcessId")
 
 IniRead, ignoreTheseProcesses, %settings%, Process Manager, IgnoreThese, 0	; Learn what processes should be absolutely ignored by all parsers.
 If (ignoreTheseProcesses)
@@ -82,6 +81,22 @@ Menu, Tray, Add, Manage Scripts, GuiShow	; Create a tray menu's menuitem and bin
 Menu, Tray, Default, Manage Scripts	; Set 'Manage Scripts' menuitem as default action (will be executed if tray icon is left-clicked).
 Menu, Tray, Add	; Add an empty line (divider).
 Menu, Tray, Standard	; Add all standard items to the bottom of tray menu.
+	;}
+	;{ Context menu for 'FolderTree' TV, 'FileList' LV and 'BookmarksList' LV.
+Menu, Tab1ContextMenu, Add, Run selected, RunSelected
+Menu, Tab1ContextMenu, Add, Bookmark selected, BookmarkSelected
+Menu, Tab1ContextMenu, Add, Delete selected, DeleteSelected
+	;}
+	;{ Context menu for 'ManageProcesses' LV.
+Menu, MngProcContMenu, Add, Open, Open
+Menu, MngProcContMenu, Add, Reload, Reload
+Menu, MngProcContMenu, Add, Edit, Edit
+Menu, MngProcContMenu, Add, (Un) suspend hotkeys, SuspendHotkeys
+Menu, MngProcContMenu, Add, (Un) pause, Pause
+Menu, MngProcContMenu, Add, Exit, Exit
+Menu, MngProcContMenu, Add, Kill, Kill
+Menu, MngProcContMenu, Add, Kill and re-execute, killNreexecute
+Menu, MngProcContMenu, Add, (Un) suspend process, ToggleSuspendProcess
 	;}
 	;{ StatusBar
 Gui, Add, StatusBar
@@ -152,7 +167,7 @@ Gui, Add, Button, x+0 gExit, Exit
 Gui, Add, Button, x+0 gToggleSuspendProcess, (Un) suspend process
 
 ; Add the main "ListView" element and define it's size, contents, and a label binding.
-Gui, Add, ListView, x0 y+0 +Resize +Grid +Count25 vManageProcesses, #|PID|Name|Path
+Gui, Add, ListView, x0 y+0 +Resize +Grid +Count25 vManageProcesses gManageProcesses AltSubmit, #|PID|Name|Path
 LV_SetImageList(IL_scriptStates)	; Assign ImageList 'IL_scriptStates' to the current ListView.
 ; Set the static widths for some of it's columns
 LV_ModifyCol(1, 36)
@@ -196,6 +211,9 @@ Gui, Show, % "x" sw_X " y" sw_Y " w" sw_W - 6 " h" sw_H - 28, Manage Scripts
 Gui, +Resize +MinSize666x222
 GroupAdd, ScriptHwnd_A, % "ahk_pid " currentPID ; Create an ahk_group "ScriptHwnd_A" and make all the current process's windows get into that group.
 SetTimer, MemoryScan, %memoryScanInterval%	; Set a timer to perform periodic scan of running scripts to update their status icons in the LV.
+; Postpone 'MemoryScan' timer in case the user drags the GUI window, so it won't be laggy.
+OnMessage(0x3, "WinMoveResize")
+OnMessage(0x5, "WinMoveResize")
 Return
 	;}
 ;}
@@ -347,9 +365,9 @@ Return
 		;{ FolderTree
 FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as well as trigger "FileList" ListView update.
 	Global activeControl := A_ThisLabel
-	If (A_GuiEvent == "Normal") || (A_GuiEvent == "S") || (A_GuiEvent == "+")	; In case of script's initialization, user's left click, keyboard selection or tree expansion - (re)fill the 'FileList' listview.
+	If (A_GuiEvent == "Normal") || (A_GuiEvent == "RightClick") || (A_GuiEvent == "S") || (A_GuiEvent == "+")	; In case of script's initialization, user's left click, keyboard selection or tree expansion - (re)fill the 'FileList' listview.
 	{
-		If (A_GuiEvent == "Normal")	; If user left clicked an empty space at right from a folder's name in the TreeView.
+		If (A_GuiEvent == "Normal") || (A_GuiEvent == "RightClick")	; If user left clicked an empty space at right from a folder's name in the TreeView.
 		{
 			If (A_EventInfo)	; If user clicked on a line's empty space.
 				TV_Modify(A_EventInfo, "Select")	; Forcefully select that line.
@@ -396,24 +414,50 @@ FolderTree:	; TreeView's G-label that should update the "FolderTree" TreeView as
 		GuiControl, +Redraw, FileList
 		;}
 		GoSub, StatusbarUpdate
+		If (A_GuiEvent == "RightClick")	; Show context menu if user right clicked anything in the TV + disable 'bookmark selected' command there in case he clicked an already bookmarked folder.
+		{
+			Loop, Parse, bookmarkedFolders, |
+			{
+				If (selectedItemPath = A_LoopField)
+				{
+					bookmarkedFolderDetected := 1
+					Menu, Tab1ContextMenu, Disable, Bookmark selected
+					Break
+				}
+			}
+			Menu, Tab1ContextMenu, Show
+			If (bookmarkedFolderDetected)
+			{
+				bookmarkedFolderDetected := 0
+				Menu, Tab1ContextMenu, Enable, Bookmark selected
+			}
+		}
 	}
 Return
 		;}
 		;{ FileList
 FileList:
+	If (A_GuiEvent == "RightClick")
+		Menu, Tab1ContextMenu, Show
 	If (A_GuiEvent == "Normal") || (A_GuiEvent == "RightClick")
 		Global activeControl := A_ThisLabel
 Return
 		;}
 		;{ BookmarksList
 BookmarksList:
+	If (A_GuiEvent == "RightClick")
+	{
+		Menu, Tab1ContextMenu, Disable, Bookmark selected
+		Menu, Tab1ContextMenu, Show
+		Menu, Tab1ContextMenu, Enable, Bookmark selected
+	}
 	If (A_GuiEvent == "Normal")
 		Global activeControl := A_ThisLabel
 Return
 		;}
 	;}
 	;{ Tab #1: gLabels of buttons.
-RunSelected:	; G-Label of "Run selected" button.
+RunSelected:	; G-Label of "Run selected" button/context menu item.
 	If (activeControl == "FileList")	; In case the last active GUI element was "FileList" ListView.
 	{
 		Gui, ListView, FileList
@@ -434,7 +478,7 @@ RunSelected:	; G-Label of "Run selected" button.
 	run(selected)
 Return
 
-BookmarkSelected:	; G-Label of "Bookmark selected" button.
+BookmarkSelected:	; G-Label of "Bookmark selected" button/context menu item.
 	If (activeControl == "FileList")	; Bookmark a script.
 	{
 		Gui, ListView, FileList
@@ -453,7 +497,7 @@ BookmarkSelected:	; G-Label of "Bookmark selected" button.
 	}
 Return
 
-DeleteSelected:	; G-Label of "Delete selected" button.
+DeleteSelected:	; G-Label of "Delete selected" button/context menu item.
 	If (activeControl == "BookmarksList")	; In case the last active GUI element was "BookmarksList" ListView.
 	{
 		Gui, ListView, %activeControl%
@@ -489,7 +533,14 @@ DeleteSelected:	; G-Label of "Delete selected" button.
 	}
 Return
 	;}
-	;{ Tab #2: gLabels of buttons.
+	;{ Tab #2 gLabels
+		;{ ManageProcesses.
+ManageProcesses:
+	If (A_GuiControlEvent = "RightClick")
+		Menu, MngProcContMenu, Show
+Return
+		;}
+		;{ Context menu items' gLabels.
 Kill:
 	Gui, ListView, ManageProcesses
 	kill(getPIDs())
@@ -521,6 +572,7 @@ Open:
 	commandScript(getPIDs(), wParam)
 	wParam := 0
 Return
+		;}
 	;}
 	;{ Tab #3: gLabels of buttons.
 AddNewRule:
@@ -695,15 +747,20 @@ getScriptState(pid)	; Returns script's state (hotkeys suspended? script paused?)
 	Return (isSuspended + isPaused)	; 0 - Script is neither paused nor it's hotkeys are suspended; 1 - Script's hotkeys are suspended, but it's not paused; 2 - Script's hotkeys are not suspended, but the script is paused; 3 - script's hotkeys are suspended and the script is paused.
 }
 
-memoryScanFunc()	; LAGGY.
+memoryScanFunc()	; Periodic checks of running scripts' states.
 {
 	Gui, ListView, ManageProcesses
 	For k, v In scriptsSnapshot	; Repeat as many times as there are running AHK-scripts.
 	{
 		newState := (isProcessSuspended(v.pid) ? 5 : 1 + getScriptState(v.pid))
-		If (v.icon != newState)
-			LV_Modify(k, "Icon" v.icon := newState)
+		If (v.icon != newState)	; If the script has a new state.
+			LV_Modify(k, "Icon" v.icon := newState)	; Change it's icon in the LV.
 	}
+}
+
+WinMoveResize(wParam, lParam)	; A function executed upon dragging this script's GUI to postpone the 'MemoryScan' timer.
+{
+	SetTimer, MemoryScan, %memoryScanInterval%
 }
 	;}
 	;{ Functions to parse data.
@@ -784,13 +841,27 @@ kill(PIDs)	; Kills processes unnicely (uses "Process, Close").
 ; Output: none.
 	If (PIDs.MaxIndex())
 	{
+		Gui, ListView, ManageProcesses
 		For k, v In PIDs
 		{
 			If (v != currentPID) || (PIDs.MaxIndex() = k)	; Parsing a process of a different script or this script's process but as the last.
+			{
+				For a, b In scriptsSnapshot
+				{
+					If (v == b.pid)
+					{
+						scriptsSnapshot.Remove(a)	; Update 'scriptsSnapshot' array.
+						LV_Delete(a)	; Update 'ManageProcesses' LV.
+						Break
+					}
+				}
 				Process, Close, %v%
+			}
 			Else
 				PIDs.Insert(v)
 		}
+		Loop, % LV_GetCount()	; Update values of '#' column from 'ManageProcesses' LV.
+			LV_Modify(A_Index,, A_Index)
 	}
 }
 

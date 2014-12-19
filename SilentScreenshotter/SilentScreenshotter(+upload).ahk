@@ -93,26 +93,16 @@ If !(imgurClientID)	; The script can't work without imgurClientID.
 }
 
 Global imgurClientID, Global proxyEnable, Global proxyServer, Global imgExtension, imgURL, clipURL, tempScreenshot
-Global ptr := A_PtrSize ? "uPtr" : "uInt"
+Global ptr := A_PtrSize ? "UPtr" : "UInt"
 RegRead, proxyEnable, HKCU, Software\Microsoft\Windows\CurrentVersion\Internet Settings, ProxyEnable	; Detect wheter proxy is used or not.
 If (proxyEnable)
 	RegRead, proxyServer, HKCU, Software\Microsoft\Windows\CurrentVersion\Internet Settings, ProxyServer	; Detect address of proxy.
 imgPath .= imgName "." imgExtension
 pToken := Gdip_Startup()
 
-If (%0% != 0)	; Usually %0% contains the number of command line parameters, but when the user drag'n'drops files onto the script - each of the dropped file gets sent to script as a separate command line parameter, so %0% contains the number of dropped files.
-{
+If %0%	; Usually %0% contains the number of command line parameters, but when the user drag'n'drops files onto the script - each of the dropped file gets sent to script as a separate command line parameter, so %0% contains the number of dropped files.
 	Loop, %0%
-	{
-		GivenPath := A_Index
-		Loop, %GivenPath%, 1
-			fileLongPath := A_LoopFileLongPath
-		If (A_Index == 1)
-			upload(fileLongPath)
-		Else
-			upload(fileLongPath, 1)
-	}
-}
+		upload(%A_Index%, (A_Index = 1 ? 0 : 1))
 multipleInstances := OtherInstance()
 If (multipleInstances)
 	ExitApp
@@ -147,14 +137,14 @@ If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
 		MouseGetPos, x2, y2
 		hbm := CreateDIBSection(w0, h0)
 		hdc := DllCall("CreateCompatibleDC", ptr, 0)
-		obm := DllCall("SelectObject", Ptr, hdc, Ptr, hbm)
+		obm := DllCall("SelectObject", ptr, hdc, ptr, hbm)
 		DllCall("gdiplus\GdipCreateFromHDC", ptr, hdc, ptr "*", G)
 		DllCall("gdiplus\GdipSetSmoothingMode", ptr, G, "Int", 4)
-		DllCall("gdiplus\GdipCreatePen1", "uInt", 0xffff0000, "float", 1, "Int", 2, ptr "*", pPen)
+		DllCall("gdiplus\GdipCreatePen1", "UInt", 0xffff0000, "float", 1, "Int", 2, ptr "*", pPen)
 		Gdip_DrawLines(G, pPen, x1-x0 "," y1-y0 "|" x2-x0 "," y1-y0 "|" x2-x0 "," y2-y0 "|" x1-x0 "," y2-y0 "|" x1-x0 "," y1-y0)
 		DllCall("gdiplus\GdipDeleteBrush", ptr, pPen)
 		UpdateLayeredWindow(hwnd1, hdc, x0, y0, w0, h0)
-		DllCall("SelectObject", Ptr, hdc, Ptr, obm)
+		DllCall("SelectObject", ptr, hdc, ptr, obm)
 		DllCall("DeleteObject", ptr, hbm)
 		DllCall("DeleteDC", ptr, hdc)
 		DllCall("gdiplus\GdipDeleteGraphics", ptr, G)
@@ -194,9 +184,9 @@ Else	; User has to hit PrintScreen once again (for the 3rd time) to take a scree
 Return
 
 Exit:
-	DllCall("gdiplus\GdiplusShutdown", Ptr, pToken)
-	If (hModule := DllCall("GetModuleHandle", "Str", "gdiplus", Ptr))
-		DllCall("FreeLibrary", Ptr, hModule)
+	DllCall("gdiplus\GdiplusShutdown", ptr, pToken)
+	If (hModule := DllCall("GetModuleHandle", "Str", "gdiplus", ptr))
+		DllCall("FreeLibrary", ptr, hModule)
 ExitApp
 
 upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autohotkey.com/board/user/910-maestrith/ and GeekDude https://github.com/G33kDude
@@ -234,7 +224,7 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 	}
 	If (clipURL != 1)	; Otherwise - open it in the browser.
 		Run, % imgURL
-	If tempScreenshot && (%0% == 0)	; User specified to delete the local screenshot's file after uploading it.
+	If tempScreenshot && (%0% = 0)	; User specified to delete the local screenshot's file after uploading it.
 		FileDelete, % input
 }
 
@@ -260,10 +250,10 @@ OtherInstance()	; Thanks to: GeekDude http://www.autohotkey.com/board/user/10132
 
 Gdip_Startup()
 {
-	If !(DllCall("GetModuleHandle", "Str", "gdiplus", Ptr))
+	If !(DllCall("GetModuleHandle", "Str", "gdiplus", ptr))
 		DllCall("LoadLibrary", "Str", "gdiplus")
 	VarSetCapacity(si, A_PtrSize = 8 ? 24 : 16, 0), si := Chr(1)
-	DllCall("gdiplus\GdiplusStartup", ptr "*", pToken, Ptr, &si, Ptr, 0)
+	DllCall("gdiplus\GdiplusStartup", ptr "*", pToken, ptr, &si, ptr, 0)
 	Return pToken
 }
 
@@ -271,10 +261,10 @@ CreateDIBSection(w, h, hdc="")
 {
 	hdc2 := hdc ? hdc : DllCall("GetDC", ptr, 0)
 	VarSetCapacity(bi, 40, 0)
-	NumPut(w, bi, 4, "uInt"), NumPut(h, bi, 8, "uInt"), NumPut(40, bi, 0, "uInt"), NumPut(1, bi, 12, "ushort"), NumPut(0, bi, 16, "uInt"), NumPut(32, bi, 14, "ushort")
-	hbm := DllCall("CreateDIBSection", Ptr, hdc2, Ptr, &bi, "uInt", 0, ptr "*", 0, Ptr, 0, "uInt", 0, Ptr)
+	NumPut(w, bi, 4, "UInt"), NumPut(h, bi, 8, "UInt"), NumPut(40, bi, 0, "UInt"), NumPut(1, bi, 12, "ushort"), NumPut(0, bi, 16, "UInt"), NumPut(32, bi, 14, "ushort")
+	hbm := DllCall("CreateDIBSection", ptr, hdc2, ptr, &bi, "UInt", 0, ptr "*", 0, Ptr, 0, "UInt", 0, ptr)
 	If !(hdc)
-		DllCall("ReleaseDC", Ptr, 0, Ptr, hdc2)
+		DllCall("ReleaseDC", ptr, 0, ptr, hdc2)
 	Return hbm
 }
 
@@ -287,16 +277,16 @@ Gdip_DrawLines(pGraphics, pPen, Points)
 		StringSplit, Coord, Points%A_Index%, `,
 		NumPut(Coord1, PointF, 8*(A_Index-1), "float"), NumPut(Coord2, PointF, (8*(A_Index-1))+4, "float")
 	}
-	Return DllCall("gdiplus\GdipDrawLines", Ptr, pGraphics, Ptr, pPen, Ptr, &PointF, "Int", Points0)
+	Return DllCall("gdiplus\GdipDrawLines", ptr, pGraphics, ptr, pPen, ptr, &PointF, "Int", Points0)
 }
 
 UpdateLayeredWindow(hwnd, hdc, x="", y="", w="", h="", Alpha=255)
 {
 	If ((x != "") && (y != ""))
-		VarSetCapacity(pt, 8), NumPut(x, pt, 0, "uInt"), NumPut(y, pt, 4, "uInt")
+		VarSetCapacity(pt, 8), NumPut(x, pt, 0, "UInt"), NumPut(y, pt, 4, "UInt")
 	If ((w = "") || (h = ""))
 		WinGetPos,,, w, h, ahk_id %hwnd%
-	Return DllCall("UpdateLayeredWindow", Ptr, hwnd, Ptr, 0, Ptr, ((x = "") && (y = "")) ? 0 : &pt, "int64*", w|h<<32, Ptr, hdc, "int64*", 0, "uInt", 0, "uInt*", Alpha<<16|1<<24, "uInt", 2)
+	Return DllCall("UpdateLayeredWindow", ptr, hwnd, ptr, 0, ptr, ((x = "") && (y = "")) ? 0 : &pt, "Int64*", w|h<<32, ptr, hdc, "Int64*", 0, "UInt", 0, "UInt*", Alpha<<16|1<<24, "UInt", 2)
 }
 
 Gdip_BitmapFromScreen(Screen)
@@ -308,7 +298,7 @@ Gdip_BitmapFromScreen(Screen)
 			Return -2
 		WinGetPos,,, w, h, ahk_id %Screen%
 		x := y := 0
-		hhdc := DllCall("GetDCEx", Ptr, Screen, Ptr, 0, "Int", 3)
+		hhdc := DllCall("GetDCEx", ptr, Screen, ptr, 0, "Int", 3)
 	}
 	Else If (Screen&1 != "")
 	{
@@ -322,11 +312,11 @@ Gdip_BitmapFromScreen(Screen)
 	}
 	If ((x = "") || (y = "") || (w = "") || (h = ""))
 		Return -1
-	chdc := DllCall("CreateCompatibleDC", ptr, 0), hbm := CreateDIBSection(w, h, chdc), obm := DllCall("SelectObject", Ptr, chdc, Ptr, hbm), hhdc := hhdc ? hhdc : DllCall("GetDC", ptr, 0)
-	DllCall("gdi32\BitBlt", Ptr, chdc, "Int", 0, "Int", 0, "Int", w, "Int", h, Ptr, hhdc, "Int", x, "Int", y, "uInt", 0x00CC0020)
-	DllCall("ReleaseDC", Ptr, 0, Ptr, hhdc)
-	DllCall("gdiplus\GdipCreateBitmapFromHBITMAP", Ptr, hbm, Ptr, 0, ptr "*", pBitmap)
-	DllCall("SelectObject", Ptr, chdc, Ptr, obm), DllCall("DeleteObject", ptr, hbm), DllCall("DeleteDC", ptr, hhdc), DllCall("DeleteDC", ptr, chdc)
+	chdc := DllCall("CreateCompatibleDC", ptr, 0), hbm := CreateDIBSection(w, h, chdc), obm := DllCall("SelectObject", ptr, chdc, ptr, hbm), hhdc := hhdc ? hhdc : DllCall("GetDC", ptr, 0)
+	DllCall("gdi32\BitBlt", ptr, chdc, "Int", 0, "Int", 0, "Int", w, "Int", h, ptr, hhdc, "Int", x, "Int", y, "UInt", 0x00CC0020)
+	DllCall("ReleaseDC", ptr, 0, ptr, hhdc)
+	DllCall("gdiplus\GdipCreateBitmapFromHBITMAP", ptr, hbm, ptr, 0, ptr "*", pBitmap)
+	DllCall("SelectObject", ptr, chdc, Ptr, obm), DllCall("DeleteObject", ptr, hbm), DllCall("DeleteDC", ptr, hhdc), DllCall("DeleteDC", ptr, chdc)
 	Return pBitmap
 }
 
@@ -335,9 +325,9 @@ Gdip_SaveBitmapToFile(pBitmap, sOutput, Quality=100)
 	SplitPath, sOutput,,, Extension
 	If Extension Not In BMP,DIB,RLE,JPG,JPEG,JPE,JFIF,GIF,TIF,TIFF,PNG
 		Return -1
-	DllCall("gdiplus\GdipGetImageEncodersSize", "uInt*", nCount, "uInt*", nSize)
+	DllCall("gdiplus\GdipGetImageEncodersSize", "UInt*", nCount, "UInt*", nSize)
 	VarSetCapacity(ci, nSize)
-	DllCall("gdiplus\GdipGetImageEncoders", "uInt", nCount, "uInt", nSize, Ptr, &ci)
+	DllCall("gdiplus\GdipGetImageEncoders", "UInt", nCount, "UInt", nSize, ptr, &ci)
 	If !(nCount && nSize)
 		Return -2
 	If (A_IsUnicode)
@@ -357,9 +347,9 @@ Gdip_SaveBitmapToFile(pBitmap, sOutput, Quality=100)
 		Loop, % nCount
 		{
 			Location := NumGet(ci, 76*(A_Index-1)+44)
-			nSize := DllCall("WideCharToMultiByte", "uInt", 0, "uInt", 0, "uInt", Location, "Int", -1, "uInt", 0, "Int",  0, "uInt", 0, "uInt", 0)
+			nSize := DllCall("WideCharToMultiByte", "UInt", 0, "UInt", 0, "UInt", Location, "Int", -1, "UInt", 0, "Int",  0, "UInt", 0, "UInt", 0)
 			VarSetCapacity(sString, nSize)
-			DllCall("WideCharToMultiByte", "uInt", 0, "uInt", 0, "uInt", Location, "Int", -1, "Str", sString, "Int", nSize, "uInt", 0, "uInt", 0)
+			DllCall("WideCharToMultiByte", "UInt", 0, "UInt", 0, "UInt", Location, "Int", -1, "Str", sString, "Int", nSize, "UInt", 0, "UInt", 0)
 			If !(InStr(sString, "*." Extension))
 				Continue
 			pCodec := &ci+76*(A_Index-1)
@@ -372,32 +362,32 @@ Gdip_SaveBitmapToFile(pBitmap, sOutput, Quality=100)
 	{
 		If (Quality != 75)
 			Quality := (Quality < 0) ? 0 : (Quality > 100) ? 100 : Quality
-		DllCall("gdiplus\GdipGetEncoderParameterListSize", Ptr, pBitmap, Ptr, pCodec, "uInt*", nSize)
+		DllCall("gdiplus\GdipGetEncoderParameterListSize", ptr, pBitmap, ptr, pCodec, "UInt*", nSize)
 		VarSetCapacity(EncoderParameters, nSize, 0)
-		DllCall("gdiplus\GdipGetEncoderParameterList", Ptr, pBitmap, Ptr, pCodec, "uInt", nSize, Ptr, &EncoderParameters)
-		Loop, % NumGet(EncoderParameters, "uInt")      ;%
+		DllCall("gdiplus\GdipGetEncoderParameterList", ptr, pBitmap, ptr, pCodec, "UInt", nSize, ptr, &EncoderParameters)
+		Loop, % NumGet(EncoderParameters, "UInt")      ;%
 		{
 			elem := (24+(A_PtrSize ? A_PtrSize : 4))*(A_Index-1) + 4 + (pad := A_PtrSize = 8 ? 4 : 0)
-			If ((NumGet(EncoderParameters, elem+16, "uInt") = 1) && (NumGet(EncoderParameters, elem+20, "uInt") = 6))
+			If ((NumGet(EncoderParameters, elem+16, "UInt") = 1) && (NumGet(EncoderParameters, elem+20, "UInt") = 6))
 			{
 				p := elem+&EncoderParameters-pad-4
-				NumPut(Quality, NumGet(NumPut(4, NumPut(1, p+0)+20, "uInt")), "uInt")
+				NumPut(Quality, NumGet(NumPut(4, NumPut(1, p+0)+20, "UInt")), "UInt")
 				Break
 			}
 		}
 	}
 	If !(A_IsUnicode)
 	{
-		nSize := DllCall("MultiByteToWideChar", "uInt", 0, "uInt", 0, Ptr, &sOutput, "Int", -1, Ptr, 0, "Int", 0)
+		nSize := DllCall("MultiByteToWideChar", "UInt", 0, "UInt", 0, ptr, &sOutput, "Int", -1, ptr, 0, "Int", 0)
 		VarSetCapacity(wOutput, nSize*2)
-		DllCall("MultiByteToWideChar", "uInt", 0, "uInt", 0, Ptr, &sOutput, "Int", -1, Ptr, &wOutput, "Int", nSize)
+		DllCall("MultiByteToWideChar", "UInt", 0, "UInt", 0, ptr, &sOutput, "Int", -1, ptr, &wOutput, "Int", nSize)
 		VarSetCapacity(wOutput, -1)
 		If !(VarSetCapacity(wOutput))
 			Return -4
-		E := DllCall("gdiplus\GdipSaveImageToFile", Ptr, pBitmap, Ptr, &wOutput, Ptr, pCodec, "uInt", p ? p : 0)
+		E := DllCall("gdiplus\GdipSaveImageToFile", ptr, pBitmap, ptr, &wOutput, ptr, pCodec, "UInt", p ? p : 0)
 	}
 	Else
-		E := DllCall("gdiplus\GdipSaveImageToFile", Ptr, pBitmap, Ptr, &sOutput, Ptr, pCodec, "uInt", p ? p : 0)
+		E := DllCall("gdiplus\GdipSaveImageToFile", ptr, pBitmap, ptr, &sOutput, ptr, pCodec, "UInt", p ? p : 0)
 	Return E ? -5 : 0
 }
 ;}

@@ -92,6 +92,9 @@ One of them is [MasterScript.ahk](ScriptManager.ahk/MasterScript.ahk), which is 
 A very ascetic yet powerful screenshotter that lets you select the area to make screenshot of, then uses a lossless compression to minimize the file's size, then automatically uploads the screenshot to Imgur and finally copies (and/or opens) the path to the screenshot. Supports drag'n'drop of images to upload them to Imgur.
 The script requries some pre-configuration before it can be used, so read the header in the script's code.
 
+##### [StandDescription](StandDescription)
+A script that demonstrates the idea of dynamic GUI and saving/restoring data from an array or an object) into/from JSON format.
+
 ##### [StringyLauncher](StringyLauncher)
 This is a launcher (run programs by typing keywords). It follows the rules specified in "rules.ini" file.
 The syntax for this file is the following:

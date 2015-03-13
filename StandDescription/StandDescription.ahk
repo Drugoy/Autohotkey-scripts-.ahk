@@ -131,8 +131,8 @@ Return
 
 DeleteNode:
 	machines.Remove(SubStr(A_GuiControl, 5))	; SubStr(A_GuiControl, 5)
-	GoSub, UpdateMachinesObj
 	GoSub, Repaint
+	GoSub, UpdateMachinesObj
 Return
 
 AddNode:
@@ -146,8 +146,8 @@ Return
 DeleteIf:
 	RegExMatch(A_GuiControl, "Si)^n(\d+)DelIf(\d+)$", this)	; User deleted iface #%this2% from node #%this1%.
 	machines[this1].ifaces.Remove(this2)
-	GoSub, UpdateMachinesObj
 	GoSub, Repaint
+	GoSub, UpdateMachinesObj
 Return
 
 AddIf:
@@ -161,8 +161,8 @@ Return
 DeleteAddr:
 	RegExMatch(A_GuiControl, "Si)^n(\d+)If(\d+)DelA(\d+)$", this)
 	machines[this1].ifaces[this2].addrs.Remove(this3)
-	GoSub, UpdateMachinesObj
 	GoSub, Repaint
+	GoSub, UpdateMachinesObj
 Return
 
 AddAddr:
@@ -175,7 +175,7 @@ AddAddr:
 Return
 
 UpdateMachinesObj:
-	Gui, 1: Submit
+	Gui, 1: Submit, NoHide
 	For node in machines
 	{
 		machines[node].Name := n%node%Name

@@ -64,6 +64,9 @@ Make rules to move files automatically. Use it to make a rule that moves files f
 An improved version of "[Icon Menu Launcher](Icon Menu Launcher)" script.
 Shows a list of menuitems: if you click any of them - they act as shortcuts to the files previously drag'n'dropped onto it. The script supports drag'n'drop of multiple files at once.
 
+##### [MiddleClickInstantScroll](MiddleClickInstantScroll)
+Middle click on an arbitrary position on scrollbar to instantly scroll to that position.
+
 ##### [Outdated](Outdated)
 This folder contains outdated script, mostly obsolete by the newer realizations. You don't need any of them.
 

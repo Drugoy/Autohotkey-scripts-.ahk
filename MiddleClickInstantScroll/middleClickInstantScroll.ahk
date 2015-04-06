@@ -1,7 +1,7 @@
 ﻿/* MiddleClickInstantScroll
-Version: 0.1
-Last time modified: 2015.03.26 16:47
-Summary: middle click on arbitrary position on an scrollbar to instantly scroll to that position.
+Version: 0.2
+Last time modified: 2015.04.06 17:04
+Summary: middle click on arbitrary position on scrollbar to instantly scroll to that position.
 
 Script author: Drugoy, a.k.a. Drugmix.
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
@@ -37,7 +37,7 @@ $MButton::
 	MouseGetPos,,, hoveredWinHWND, hoveredCtrlClass
 	WinGet, howeredWinExeName, ProcessName, ahk_id %hoveredWinHWND%
 	Loop, % scrollBars.maxIndex()
-		If (howeredWinExeName = scrollBars[A_Index].exe)
+		If (howeredWinExeName = scrollBars[A_Index].exe && hoveredCtrlClass = scrollBars[A_Index].ctrl)
 			thisItem := A_Index
 	If !thisItem	; Not found in the scrolls database.
 		Send, {MButton}

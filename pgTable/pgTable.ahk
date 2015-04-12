@@ -1,13 +1,14 @@
-﻿/* MasterScript.ahk
-Version: 1
-Last time modified: 17:10 17.07.2014
+﻿/* pgTable.ahk
+Version: 1.0
+Last time modified: 2015.04.12 14:54
 
 Description: a script to draw a pseudo-graphical borders to the copied table.
 
 Script author: Drugoy a.k.a. Drugmix
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
-https://github.com/Drugoy/Autohotkey-scripts-.ahk/blob/master/pgTable/pgTable.ahkerScript.ahk
+https://github.com/Drugoy/Autohotkey-scripts-.ahk/blob/master/pgTable/pgTable.ahk
 */
+
 #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 ; #Warn  ; Enable warnings to assist with detecting common errors.
 SendMode, Input  ; Recommended for new scripts due to its superior speed and reliability.
@@ -25,8 +26,8 @@ border := borderThin	; Specify the choice of border style here
 useTopBorder := 1	; Choose whether to add a top border to the table
 useRowSeparatingBorders := 1	; Choose whether to use horizontal borders betweel rows
 useBottomBorder := 1	; Choose whether to add a bottom border to the table
-horizontalCellPadding := 1	; Choose the number of spaces to be added as horizontal paddings (to the left and to the right from each cell's value)
-textAlign := 1	; Choose how to align text in cells: left/center/right = -1/0/1
+horizontalCellPadding := 0	; Choose the number of spaces to be added as horizontal paddings (to the left and to the right from each cell's value)
+textAlign := 0	; Choose how to align text in cells: left/center/right = -1/0/1
 	;}
 ;}
 
@@ -55,7 +56,7 @@ F12::
 		{
 			thisColMaxWidth := getColMaxWidth(A_Index)
 			thisCellWidth := StrLen(inputArray[A_Index, thisRow])
-			If (thisRow == 1)	; While parsing first row the script, based on the specified settings decides whether to build table's top border, bottom border and row separating horizontal borders.
+ 			If (thisRow == 1)	; While parsing first row, the script (based on the specified settings) decides whether to build table's top border, bottom border and row separating horizontal borders.
 			{
 				;{ Build the table's top border.
 				If (useTopBorder)
@@ -87,7 +88,7 @@ F12::
 				If (useBottomBorder)
 				{
 					If (A_Index == 1)	; Parsing leftmost cell.
-						bottomBorder := SubStr(border, 9, 1)	; └
+						bottomBorder := "`n" SubStr(border, 9, 1)	; └
 					Loop, % thisColMaxWidth + 2 * horizontalCellPadding
 						bottomBorder .= SubStr(border, 1, 1)	; ─
 					If (A_Index != columns)
@@ -98,28 +99,27 @@ F12::
 				;}
 			}
 			;{ Defining the number of spaces at left and at right from the cell's text value.
-			If (A_Index == 1)	; Parsing leftmost cell.
+			If (A_Index = 1)	; Parsing leftmost cell.
 				output .= SubStr(border, 2, 1)	; │
 			cellLeftSpacing := cellRightSpacing := horizontalCellPadding	; Counting the number of spaces to add at left from the value.
-			If (textAlign == "1")	; Right text alignment
+			If (textAlign = "1")	; Right text alignment
 				cellLeftSpacing += thisColMaxWidth - thisCellWidth
-			Else If (textAlign == "-1")	; Left text alignment
+			Else If (textAlign = "-1")	; Left text alignment
 				cellRightSpacing += thisColMaxWidth - thisCellWidth
-			Else If (textAlign == "0") && (thisColMaxWidth - thisCellWidth)	; 
+			Else If (thisColMaxWidth - thisCellWidth)	; 
 			{
-				cellLeftSpacing += Ceil((thisColMaxWidth - thisCellWidth)/2)
-				cellRightSpacing += Floor((thisColMaxWidth - thisCellWidth)/2)
+				cellLeftSpacing += Ceil((thisColMaxWidth - thisCellWidth) / 2)
+				cellRightSpacing += Floor((thisColMaxWidth - thisCellWidth) / 2)
 			}
 			Loop, % cellLeftSpacing
-				(A_Index == 1 ? cellLeftSpacing := " " : cellLeftSpacing .= " ")
+				(A_Index = 1 ? cellLeftSpacing := " " : cellLeftSpacing .= " ")
 			Loop, % cellRightSpacing
-				(A_Index == 1 ? cellRightSpacing := " " : cellRightSpacing .= " ")
+				(A_Index = 1 ? cellRightSpacing := " " : cellRightSpacing .= " ")
 			;}
 			output .= (cellLeftSpacing ? cellLeftSpacing : "") inputArray[A_Index, thisRow] (cellRightSpacing ? cellRightSpacing : "") SubStr(border, 2, 1)	; │
 		}
-		output .= "`n"	; Finish a row.
 		If (useRowSeparatingBorders) && (A_Index != rows)	; Concatenate a row separating border to the currently formed row.
-			output .= rowSeparator
+			output .= "`n" rowSeparator
 	}
 	output := topBorder output bottomBorder
 	;}

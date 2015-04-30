@@ -4,11 +4,10 @@ Description: this script has GUI with text areas and buttons to add more text fi
 I wrote this script for myself, yet someone might like and reuse the idea of dynamic GUI, used to update an object that can be exported (and later imported) into text form.
 Requirements: AutoHotkey v1.1.17+
 Version: 1
-Last time modified: 2013.05.26 17:00
+Last time modified: 2015.04.14 19:43
 Script author: Drugoy, a.k.a. Drugmix
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
-https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/DrugWinManager
-Version: 1
+https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/StandDescription
 */
 
 #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.

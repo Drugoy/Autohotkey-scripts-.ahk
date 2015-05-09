@@ -43,7 +43,7 @@ $Mbutton::
 	stdWinReqActive := isVarInArr(hoveredWinProcessName, stdWinsReqActiv)
 	nonStdWin := isVarInArr(hoveredWinProcessName, nonStdWins)
 	active := (activeWinHWND == hoveredWinHWND ? 1 : 0)
-	OutputDebug, % accRole := Acc_ObjectFromPoint().accRole(0)
+	accRole := Acc_ObjectFromPoint().accRole(0)
 	Loop, % scrollBars.maxIndex()
 	{
 		If (howeredWinExeName = scrollBars[A_Index].exe && hoveredCtrlClass = scrollBars[A_Index].ctrl)

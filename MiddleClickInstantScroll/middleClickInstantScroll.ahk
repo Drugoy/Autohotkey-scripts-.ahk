@@ -1,6 +1,6 @@
 ﻿/* MiddleClickInstantScroll
-Version: 0.5
-Last time modified: 2015.05.10 02:47
+Version: 0.5.1
+Last time modified: 2015.05.14 16:39
 
 Summary: middle click on arbitrary position on scrollbar to instantly scroll to that position.
 
@@ -68,7 +68,11 @@ $Mbutton::
 			If nonStdWin && predefined	; Not yet coded, but possible.
 				Send, +{LButton}
 			Else	; !predefined
+			{
+				While (GetKeyState("MButton", "P"))
+					Sleep, 20
 				Send, {MButton}
+			}
 		}
 	}
 	Else	; !active
@@ -102,6 +106,8 @@ $Mbutton::
 				WinWaitActive, ahk_id %activeWinHWND%
 			}
 			Else	; !predefined
+				While (GetKeyState("MButton", "P"))
+					Sleep, 20
 				Send, {MButton}
 		}
 	}

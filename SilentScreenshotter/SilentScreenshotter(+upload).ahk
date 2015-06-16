@@ -1,6 +1,6 @@
-﻿/* SilentScreenshotter v1.5
+﻿/* SilentScreenshotter v1.6
 
-Last modified: 2014.08.28 23:12
+Last modified: 2015.06.16 13:11
 
 This script takes *.png screenshots of the specified area and uploads them to imgur.com and depending on user's setting - it either stores the URL of the uploaded image into the clipboard or opens it instantly. It also supports image files to be drag'n'dropped onto the script to upload them.
 
@@ -178,8 +178,8 @@ Else	; User has to hit PrintScreen once again (for the 3rd time) to take a scree
 			RunWait, %optipngPath% -o%optimizePNG% -i0 -nc -nb -q -clobber %imgPath%,, Hide
 		Else
 			TrayTip, Error, Optipng not found`, thus can't optimize the image.
-	upload(imgPath)
-	TrayTip, Complete, The image has been successfully uploaded:`n%imgURL%, 1, 1
+	If upload(imgPath)
+		TrayTip, Complete, The image has been successfully uploaded:`n%imgURL%, 1, 1
 }
 Return
 
@@ -211,7 +211,10 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 	Try
 		http.Send(data)
 	Catch, e
-		Msgbox, Please, try again, because the script failed to upload your screenshot due to a server-issue:`n%e%
+	{
+		Msgbox, % "Please, try again, because the script failed to upload your screenshot due to a server-issue:`n" e "`nError message: " e.Message "`nError what: " e.What "`nError extra: " e.Extra "`nError file: " e.File "`nError line: " e.Line
+		Return 0
+	}
 	imgURL := http.ResponseText
 	If (RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?(jpg|jpeg|png|gif|apng|tiff|tif|bmp|pdf|xcf))""}", Match))
     	imgURL := "https://" RegExReplace(Match1, "\\/", "/")
@@ -226,6 +229,7 @@ upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autoh
 		Run, % imgURL
 	If tempScreenshot && (%0% = 0)	; User specified to delete the local screenshot's file after uploading it.
 		FileDelete, % input
+	Return 1
 }
 
 OtherInstance()	; Thanks to: GeekDude http://www.autohotkey.com/board/user/10132-geekdude/

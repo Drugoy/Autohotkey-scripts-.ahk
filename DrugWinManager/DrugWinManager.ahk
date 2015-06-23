@@ -1,5 +1,5 @@
-﻿/* DrugWinManager v2.2
-Last time modified: 2015.03.31 10:13
+﻿/* DrugWinManager v2.3
+Last time modified: 2015.06.23 13:18
 
 Script author: Drugoy a.k.a. Drugmix
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
@@ -114,7 +114,7 @@ To do:
  	Else If (class == "AkelPad4" && control == "SysTabControl321") || (class == "IEFrame" && control == "DirectUIHWND2")	; AkelPad
  		ControlSend,, % (A_ThisHotkey == "$WheelUp") ? ("{Ctrl Down}{Shift Down}{Tab}{Shift Up}{Ctrl Up}") : ("{Ctrl Down}{Tab}{Ctrl Up}"), ahk_id %id%
  	Else If (id != idA) && (class != "Progman")	; If the cursor hovers an inactive window (and which is not the desktop) - that inactive window should receive a scrolling event (without the activation of that window).
- 		PostMessage, 0x20A, (A_ThisHotkey == "$WheelUp") ? 120 << 16 : -120 << 16, ( m_y << 16 )|m_x,, ahk_id %hw_m_target%
+ 		PostMessage, 0x20A, (A_ThisHotkey == "$WheelUp") ? 120 << 16 : -120 << 16, (m_y << 16) | (m_x & 0xFFFF),, ahk_id %hw_m_target%
  	Else If (id == idA) || (class == "Progman")	; If the cursor hovers the active window or desktop - the regular scrolling event should get sent to the active window.
  	{
  		If (A_ThisHotkey == "$WheelUp")

@@ -1,6 +1,6 @@
 ﻿/* Meta Shortcut
-Version: 6
-Last time modified: 2014.11.06 21:16
+Version: 7
+Last time modified: 2015.07.21 11:15
 
 Summary: a single file that can store multiple shortcuts and provides access to them via dropdown menu.
 
@@ -21,7 +21,7 @@ https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/Meta%20Shortcut/Me
 #SingleInstance, Force
 SetWorkingDir, %A_ScriptDir%
 
-smartLinks := true	; Defines how to handle *.url files when they get drag'n'dropped onto this script's file: true - store the URL from the *.url file (you may delete the file, the link shortcut will still work); false - use the link to the *.url file itself (if it gets deleted - the link will be broken).
+smartLinks := true	; Defines how to handle *.url files when they get drag'n'dropped onto this script's file: true - store the URL from the *.url file (you may delete the file, the link shortcut will still work); false - use the link to the *.url file itself (if the file gets deleted - the link will get broken).
 useThisBrowser := ""	; Define here the path to your browser, if you wish to use non-default one for opening http:// and ftp:// urls. For example: "iexplore.exe" will force to use Internet Explorer.
 
 ; Here we create var %settingstxt% that contains a name of the txt file (which is equal to the script's name, except it has a *.txt extension).
@@ -47,13 +47,24 @@ If (%0% == 0)	; User wanted to access the already stored shortcuts.
 				Menu, ShortcutsList, Icon, %A_Index%. %singleRecordPart1%, shell32.dll, 14
 			Else If (singleRecordPart1 ~= "iS)^.*\.exe$")	; Set icon for *.exe files.
 				Menu, ShortcutsList, Icon, %A_Index%. %singleRecordPart1%, shell32.dll, 3
+			Else If (singleRecordPart1 ~= "iS)^.*\\$")
+				Menu, ShortcutsList, Icon, %A_Index%. %singleRecordPart1%, shell32.dll, 4
 			Else	; Set icons for the rest of files (use icons from user's system).
 			{
 				thisFileExtension := chopString(singleRecordPart1)
 				RegRead, temp, HKCR, .%thisFileExtension%
 				RegRead, icoPath, HKCR, %temp%\DefaultIcon
-				thisIconLibPath := chopString(icoPath, "`,", 1)
-				thisIconNumberInLib := chopString(icoPath, "`,")
+				If !ErrorLevel
+				{
+					thisIconLibPath := chopString(icoPath, "`,", 1)
+					thisIconNumberInLib := chopString(icoPath, "`,")
+				}
+				Else	; There's no path to the icon stored in the registry (example is .pdf being handled by "SumatraPDF portable")
+				{
+					RegRead, icoPath, HKCR, %temp%\shell\open\command
+					thisIconLibPath := chopString(icoPath, """", 2)	; Might be unreliable. Usually the path is like '"C:\path\to\file.exe" "%1"'
+					thisIconNumberInLib := 1
+				}
 				Menu, ShortcutsList, Icon, %A_Index%. %singleRecordPart1%, %thisIconLibPath%, %thisIconNumberInLib%
 			}
 			paths.Insert(A_Index ". " singleRecordPart1, singleRecordPart2)	; Here we do bindings (using array) so we'll know later what to run.
@@ -67,7 +78,10 @@ Else	; User did drag'n'drop at least one file.
 	Loop, %0%	; Usually %0% contains the number of command line parameters, but when the user drag'n'drops files onto the script - each of the dropped file gets sent to script as a separate command line parameter, so %0% contains the number of dropped files.
 		Loop, % %A_Index%, 1
 		{
-			If (smartLinks) && (A_LoopFileName ~= "iS)^.*\.url$")	; If the dropped down file is an *.url - the script will just use the URL it contains, instead of pointing to that *.url file itself.
+			; File or folder.
+			FileGetAttrib, isFileNotFolder, %A_LoopFileLongPath%
+			isFileNotFolder := (InStr(isFileNotFolder, "d") ? 0 : 1)
+			If smartLinks && isFileNotFolder && (A_LoopFileName ~= "iS)^.*\.url$")	; If the dropped down file is an *.url - the script will just use the URL it contains, instead of pointing to that *.url file itself.
 			{
 				IniRead, urlPath, %A_LoopFileName%, InternetShortcut, URL
 				If (urlPath == "ERROR")	; Safe check against incorrect URLs.
@@ -76,7 +90,7 @@ Else	; User did drag'n'drop at least one file.
 					FileAppend, % (settingsExist ? "`n" : "") A_LoopFileName "|" urlPath, %settingstxt%
 			}
 			Else
-				FileAppend, % (settingsExist ? "`n" : "") A_LoopFileName "|" A_LoopFileLongPath, %settingstxt%
+				FileAppend, % (settingsExist ? "`n" : "") A_LoopFileName (isFileNotFolder ? "" : "\") "|" A_LoopFileLongPath, %settingstxt%
 		}
 ExitApp
 

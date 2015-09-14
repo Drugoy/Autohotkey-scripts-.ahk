@@ -74,6 +74,9 @@ This folder contains outdated script, mostly obsolete by the newer realizations.
 Adds hotkeys to contol the volume level of the active application (not the general volume level in the whole system).
 The whole script could be cut down to just a few lines, if you'd use <a href="http://www.nirsoft.net/utils/nircmd.html">NirCmd</a> (read the script's code to learn how).
 
+##### [QuickSaveThisScript](QuickSaveThisScript)
+A script that reacts to a hotkey and quickly saves selected text to an *.ahk file and opens it in your text editor.
+
 ##### [Remap ALT+F4 to CTRL+W](Remap ALT+F4 to CTRL+W)
 Makes "Ctrl+W" hotkey work as "Alt+F4" for lots of different programs and system windows. I like Ctrl+W more than Alt+F4, as it's keys are closer to each other.
 

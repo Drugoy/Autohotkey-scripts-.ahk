@@ -1,6 +1,6 @@
 ﻿/* QuickSaveThisScript.ahk
 Version: 0.1
-Last time modified: 2015.01.08 23:52:35
+Last time modified: 2015.09.14 20:42
 
 Description: a script to quickly save selected text to an *.ahk file and open it in the editor.
 
@@ -46,6 +46,6 @@ Return
 	}
 	saveTofile := (saveToFolder ? saveToFolder : A_ScriptDir) "\" (filename ? filename : A_Now) ".ahk"
 	FileAppend, %textToSave%, %saveTofile%, UTF-8	 ; Save selected into a file next to this script.
-	Run, % (editor ? StrReplace(editor, "%1", """" saveTofile """") : """" saveTofile """") 
+	Run, % (editor ? StrReplace(editor, "%1", """" saveTofile """") : notepad.exe  """" saveTofile """") 
 	textToSave := filename := savedClipboard := saveTofile := ""	; Restore clipboard from backup and clean temporary variables.
 Return

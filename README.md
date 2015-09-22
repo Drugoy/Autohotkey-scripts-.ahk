@@ -16,6 +16,16 @@ Usage: hit the hotkey (default is F10) to open the context menu.
 Adds hotkeys (that work only in browsers) to quickly put selected text into the corresponding BBCode tags.
 Usage: in a browser select any text in a text field and use any hotkey to put the selected text into the corresponding BBCode tags.
 
+##### [descript.ion for Windows Explorer](descript.ion for Windows Explorer)
+This script let's you get files' comments.
+If any files are selected - the comments will be shown only for them, otherwise - for all files in the folder.
+Comments get taken from the descript.ion file that should be present in the folder.
+
+Usage:
+1. Get TotalCommander (or alike), select a file there, hit Ctrl+Z, add some comments to the file. This will create a descript.ion (usually hidden) file in that folder.
+2. Open the commented file's folder in Windows Explorer.
+3. Run this script and either hold F1 to get a traytip with comments for all the files in that folder or select the necessary files first and then get comments only to the selected files.
+
 ##### [DetachVideo](DetachVideo)
 Detach a flash container's frame from a browser into a separate window (in Windows). Doesn't play well with Firefox.
 Usage: in a browser open a page with flash container, mouse over it and hit the hotkey (default is F12).

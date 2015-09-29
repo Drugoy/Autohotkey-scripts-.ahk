@@ -1,6 +1,6 @@
-﻿/* SilentScreenshotter v1.6
+﻿/* SilentScreenshotter v1.7
 
-Last modified: 2015.06.16 13:11
+Last modified: 2015.09.30 00:50
 
 This script takes *.png screenshots of the specified area and uploads them to imgur.com and depending on user's setting - it either stores the URL of the uploaded image into the clipboard or opens it instantly. It also supports image files to be drag'n'dropped onto the script to upload them.
 
@@ -87,24 +87,27 @@ Else
 ;}
 If !(imgurClientID)	; The script can't work without imgurClientID.
 {
-	Msgbox, 'imgurClientID' is empty`, you should obtain it and paste into the script or .ini file.`nOpening https://api.imgur.com/oauth2/addclient so you can register there and obtain imgurClientID.`nHint: you may use fake email at registration.
+	MsgBox, 'imgurClientID' is empty`, you should obtain it and paste into the script or .ini file.`nOpening https://api.imgur.com/oauth2/addclient so you can register there and obtain imgurClientID.`nHint: you may use fake email at registration.
 	Run, https://api.imgur.com/oauth2/addclient
 	ExitApp
 }
 
-Global imgurClientID, Global proxyEnable, Global proxyServer, Global imgExtension, imgURL, clipURL, tempScreenshot
+Global imgurClientID, proxyEnable, proxyServer, clipURL, tempScreenshot, imgURLs
 Global ptr := A_PtrSize ? "UPtr" : "UInt"
+targetToUpload := []
 RegRead, proxyEnable, HKCU, Software\Microsoft\Windows\CurrentVersion\Internet Settings, ProxyEnable	; Detect wheter proxy is used or not.
 If (proxyEnable)
 	RegRead, proxyServer, HKCU, Software\Microsoft\Windows\CurrentVersion\Internet Settings, ProxyServer	; Detect address of proxy.
 imgPath .= imgName "." imgExtension
 pToken := Gdip_Startup()
 
-If %0%	; Usually %0% contains the number of command line parameters, but when the user drag'n'drops files onto the script - each of the dropped file gets sent to script as a separate command line parameter, so %0% contains the number of dropped files.
+If (%0%)	; Usually %0% contains the number of command line parameters, but when the user drag'n'drops files onto the script - each of the dropped file gets sent to script as a separate command line parameter, so %0% contains the number of dropped files.
+{
 	Loop, %0%
-		upload(%A_Index%, (A_Index = 1 ? 0 : 1))
-multipleInstances := OtherInstance()
-If (multipleInstances)
+		targetToUpload.Insert({"path": %A_Index%, "dnd": 1})
+	upload(targetToUpload)
+}
+If (isThereAnotherInstance())
 	ExitApp
 Return
 
@@ -120,7 +123,7 @@ $Esc::	; Escape hotkey is used in this script to cancel screenshot area selectio
 Return
 
 PrintScreen:: ; Since we use the same hotkey trice, we have to distinguish the calls.
-KeyWait, PrintScreen
+KeyWait, %A_ThisHotkey%
 If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
 {
 	SysGet, x0, 76
@@ -141,7 +144,7 @@ If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
 		DllCall("gdiplus\GdipCreateFromHDC", ptr, hdc, ptr "*", G)
 		DllCall("gdiplus\GdipSetSmoothingMode", ptr, G, "Int", 4)
 		DllCall("gdiplus\GdipCreatePen1", "UInt", 0xffff0000, "float", 1, "Int", 2, ptr "*", pPen)
-		Gdip_DrawLines(G, pPen, x1-x0 "," y1-y0 "|" x2-x0 "," y1-y0 "|" x2-x0 "," y2-y0 "|" x1-x0 "," y2-y0 "|" x1-x0 "," y1-y0)
+		Gdip_DrawLines(G, pPen, x1 - x0 "," y1 - y0 "|" x2 - x0 "," y1 - y0 "|" x2 - x0 "," y2 - y0 "|" x1 - x0 "," y2 - y0 "|" x1 - x0 "," y1 - y0)
 		DllCall("gdiplus\GdipDeleteBrush", ptr, pPen)
 		UpdateLayeredWindow(hwnd1, hdc, x0, y0, w0, h0)
 		DllCall("SelectObject", ptr, hdc, ptr, obm)
@@ -149,9 +152,9 @@ If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
 		DllCall("DeleteDC", ptr, hdc)
 		DllCall("gdiplus\GdipDeleteGraphics", ptr, G)
 		Sleep, 20	; This pause is used to redraw the rectangular less frequently in order to consume less CPU resources. You may adjust the value (it's in miliseconds).
-		If (GetKeyState("PrintScreen", "P") || GetKeyState("LButton", "P") || (cancel := GetKeyState("Escape", "P")))	; User can hit Esc to cancel the selection at any time. User might want to finish the area selection with Left Mouse Button click or with hitting PrintScreen again. This is a second step: here we finish drawing the rectangular.
+		If (GetKeyState(A_ThisHotkey, "P") || GetKeyState("LButton", "P") || (cancel := GetKeyState("Escape", "P")))	; User can hit Esc to cancel the selection at any time. User might want to finish the area selection with Left Mouse Button click or with hitting PrintScreen again. This is a second step: here we finish drawing the rectangular.
 		{
-			KeyWait, PrintScreen
+			KeyWait, %A_ThisHotkey%
 			If (cancel)
 			{
 				DllCall("gdiplus\GdipDisposeImage", ptr, pBitmap)
@@ -168,18 +171,20 @@ Else	; User has to hit PrintScreen once again (for the 3rd time) to take a scree
 	firstHit_EventFired := ""
 	Gui, 1: Destroy	; Hide the rectangular before screenshotting the area
 	; Save a screenshot to a file.
-	pBitmap := Gdip_BitmapFromScreen((x1 < x2 ? x1 : x2) "|" (y1 < y2 ? y1 : y2) "|" (x1 < x2 ? x2-x1 : x1-x2) "|" (y1 < y2 ? y2-y1 : y1-y2))
+	pBitmap := Gdip_BitmapFromScreen((x1 < x2 ? x1 : x2) "|" (y1 < y2 ? y1 : y2) "|" (x1 < x2 ? x2 - x1 + 1 : x1 - x2 + 1) "|" (y1 < y2 ? y2 - y1 + 1 : y1 - y2 + 1))
 	Gdip_SaveBitmapToFile(pBitmap, imgPath, jpgQuality)
 	While !(FileExist(imgPath))	; Wait until the file gets actually created (otherwise the script will execute the next part too fast).
 		Sleep, 25
 	DllCall("gdiplus\GdipDisposeImage", ptr, pBitmap)	; Clean after self.
-	If (optimizePNG)	; Run png optimizator If user chose to do so.
+	If (optimizePNG)	; Run png optimizator if user chose to do so.
 		IfExist, %optipngPath%	; Run it only if it exists.
 			RunWait, %optipngPath% -o%optimizePNG% -i0 -nc -nb -q -clobber %imgPath%,, Hide
 		Else
 			TrayTip, Error, Optipng not found`, thus can't optimize the image.
-	If upload(imgPath)
-		TrayTip, Complete, The image has been successfully uploaded:`n%imgURL%, 1, 1
+	targetToUpload := []
+	targetToUpload.Insert({"path": imgPath})
+	If (upload(targetToUpload))
+		TrayTip, Complete, The image has been successfully uploaded:`n%imgURLs%, 1, 1
 }
 Return
 
@@ -189,50 +194,56 @@ Exit:
 		DllCall("FreeLibrary", ptr, hModule)
 ExitApp
 
-upload(input, inputtedMultipleFiles = 0)	; Thanks to: maestrith http://www.autohotkey.com/board/user/910-maestrith/ and GeekDude https://github.com/G33kDude
+upload(input)	; Thanks to: maestrith http://www.autohotkey.com/board/user/910-maestrith/ and GeekDude https://github.com/G33kDude
 {	; Upload to Imgur using it's API.
+	imgURLs := ""
 	http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
 	img := ComObjCreate("WIA.ImageFile")
-	img.LoadFile(input)
-	; ip := ComObjCreate("WIA.ImageProcess")
-	; ip.filters.add(IP.FilterInfos("Convert").FilterID)
-	; ip.filters(1).properties("FormatID").value := "{B96B3CAF-0728-11D3-9D7B-0000F81EF32E}"	; = png, {B96B3CAE-0728-11D3-9D7B-0000F81EF32E} = jpg
-	; ip.filters(1).properties("Quality").value := 100
-	; img := ip.apply(img)
-	data := img.filedata.binarydata
-	http.Open("POST", "https://api.imgur.com/3/upload")
-	If (proxyEnable)
-	; {
-		http.SetProxy(2, proxyServer)
-	; 	http.SetCredentials(proxyUser, proxyPass, 1) ; HTTPREQUEST_SETCREDENTIALS_FOR_PROXY = 1
-	; }
-	http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
-	http.SetRequestHeader("Content-Length", size)
-	Try
-		http.Send(data)
-	Catch, e
+	For k, v in input
 	{
-		Msgbox, % "Please, try again, because the script failed to upload your screenshot due to a server-issue:`n" e "`nError message: " e.Message "`nError what: " e.What "`nError extra: " e.Extra "`nError file: " e.File "`nError line: " e.Line
-		Return 0
+		Try
+			img.LoadFile(v.path)
+		Catch, e
+		{
+			MsgBox, % "This was an invalid image or not an image file at all.`nError: " e "`nError message: " e.Message "`nError what: " e.What "`nError extra: " e.Extra "`nError file: " e.File "`nError line: " e.Line
+			Return 0
+		}
+		; ip := ComObjCreate("WIA.ImageProcess")
+		; ip.filters.add(IP.FilterInfos("Convert").FilterID)
+		; ip.filters(1).properties("FormatID").value := "{B96B3CAF-0728-11D3-9D7B-0000F81EF32E}"	; = png, {B96B3CAE-0728-11D3-9D7B-0000F81EF32E} = jpg
+		; ip.filters(1).properties("Quality").value := 100
+		; img := ip.apply(img)
+		data := img.filedata.binarydata
+		http.Open("POST", "https://api.imgur.com/3/upload")
+		If (proxyEnable)
+		; {
+			http.SetProxy(2, proxyServer)
+		; 	http.SetCredentials(proxyUser, proxyPass, 1) ; HTTPREQUEST_SETCREDENTIALS_FOR_PROXY = 1
+		; }
+		http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
+		http.SetRequestHeader("Content-Length", size)
+		Try
+			http.Send(data)
+		Catch, e
+		{
+			MsgBox, % "Please, try again, because the script failed to upload your screenshot due to a server-issue:`n" e "`nError message: " e.Message "`nError what: " e.What "`nError extra: " e.Extra "`nError file: " e.File "`nError line: " e.Line
+			Return 0
+		}
+		imgURL := http.ResponseText
+		If (RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?(jpg|jpeg|png|gif|apng|tiff|tif|bmp|pdf|xcf))""}", Match))
+			imgURL := "https://" RegExReplace(Match1, "\\/", "/")
+		imgURLs := (imgURLs ? imgURLs "`t" imgURL : imgURL)
+		If (clipURL != 1)
+			Run, % imgURL
+		If (tempScreenshot && !v.dnd)	; User specified to delete the local screenshot's file after uploading it.
+			FileDelete, % v.path
+		If (A_Index == input.MaxIndex() && clipURL)	; If user configured the script to save the image's URL.
+			Clipboard := imgURLs
 	}
-	imgURL := http.ResponseText
-	If (RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?(jpg|jpeg|png|gif|apng|tiff|tif|bmp|pdf|xcf))""}", Match))
-    	imgURL := "https://" RegExReplace(Match1, "\\/", "/")
-	If (clipURL)	; If user configured the script to save the image's URL and he screenshotted something (not drag'n'dropped multiple files)
-	{
-		If !(inputtedMultipleFiles)	; Only 1 file to be uploaded.
-			Clipboard := imgURL
-		Else	; Multiple files got drag'n'dropped, so links should be separated with a space.
-			Clipboard .= A_Space imgURL
-	}
-	If (clipURL != 1)	; Otherwise - open it in the browser.
-		Run, % imgURL
-	If tempScreenshot && (%0% = 0)	; User specified to delete the local screenshot's file after uploading it.
-		FileDelete, % input
 	Return 1
 }
 
-OtherInstance()	; Thanks to: GeekDude http://www.autohotkey.com/board/user/10132-geekdude/
+isThereAnotherInstance()	; Thanks to: GeekDude http://www.autohotkey.com/board/user/10132-geekdude/
 {
 	DetectHiddenWindows, On
 	WinGet, wins, List, ahk_class AutoHotkey
@@ -261,7 +272,7 @@ Gdip_Startup()
 	Return pToken
 }
 
-CreateDIBSection(w, h, hdc="")
+CreateDIBSection(w, h, hdc = "")
 {
 	hdc2 := hdc ? hdc : DllCall("GetDC", ptr, 0)
 	VarSetCapacity(bi, 40, 0)
@@ -275,43 +286,43 @@ CreateDIBSection(w, h, hdc="")
 Gdip_DrawLines(pGraphics, pPen, Points)
 {
 	StringSplit, Points, Points, |
-	VarSetCapacity(PointF, 8*Points0)   
+	VarSetCapacity(PointF, 8 * Points0)
 	Loop, % Points0
 	{
 		StringSplit, Coord, Points%A_Index%, `,
-		NumPut(Coord1, PointF, 8*(A_Index-1), "float"), NumPut(Coord2, PointF, (8*(A_Index-1))+4, "float")
+		NumPut(Coord1, PointF, 8 * (A_Index - 1), "float"), NumPut(Coord2, PointF, (8 * (A_Index - 1)) + 4, "float")
 	}
 	Return DllCall("gdiplus\GdipDrawLines", ptr, pGraphics, ptr, pPen, ptr, &PointF, "Int", Points0)
 }
 
-UpdateLayeredWindow(hwnd, hdc, x="", y="", w="", h="", Alpha=255)
+UpdateLayeredWindow(hwnd, hdc, x = "", y = "", w = "", h = "", Alpha = 255)
 {
 	If ((x != "") && (y != ""))
 		VarSetCapacity(pt, 8), NumPut(x, pt, 0, "UInt"), NumPut(y, pt, 4, "UInt")
 	If ((w = "") || (h = ""))
 		WinGetPos,,, w, h, ahk_id %hwnd%
-	Return DllCall("UpdateLayeredWindow", ptr, hwnd, ptr, 0, ptr, ((x = "") && (y = "")) ? 0 : &pt, "Int64*", w|h<<32, ptr, hdc, "Int64*", 0, "UInt", 0, "UInt*", Alpha<<16|1<<24, "UInt", 2)
+	Return DllCall("UpdateLayeredWindow", ptr, hwnd, ptr, 0, ptr, ((x = "") && (y = "")) ? 0 : &pt, "Int64*", w | h << 32, ptr, hdc, "Int64*", 0, "UInt", 0, "UInt*", Alpha << 16 | 1 << 24, "UInt", 2)
 }
 
-Gdip_BitmapFromScreen(Screen)
+Gdip_BitmapFromScreen(screen)
 {
-	If (SubStr(Screen, 1, 5) = "hwnd:")
+	If (SubStr(screen, 1, 5) = "hwnd:")
 	{
-		Screen := SubStr(Screen, 6)
-		If !WinExist( "ahk_id " Screen)
+		screen := SubStr(screen, 6)
+		If !(WinExist("ahk_id " screen))
 			Return -2
-		WinGetPos,,, w, h, ahk_id %Screen%
+		WinGetPos,,, w, h, ahk_id %screen%
 		x := y := 0
-		hhdc := DllCall("GetDCEx", ptr, Screen, ptr, 0, "Int", 3)
+		hhdc := DllCall("GetDCEx", ptr, screen, ptr, 0, "Int", 3)
 	}
-	Else If (Screen&1 != "")
+	Else If (screen&1 != "")
 	{
-		Sysget, M, Monitor, %Screen%
-		x := MLeft, y := MTop, w := MRight-MLeft, h := MBottom-MTop
+		Sysget, M, Monitor, %screen%
+		x := MLeft, y := MTop, w := MRight - MLeft, h := MBottom - MTop
 	}
 	Else
 	{
-		StringSplit, S, Screen, |
+		StringSplit, S, screen, |
 		x := S1, y := S2, w := S3, h := S4
 	}
 	If ((x = "") || (y = "") || (w = "") || (h = ""))
@@ -324,7 +335,7 @@ Gdip_BitmapFromScreen(Screen)
 	Return pBitmap
 }
 
-Gdip_SaveBitmapToFile(pBitmap, sOutput, Quality=100)
+Gdip_SaveBitmapToFile(pBitmap, sOutput, quality = 100)
 {
 	SplitPath, sOutput,,, Extension
 	If Extension Not In BMP,DIB,RLE,JPG,JPEG,JPE,JFIF,GIF,TIF,TIFF,PNG
@@ -339,10 +350,10 @@ Gdip_SaveBitmapToFile(pBitmap, sOutput, Quality=100)
 		StrGet_Name := "StrGet"
 		Loop, % nCount
 		{
-			sString := %StrGet_Name%(NumGet(ci, (idx := (48+7*A_PtrSize)*(A_Index-1))+32+3*A_PtrSize), "UTF-16")
+			sString := %StrGet_Name%(NumGet(ci, (idx := (48 + 7 * A_PtrSize) * (A_Index - 1)) + 32 + 3 * A_PtrSize), "UTF-16")
 			If !(InStr(sString, "*." Extension))
 				Continue
-			pCodec := &ci+idx
+			pCodec := &ci + idx
 			Break
 		}
 	}
@@ -350,13 +361,13 @@ Gdip_SaveBitmapToFile(pBitmap, sOutput, Quality=100)
 	{
 		Loop, % nCount
 		{
-			Location := NumGet(ci, 76*(A_Index-1)+44)
-			nSize := DllCall("WideCharToMultiByte", "UInt", 0, "UInt", 0, "UInt", Location, "Int", -1, "UInt", 0, "Int",  0, "UInt", 0, "UInt", 0)
+			Location := NumGet(ci, 76 * (A_Index - 1) + 44)
+			nSize := DllCall("WideCharToMultiByte", "UInt", 0, "UInt", 0, "UInt", Location, "Int", -1, "UInt", 0, "Int", 0, "UInt", 0, "UInt", 0)
 			VarSetCapacity(sString, nSize)
 			DllCall("WideCharToMultiByte", "UInt", 0, "UInt", 0, "UInt", Location, "Int", -1, "Str", sString, "Int", nSize, "UInt", 0, "UInt", 0)
 			If !(InStr(sString, "*." Extension))
 				Continue
-			pCodec := &ci+76*(A_Index-1)
+			pCodec := &ci + 76 * (A_Index - 1)
 			Break
 		}
 	}
@@ -364,18 +375,17 @@ Gdip_SaveBitmapToFile(pBitmap, sOutput, Quality=100)
 		Return -3
 	If Extension in JPG,JPEG,JPE,JFIF
 	{
-		If (Quality != 75)
-			Quality := (Quality < 0) ? 0 : (Quality > 100) ? 100 : Quality
+		quality := (quality < 0) ? 0 : ((quality > 100) ? 100 : quality)
 		DllCall("gdiplus\GdipGetEncoderParameterListSize", ptr, pBitmap, ptr, pCodec, "UInt*", nSize)
 		VarSetCapacity(EncoderParameters, nSize, 0)
 		DllCall("gdiplus\GdipGetEncoderParameterList", ptr, pBitmap, ptr, pCodec, "UInt", nSize, ptr, &EncoderParameters)
-		Loop, % NumGet(EncoderParameters, "UInt")      ;%
+		Loop, % NumGet(EncoderParameters, "UInt")
 		{
-			elem := (24+(A_PtrSize ? A_PtrSize : 4))*(A_Index-1) + 4 + (pad := A_PtrSize = 8 ? 4 : 0)
-			If ((NumGet(EncoderParameters, elem+16, "UInt") = 1) && (NumGet(EncoderParameters, elem+20, "UInt") = 6))
+			elem := (24 + (A_PtrSize ? A_PtrSize : 4)) * (A_Index - 1) + 4 + (pad := A_PtrSize = 8 ? 4 : 0)
+			If ((NumGet(EncoderParameters, elem +1 6, "UInt") = 1) && (NumGet(EncoderParameters, elem + 20, "UInt") = 6))
 			{
-				p := elem+&EncoderParameters-pad-4
-				NumPut(Quality, NumGet(NumPut(4, NumPut(1, p+0)+20, "UInt")), "UInt")
+				p := elem + &EncoderParameters - pad - 4
+				NumPut(quality, NumGet(NumPut(4, NumPut(1, p + 0) + 20, "UInt")), "UInt")
 				Break
 			}
 		}
@@ -383,7 +393,7 @@ Gdip_SaveBitmapToFile(pBitmap, sOutput, Quality=100)
 	If !(A_IsUnicode)
 	{
 		nSize := DllCall("MultiByteToWideChar", "UInt", 0, "UInt", 0, ptr, &sOutput, "Int", -1, ptr, 0, "Int", 0)
-		VarSetCapacity(wOutput, nSize*2)
+		VarSetCapacity(wOutput, nSize * 2)
 		DllCall("MultiByteToWideChar", "UInt", 0, "UInt", 0, ptr, &sOutput, "Int", -1, ptr, &wOutput, "Int", nSize)
 		VarSetCapacity(wOutput, -1)
 		If !(VarSetCapacity(wOutput))

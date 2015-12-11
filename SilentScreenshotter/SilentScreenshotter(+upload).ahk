@@ -1,6 +1,6 @@
-﻿/* SilentScreenshotter v1.7
+﻿/* SilentScreenshooter v1.8
 
-Last modified: 2015.09.30 00:50
+Last modified: 2015.12.11 12:30
 
 This script takes *.png screenshots of the specified area and uploads them to imgur.com and depending on user's setting - it either stores the URL of the uploaded image into the clipboard or opens it instantly. It also supports image files to be drag'n'dropped onto the script to upload them.
 
@@ -31,6 +31,7 @@ SetWorkingDir, %A_ScriptDir%
 FileInstall, optipng.exe, optipng.exe
 CoordMode, Mouse, Screen
 SetBatchLines, -1
+Hotkey, $Esc,, Off
 OnExit, Exit
 ;}
 ;{ Settings
@@ -111,21 +112,19 @@ If (isThereAnotherInstance())
 	ExitApp
 Return
 
-$Esc::	; Escape hotkey is used in this script to cancel screenshot area selection.
-	If (firstHit_EventFired)
-	{
-		DllCall("gdiplus\GdipDisposeImage", ptr, pBitmap)
-		firstHit_EventFired := ""
-		Gui, 1: Destroy
-	}
-	Else
-		Send, {Esc}
+$Esc::	; Escape hotkey is used in this script to cancel screenshot area selection. This hotkey is temporary and is enabled only during the periods when the screenshot area selection is active (when red border follows the cursor), the rest of the time this hotkey is disabled in order not to cause any issues with the "Escape" key's work in other programs.
+	Hotkey, $Esc,, Off
+	DllCall("gdiplus\GdipDisposeImage", ptr, pBitmap)
+	firstHit_EventFired := ""
+	Gui, 1: Destroy
 Return
 
 PrintScreen:: ; Since we use the same hotkey trice, we have to distinguish the calls.
+Thread, Priority, 1
 KeyWait, %A_ThisHotkey%
 If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
 {
+	Hotkey, $Esc,, On
 	SysGet, x0, 76
 	SysGet, y0, 77
 	SysGet, w0, 78
@@ -143,7 +142,7 @@ If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
 		obm := DllCall("SelectObject", ptr, hdc, ptr, hbm)
 		DllCall("gdiplus\GdipCreateFromHDC", ptr, hdc, ptr "*", G)
 		DllCall("gdiplus\GdipSetSmoothingMode", ptr, G, "Int", 4)
-		DllCall("gdiplus\GdipCreatePen1", "UInt", 0xffff0000, "float", 1, "Int", 2, ptr "*", pPen)
+		DllCall("gdiplus\GdipCreatePen1", "UInt", 0xffff0000, "Float", 1, "Int", 2, ptr "*", pPen)
 		Gdip_DrawLines(G, pPen, x1 - x0 "," y1 - y0 "|" x2 - x0 "," y1 - y0 "|" x2 - x0 "," y2 - y0 "|" x1 - x0 "," y2 - y0 "|" x1 - x0 "," y1 - y0)
 		DllCall("gdiplus\GdipDeleteBrush", ptr, pPen)
 		UpdateLayeredWindow(hwnd1, hdc, x0, y0, w0, h0)
@@ -152,15 +151,17 @@ If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
 		DllCall("DeleteDC", ptr, hdc)
 		DllCall("gdiplus\GdipDeleteGraphics", ptr, G)
 		Sleep, 20	; This pause is used to redraw the rectangular less frequently in order to consume less CPU resources. You may adjust the value (it's in miliseconds).
-		If (GetKeyState(A_ThisHotkey, "P") || GetKeyState("LButton", "P") || (cancel := GetKeyState("Escape", "P")))	; User can hit Esc to cancel the selection at any time. User might want to finish the area selection with Left Mouse Button click or with hitting PrintScreen again. This is a second step: here we finish drawing the rectangular.
+		If GetKeyState("Escape", "P")	; User decided to abort screenshooting.
 		{
-			KeyWait, %A_ThisHotkey%
-			If (cancel)
-			{
-				DllCall("gdiplus\GdipDisposeImage", ptr, pBitmap)
-				Gui, 1: Destroy
-				cancel := firstHit_EventFired := ""
-			}
+			GoSub, $Esc	; Abort drawing, unregister "Escape" hotkey.
+			Break
+		}
+		; Second step: user finished selecting the area to screenshoot.
+		If (GetKeyState("LButton", "P"))
+			Break
+		If (GetKeyState(A_ThisHotkey, "P"))
+		{
+			KeyWait, %A_ThisHotkey%	; In order to get away from possible issues - let's wait until the PrintScreen key is unpressed.
 			Break
 		}
 	}
@@ -168,6 +169,7 @@ If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
 }
 Else	; User has to hit PrintScreen once again (for the 3rd time) to take a screenshot. I inteionally made not 2, but 3 steps required to take a screenshot: so you can take a screenshot of some event happening, for example, only when you hover something special.
 {
+	Hotkey, $Esc,, Off
 	firstHit_EventFired := ""
 	Gui, 1: Destroy	; Hide the rectangular before screenshotting the area
 	; Save a screenshot to a file.
@@ -290,7 +292,7 @@ Gdip_DrawLines(pGraphics, pPen, Points)
 	Loop, % Points0
 	{
 		StringSplit, Coord, Points%A_Index%, `,
-		NumPut(Coord1, PointF, 8 * (A_Index - 1), "float"), NumPut(Coord2, PointF, (8 * (A_Index - 1)) + 4, "float")
+		NumPut(Coord1, PointF, 8 * (A_Index - 1), "Float"), NumPut(Coord2, PointF, (8 * (A_Index - 1)) + 4, "Float")
 	}
 	Return DllCall("gdiplus\GdipDrawLines", ptr, pGraphics, ptr, pPen, ptr, &PointF, "Int", Points0)
 }

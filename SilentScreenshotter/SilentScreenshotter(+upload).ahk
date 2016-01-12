@@ -1,6 +1,6 @@
-﻿/* SilentScreenshooter v1.8
+﻿/* SilentScreenshooter v1.9
 
-Last modified: 2015.12.11 12:30
+Last modified: 2016.01.12 18:10
 
 This script takes *.png screenshots of the specified area and uploads them to imgur.com and depending on user's setting - it either stores the URL of the uploaded image into the clipboard or opens it instantly. It also supports image files to be drag'n'dropped onto the script to upload them.
 
@@ -20,16 +20,17 @@ How to use:
 4. a. Set cursor at any corner of the area you'd like to take a screenshot of.
 	 b. Hit [PrintScreen].
 	 c. Set cursor to the opposite corner.
-	 d. Either hit [PrintScreen] again or [left click] to lock the area to be screenshotted.
+	 d. Either hit [PrintScreen] again or [left click] to lock the area to be screenshooted.
 	 e. Hit [PrintScreen] once again to finally take the screenshot.
-Before step "4e" - you may cancel screenshotting process by hitting Escape button.
+Before step "4e" - you may cancel screenshooting process by hitting Escape button.
 */
 ;{ Initialization before settings
 #SingleInstance, Off
 #NoEnv
 SetWorkingDir, %A_ScriptDir%
 FileInstall, optipng.exe, optipng.exe
-CoordMode, Mouse, Screen
+CoordMode, Mouse
+CoordMode, Pixel
 SetBatchLines, -1
 Hotkey, $Esc,, Off
 OnExit, Exit
@@ -93,7 +94,7 @@ If !(imgurClientID)	; The script can't work without imgurClientID.
 	ExitApp
 }
 
-Global imgurClientID, proxyEnable, proxyServer, clipURL, tempScreenshot, imgURLs
+Global imgurClientID, proxyEnable, proxyServer, clipURL, tempScreenshot, uploadProgress
 Global ptr := A_PtrSize ? "UPtr" : "UInt"
 targetToUpload := []
 RegRead, proxyEnable, HKCU, Software\Microsoft\Windows\CurrentVersion\Internet Settings, ProxyEnable	; Detect wheter proxy is used or not.
@@ -120,74 +121,75 @@ $Esc::	; Escape hotkey is used in this script to cancel screenshot area selectio
 Return
 
 PrintScreen:: ; Since we use the same hotkey trice, we have to distinguish the calls.
-Thread, Priority, 1
-KeyWait, %A_ThisHotkey%
-If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
-{
-	Hotkey, $Esc,, On
-	SysGet, x0, 76
-	SysGet, y0, 77
-	SysGet, w0, 78
-	SysGet, h0, 79
-	firstHit_EventFired := 1
-	MouseGetPos, x1, y1
-	Gui, 1: -Caption +E0x80000 +HWNDhwnd1 +LastFound +AlwaysOnTop +ToolWindow +OwnDialogs ; Create a GUI to use it as a canvas for GDI+ drawing.
-	Gui, 1: Show, NA
-	Loop
+	Thread, Priority, 1
+	KeyWait, %A_ThisHotkey%
+	If !(firstHit_EventFired)	; The user hit PrintScreen - this is a first step.
 	{
-		; Draw a rectangular following the cursor.
-		MouseGetPos, x2, y2
-		hbm := CreateDIBSection(w0, h0)
-		hdc := DllCall("CreateCompatibleDC", ptr, 0)
-		obm := DllCall("SelectObject", ptr, hdc, ptr, hbm)
-		DllCall("gdiplus\GdipCreateFromHDC", ptr, hdc, ptr "*", G)
-		DllCall("gdiplus\GdipSetSmoothingMode", ptr, G, "Int", 4)
-		DllCall("gdiplus\GdipCreatePen1", "UInt", 0xffff0000, "Float", 1, "Int", 2, ptr "*", pPen)
-		Gdip_DrawLines(G, pPen, x1 - x0 "," y1 - y0 "|" x2 - x0 "," y1 - y0 "|" x2 - x0 "," y2 - y0 "|" x1 - x0 "," y2 - y0 "|" x1 - x0 "," y1 - y0)
-		DllCall("gdiplus\GdipDeleteBrush", ptr, pPen)
-		UpdateLayeredWindow(hwnd1, hdc, x0, y0, w0, h0)
-		DllCall("SelectObject", ptr, hdc, ptr, obm)
-		DllCall("DeleteObject", ptr, hbm)
-		DllCall("DeleteDC", ptr, hdc)
-		DllCall("gdiplus\GdipDeleteGraphics", ptr, G)
-		Sleep, 20	; This pause is used to redraw the rectangular less frequently in order to consume less CPU resources. You may adjust the value (it's in miliseconds).
-		If GetKeyState("Escape", "P")	; User decided to abort screenshooting.
+		Hotkey, $Esc,, On
+		SysGet, x0, 76
+		SysGet, y0, 77
+		SysGet, w0, 78
+		SysGet, h0, 79
+		firstHit_EventFired := 1
+		MouseGetPos, x1, y1
+		Gui, 1: -Caption +E0x80000 +HWNDhwnd1 +LastFound +AlwaysOnTop +ToolWindow +OwnDialogs ; Create a GUI to use it as a canvas for GDI+ drawing.
+		Gui, 1: Show, NA
+		Loop
 		{
-			GoSub, $Esc	; Abort drawing, unregister "Escape" hotkey.
-			Break
+			; Draw a rectangular following the cursor.
+			MouseGetPos, x2, y2
+			hbm := CreateDIBSection(w0, h0)
+			hdc := DllCall("CreateCompatibleDC", ptr, 0)
+			obm := DllCall("SelectObject", ptr, hdc, ptr, hbm)
+			DllCall("gdiplus\GdipCreateFromHDC", ptr, hdc, ptr "*", G)
+			DllCall("gdiplus\GdipSetSmoothingMode", ptr, G, "Int", 4)
+			DllCall("gdiplus\GdipCreatePen1", "UInt", 0xffff0000, "Float", 1, "Int", 2, ptr "*", pPen)
+			Gdip_DrawLines(G, pPen, x1 - x0 "," y1 - y0 "|" x2 - x0 "," y1 - y0 "|" x2 - x0 "," y2 - y0 "|" x1 - x0 "," y2 - y0 "|" x1 - x0 "," y1 - y0)
+			DllCall("gdiplus\GdipDeleteBrush", ptr, pPen)
+			UpdateLayeredWindow(hwnd1, hdc, x0, y0, w0, h0)
+			DllCall("SelectObject", ptr, hdc, ptr, obm)
+			DllCall("DeleteObject", ptr, hbm)
+			DllCall("DeleteDC", ptr, hdc)
+			DllCall("gdiplus\GdipDeleteGraphics", ptr, G)
+			Sleep, 20	; This pause is used to redraw the rectangular less frequently in order to consume less CPU resources. You may adjust the value (it's in miliseconds).
+			If GetKeyState("Escape", "P")	; User decided to abort screenshooting.
+			{
+				GoSub, $Esc	; Abort drawing, unregister "Escape" hotkey.
+				Break
+			}
+			; Second step: user finished selecting the area to screenshoot.
+			If (GetKeyState("LButton", "P"))
+				Break
+			If (GetKeyState(A_ThisHotkey, "P"))
+			{
+				KeyWait, %A_ThisHotkey%	; In order to get away from possible issues - let's wait until the PrintScreen key is unpressed.
+				Break
+			}
 		}
-		; Second step: user finished selecting the area to screenshoot.
-		If (GetKeyState("LButton", "P"))
-			Break
-		If (GetKeyState(A_ThisHotkey, "P"))
-		{
-			KeyWait, %A_ThisHotkey%	; In order to get away from possible issues - let's wait until the PrintScreen key is unpressed.
-			Break
-		}
+		Return
 	}
-	Return
-}
-Else	; User has to hit PrintScreen once again (for the 3rd time) to take a screenshot. I inteionally made not 2, but 3 steps required to take a screenshot: so you can take a screenshot of some event happening, for example, only when you hover something special.
-{
-	Hotkey, $Esc,, Off
-	firstHit_EventFired := ""
-	Gui, 1: Destroy	; Hide the rectangular before screenshotting the area
-	; Save a screenshot to a file.
-	pBitmap := Gdip_BitmapFromScreen((x1 < x2 ? x1 : x2) "|" (y1 < y2 ? y1 : y2) "|" (x1 < x2 ? x2 - x1 + 1 : x1 - x2 + 1) "|" (y1 < y2 ? y2 - y1 + 1 : y1 - y2 + 1))
-	Gdip_SaveBitmapToFile(pBitmap, imgPath, jpgQuality)
-	While !(FileExist(imgPath))	; Wait until the file gets actually created (otherwise the script will execute the next part too fast).
-		Sleep, 25
-	DllCall("gdiplus\GdipDisposeImage", ptr, pBitmap)	; Clean after self.
-	If (optimizePNG)	; Run png optimizator if user chose to do so.
-		IfExist, %optipngPath%	; Run it only if it exists.
-			RunWait, %optipngPath% -o%optimizePNG% -i0 -nc -nb -q -clobber %imgPath%,, Hide
-		Else
-			TrayTip, Error, Optipng not found`, thus can't optimize the image.
-	targetToUpload := []
-	targetToUpload.Insert({"path": imgPath})
+	Else	; User has to hit PrintScreen once again (for the 3rd time) to take a screenshot. I inteionally made not 2, but 3 steps required to take a screenshot: so you can take a screenshot of some event happening, for example, only when you hover something special.
+	{
+		Hotkey, $Esc,, Off
+		firstHit_EventFired := ""
+		Gui, 1: Destroy	; Hide the rectangular before screenshotting the area
+		; Save a screenshot to a file.
+		pBitmap := Gdip_BitmapFromScreen((x1 < x2 ? x1 : x2) "|" (y1 < y2 ? y1 : y2) "|" (x1 < x2 ? x2 - x1 + 1 : x1 - x2 + 1) "|" (y1 < y2 ? y2 - y1 + 1 : y1 - y2 + 1))
+		Gdip_SaveBitmapToFile(pBitmap, imgPath, jpgQuality)
+		While !(FileExist(imgPath))	; Wait until the file gets actually created (otherwise the script will execute the next part too fast).
+			Sleep, 25
+		DllCall("gdiplus\GdipDisposeImage", ptr, pBitmap)	; Clean after self.
+		If (optimizePNG)	; Run png optimizator if user chose to do so.
+			IfExist, %optipngPath%	; Run it only if it exists.
+				RunWait, %optipngPath% -o%optimizePNG% -i0 -nc -nb -q -clobber %imgPath%,, Hide
+			Else
+				TrayTip, Error, Optipng not found`, thus can't optimize the image.
+		targetToUpload := []
+		targetToUpload.Insert({"path": imgPath})
+		upload(targetToUpload)
 	If (upload(targetToUpload))
 		TrayTip, Complete, The image has been successfully uploaded:`n%imgURLs%, 1, 1
-}
+	}
 Return
 
 Exit:
@@ -198,51 +200,95 @@ ExitApp
 
 upload(input)	; Thanks to: maestrith http://www.autohotkey.com/board/user/910-maestrith/ and GeekDude https://github.com/G33kDude
 {	; Upload to Imgur using it's API.
-	imgURLs := ""
-	http := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+	Critical, On
+	imgURLs := [], filtered := uploadProgress := trueIndex := 0
+	httpObj := Object()
+	Gui, -Caption +Border +AlwaysOnTop +ToolWindow
+	; Gui, ProgressBar: Color, EEAA99
+	Gui, +LastFound
+	; WinSet, TransColor, EEAA99
+	Gui, Add, Text, x0 y0, Uploading image(s)
+	Gui, Add, Progress, w300 h10 cGreen -0x1 vuploadProgress
+	Gui, Show, % "x" A_ScreenWidth - 300 " y" A_ScreenHeight -35, Image upload progress
 	img := ComObjCreate("WIA.ImageFile")
-	For k, v in input
+	For k, v In input
 	{
-		Try
-			img.LoadFile(v.path)
+		FileGetSize, fileSize, % v.path
+		If (ErrorLevel)
+		{
+			MsgBox, % "There was a problem accessing that file:`n" v.path "`nErrorLevel: " Errorlevel
+			filtered++
+			Continue
+		}
+		Else If (filesize >= 10485760)
+		{
+			MsgBox, % "Skipping file " v.path " that is " filesize/1048576 "Mb, which is beyond Imgur's 10Mb limit for one file."
+			filtered++
+			Continue
+		}
+		Try img.LoadFile(v.path)
 		Catch, e
 		{
-			MsgBox, % "This was an invalid image or not an image file at all.`nError: " e "`nError message: " e.Message "`nError what: " e.What "`nError extra: " e.Extra "`nError file: " e.File "`nError line: " e.Line
-			Return 0
+			MsgBox, % "This was an invalid image or not an image file at all.`nFile: " v.path "`nError: " e "`nError message: " e.Message "`nError what: " e.What "`nError extra: " e.Extra "`nError file: " e.File "`nError line: " e.Line
+			filtered++
+			Continue
 		}
 		; ip := ComObjCreate("WIA.ImageProcess")
 		; ip.filters.add(IP.FilterInfos("Convert").FilterID)
 		; ip.filters(1).properties("FormatID").value := "{B96B3CAF-0728-11D3-9D7B-0000F81EF32E}"	; = png, {B96B3CAE-0728-11D3-9D7B-0000F81EF32E} = jpg
 		; ip.filters(1).properties("Quality").value := 100
 		; img := ip.apply(img)
-		data := img.filedata.binarydata
-		http.Open("POST", "https://api.imgur.com/3/upload")
+		data := img.FileData.BinaryData
+		httpObj[++trueIndex] := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+		httpObj[trueIndex].Open("POST", "https://api.imgur.com/3/upload")
 		If (proxyEnable)
 		; {
-			http.SetProxy(2, proxyServer)
-		; 	http.SetCredentials(proxyUser, proxyPass, 1) ; HTTPREQUEST_SETCREDENTIALS_FOR_PROXY = 1
+			httpObj[trueIndex].SetProxy(2, proxyServer)
+		; 	httpObj[trueIndex].SetCredentials(proxyUser, proxyPass, 1) ; HTTPREQUEST_SETCREDENTIALS_FOR_PROXY = 1
 		; }
-		http.SetRequestHeader("Authorization", "Client-ID " imgurClientID)
-		http.SetRequestHeader("Content-Length", size)
+		httpObj[trueIndex].SetRequestHeader("Authorization", "Client-ID " imgurClientID)
+		httpObj[trueIndex].SetRequestHeader("Content-Length", size)
 		Try
-			http.Send(data)
+		{
+			GuiControl,, uploadProgress, % Round(A_Index * 50 / input.MaxIndex() - filtered)
+			Errorlevel := 0
+			httpObj[trueIndex].Send(data)
+		}
 		Catch, e
 		{
-			MsgBox, % "Please, try again, because the script failed to upload your screenshot due to a server-issue:`n" e "`nError message: " e.Message "`nError what: " e.What "`nError extra: " e.Extra "`nError file: " e.File "`nError line: " e.Line
-			Return 0
+			filtered++
+			MsgBox, % "Please, try again, because the script failed to upload your screenshot """ v.path """ due to a server-issue:`n" e "`nError message: " e.Message "`nError what: " e.What "`nError extra: " e.Extra "`nError file: " e.File "`nError line: " e.Line
 		}
-		imgURL := http.ResponseText
-		If (RegExMatch(imgURL, "i)""link"":""http:\\/\\/(.*?(jpg|jpeg|png|gif|apng|tiff|tif|bmp|pdf|xcf))""}", Match))
-			imgURL := "https://" RegExReplace(Match1, "\\/", "/")
-		imgURLs := (imgURLs ? imgURLs "`t" imgURL : imgURL)
-		If (clipURL != 1)
-			Run, % imgURL
 		If (tempScreenshot && !v.dnd)	; User specified to delete the local screenshot's file after uploading it.
 			FileDelete, % v.path
-		If (A_Index == input.MaxIndex() && clipURL)	; If user configured the script to save the image's URL.
-			Clipboard := imgURLs
 	}
-	Return 1
+	filtered := trueIndex := 0
+	While (httpObj.Length())
+	{
+		trueIndex := (++trueIndex > httpObj.Length() ? trueIndex - httpObj.Length() : trueIndex++)
+		If (InStr(httpObj[trueIndex].ResponseText, "status"":200", -1) && (RegExMatch(httpObj[trueIndex].ResponseText, "i)""link"":""http:\\/\\/(.*?(jpg|jpeg|png|gif|apng|tiff|tif|bmp|pdf|xcf))""", Match)))
+		{
+			httpObj.RemoveAt(trueIndex--)
+			imgURLs.Push("https://" RegExReplace(Match1, "\\/", "/"))
+			GuiControl,, uploadProgress, % Round(50 + (++filtered * 50 / httpObj.Length()))
+		}
+		Else
+			MsgBox, % "The server returned an error:`n" httpObj[k].ResponseText
+	}
+	For k, v in imgURLs
+		If (clipURL != 1)
+			Run, % v
+	If (clipURL)
+		Clipboard := arr2ASV(imgURLs)
+	Gui, Destroy
+	Critical, Off
+}
+
+arr2ASV(arr, separator := " ")	; Parses the input array and outputs it's values as a string with anchor-separated values.
+{
+	For k, v In arr
+		var ? var .= separator v : var := v
+	Return var
 }
 
 isThereAnotherInstance()	; Thanks to: GeekDude http://www.autohotkey.com/board/user/10132-geekdude/

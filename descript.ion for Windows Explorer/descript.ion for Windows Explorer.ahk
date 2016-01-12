@@ -1,5 +1,5 @@
 ﻿/* descript.ion for Windows Explorer v0.1
-Last time modified: 2015.09.22 18:30
+Last time modified: 2015.09.22 21:05
 
 Summary: this script let's you get files' comments.
 
@@ -25,6 +25,7 @@ SendMode, Input  ; Recommended for new scripts due to its superior speed and rel
 SetWorkingDir, %A_ScriptDir%  ; Ensures a consistent starting directory.
 #SingleInstance, Force
 
+#IfWinActive, ahk_exe explorer.exe
 F1::
 	description := getDescription(Explorer_GetFolder(), Explorer_GetFileNames())
 	tooltipText := ""
@@ -38,6 +39,7 @@ F1::
 		ToolTip
 	}
 Return
+#IfWinActive
 
 Explorer_GetFolder()
 {

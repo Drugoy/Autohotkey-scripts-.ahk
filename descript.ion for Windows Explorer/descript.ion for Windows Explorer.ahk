@@ -1,5 +1,5 @@
-﻿/* descript.ion for Windows Explorer v0.1
-Last time modified: 2015.09.22 21:05
+﻿/* descript.ion for Windows Explorer v0.2
+Last time modified: 2016.01.28 18:50
 
 Summary: this script let's you get files' comments.
 
@@ -9,11 +9,11 @@ Comments get taken from the descript.ion file that should be present in the fold
 Usage:
 1. Get TotalCommander (or alike), select a file there, hit Ctrl+Z, add some comments to the file. This will create a descript.ion (usually hidden) file in that folder.
 2. Open the commented file's folder in Windows Explorer.
-3. Run this script and either hold F1 to get a traytip with comments for all the files in that folder or select the necessary files first and then get comments only to the selected files.
+3. Run this script and hold F1 to get a traytip with comments either for all the files (if no files were selected) or only for the selected ones.
 
 Script author: Drugoy a.k.a. Drugmix
 Contacts: idrugoy@gmail.com, drug0y@ya.ru
-https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/DrugWinManager
+https://github.com/Drugoy/Autohotkey-scripts-.ahk/tree/master/descript.ion%20for%20Windows%20Explorer
 
 To do:
 1. Add handling of '.lnk' files.
@@ -24,22 +24,83 @@ To do:
 SendMode, Input  ; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir, %A_ScriptDir%  ; Ensures a consistent starting directory.
 #SingleInstance, Force
+CoordMode, Mouse, Screen
+#MaxThreadsPerHotkey, 1
+
 
 #IfWinActive, ahk_exe explorer.exe
 F1::
-	description := getDescription(Explorer_GetFolder(), Explorer_GetFileNames())
-	tooltipText := ""
-	For k, v In description
-		tooltipText .= v.name ":`n`t" v.description "`n"
-	If tooltipText
+	currentFolderPath := Explorer_GetFolder()
+	files := {}, htmlBody := ""
+	files := getDescription(currentFolderPath, Explorer_GetFileNames())
+	For k, v In files
+		htmlBody .= "<b class=""name"">" v.name "</b>`n`t`t<div class=""description"">" v.description "`n`t`t</div>`n`t`t`n`t`t"
+	htmlBody := RegExReplace(htmlBody, "Si)((https?://)([^\s/]+)\S*)", "<a href=""$1"">$2$3/…</a>")
+	If htmlBody
 	{
-		ToolTip, % tooltipText
-		While GetKeyState(A_ThisHotkey, "P")
-			Sleep, 30
-		ToolTip
+htmlPage =
+(
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			html, body
+			{
+				margin: 0;
+				padding: 0;
+				width: 100`%;
+			}
+			html
+			{
+				overflow: auto;
+				height: 100`%;
+				background-color: #DCE1E5;
+			}
+			body
+			{
+				width: auto;
+				font-family: Sans-Serif;
+				font-size: 10pt;
+				border: 1px solid black;
+			}
+			.description
+			{
+				background-color: white;
+				border: 1px solid #A9B8C2;
+			}
+			a:hover:after
+			{
+				content: ' > ' attr(href);
+			}
+		</style>
+	</head>
+	<body>
+		%htmlBody%
+	</body>
+</html>
+)
+		Gui, New, +LastFound -Caption +AlwaysOnTop	; +ToolWindow
+		Gui, Color, 123456
+		WinSet, TransColor, 123456
+		Gui, Margin, 0, 0
+		Gui, Add, Button, gOpenDescription, Open descript.ion
+		Gui, Add, ActiveX, vWB w600 h800 x0 y+0, mshtml:<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+		ControlFocus, AtlAxWin1	; Otherwise the html element will not be scrollable until clicked.
+		WB.Write(htmlPage)
+		WB.Close()
+		usedHeight := WB.body.offsetHeight
+		Gui, Show
+		KeyWait, %A_ThisHotkey%
+		Gui, Destroy
 	}
+	KeyWait, %A_ThisHotkey%
 Return
 #IfWinActive
+
+OpenDescription:
+	IfExist, %currentFolderPath%\descript.ion
+		Run, %currentFolderPath%\descript.ion
+Return
 
 Explorer_GetFolder()
 {
@@ -72,6 +133,7 @@ Explorer_GetWindow()
 		Return "desktop" ; desktop found
 }
 
+;{ Explorer_GetFileNames()	- returns selected (or all, if none were selected) files' names.
 Explorer_GetFileNames()
 {
 	fileNames := []
@@ -103,32 +165,32 @@ Explorer_GetFileNames()
 	}
 	Return fileNames
 }
-
+;}
+;{ getDescription(folder, files)	- returns an associative array with files as items, each item is an associative array of file name and file description.
 getDescription(folder, files)
 {
 	IfExist, % folder "/descript.ion"
 	{
+		FileEncoding, cp1251
 		FileRead, descriptionStr, % folder "/descript.ion"
 		If descriptionStr
 		{
-			description := {}
+			describedFiles := {}
 			Loop, Parse, descriptionStr, `n, `r
 			{
-				linePart1 := linePart2 := linePart3 := ""	; Make sure regexmatch's results will be correct.
-				If A_LoopField	; Skip empty lines (like the last one).
-				{
-					RegExMatch(A_LoopField, "Si)^(?:""(.+)""|(\S+?))\s(.*)$", linePart)
-					StringReplace, linePart3, linePart3, \n, `n, All
-					StringReplace, linePart3, linePart3, В, `n, All
-					For k, v In files
-					{
-						OutputDebug, % "filename from descript.ion: '" (linePart1 ? linePart1 : linePart2) "' " "filename from the list of selected files: '" linePart3 "' "
-						If (v = (linePart1 ? linePart1 : linePart2))	; Get description only of the files we need (of selected (if exist) or otherwise of all.)
-							description.Insert({"name": (linePart1 ? linePart1 : linePart2), "description": linePart3})
-					}
-				}
+				If !(A_LoopField)	; Skip empty lines (like the last one).
+					Continue
+				name := part1 := part2 := part3 := ""
+				RegExMatch(A_LoopField, "Si)^(?:""(.+)""|(\S+?))\s(.*)$", part)
+				StringReplace, part3, part3, \n, `n, All	; '\n' represent new lines, so converting them back.
+				StringReplace, part3, part3, В,, All	; 'В' is usually at the end of the line if description contained at least one '\n'.
+				StringReplace, part3, part3, `n, `n`t`t<br/>`n`t`t, All
+				For k, v In files
+					If (v == (name := (part1 ? part1 : part2)))	; Get description only of the files we need (of selected (if exist) or otherwise of all.)
+						describedFiles[name] := ({"name": name, "description": part3})
 			}
+			Return describedFiles
 		}
 	}
-	Return description
 }
+;}

@@ -88,8 +88,7 @@ htmlPage =
 		ControlFocus, AtlAxWin1	; Otherwise the html element will not be scrollable until clicked.
 		WB.Write(htmlPage)
 		WB.Close()
-		usedHeight := WB.body.offsetHeight
-		Gui, Show
+		Gui, Show, % "h" (WB.body.offsetHeight < 800 ? "" WB.body.offsetHeight + 23 : "800")
 		KeyWait, %A_ThisHotkey%
 		Gui, Destroy
 	}

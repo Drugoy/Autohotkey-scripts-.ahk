@@ -103,7 +103,6 @@ Return
 	{
 		currentFolderPath := Explorer_GetFolder()
 		dFiles := getDescription(currentFolderPath, Explorer_GetFileNames(1))
-		; OutputDebug, % JSON.Dump(dFiles)
 		For k, v In dFiles
 		{
 			If (k == selected[1])
@@ -174,7 +173,6 @@ setDescription(folder, name, description)
 		FileDelete, % folder "\descript.ion"
 	Else If (descriptionExisted)	; Modify
 	{
-		OutputDebug, % "A_LineNumber: '" A_LineNumber "' "
 		For k, v In dFiles
  			writeMe .= (InStr(k, " ") ? """" k """" : k) "`t" v (InStr(v, "\n") ? "В`n" : "`n")
 		FileDelete, % folder "\descript.ion"
@@ -272,9 +270,11 @@ getDescription(folder, filesFilter = 0)
 				name := part1 := part2 := part3 := ""
 				RegExMatch(A_LoopField, "Si)^(?:""(.+)""|(\S+?))\s(.*)$", part)
 				If (filesFilter)
+				{
 					For k, v In filesFilter
 						If (v == (name := (part1 ? part1 : part2)))	; Get description only of the files we need (of selected (if exist) or otherwise of all.)
 							describedFiles[name] := part3
+				}
 				Else
 					describedFiles[name] := part3
 			}

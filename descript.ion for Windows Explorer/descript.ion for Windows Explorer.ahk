@@ -34,7 +34,6 @@ F1::
 		found := FileExist(currentFolderPath "\" k)
 		htmlBody .= (A_Index == 1 ? "" : "`n") "`n`t`t<b class=""name" (found ? "" : " notfound") """>`n`t`t`t" k "`n`t`t</b>`n`t`t<div class=""description" (found ? "" : " notfound") """>`n`t`t`t" v "`n`t`t</div>"
 		StringReplace, htmlBody, htmlBody, \n, `n`t`t`t<br>`n`t`t`t, All	; '\n' represent new lines, so converting them back.
-		StringReplace, htmlBody, htmlBody, В,, All	; 'В' is usually at the end of the line if description contained at least one '\n'.
 	}
 	htmlBody := RegExReplace(htmlBody, "Si)((https?://)([^\s/]+)\S*)", "<a href=""$1"">$2$3/…</a>")
 	If htmlBody
@@ -113,7 +112,6 @@ Return
 			{
 				slctdName := k, slctdDesc := v
 				StringReplace, slctdDesc, slctdDesc, \n, `n, All	; '\n' represent new lines, so converting them back.
-				StringReplace, slctdDesc, slctdDesc, В,, All	; 'В' is usually at the end of the line if description contained at least one '\n'.
 				Break
 			}
 		}
@@ -269,6 +267,7 @@ getDescription(folder, filesFilter = "")
 					Continue
 				name := part1 := part2 := part3 := ""
 				RegExMatch(A_LoopField, "Si)^(?:""(.+)""|(\S+?))\s(.*)$", part)
+				StringReplace, part3, part3, В,, All	; 'В' is usually at the end of the line if description contained at least one '\n'.
 				name := (part1 ? part1 : part2)
 				If filesFilter[1]
 				{

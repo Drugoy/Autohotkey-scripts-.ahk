@@ -1,5 +1,5 @@
-﻿/* descript.ion for Windows Explorer v0.3
-Last time modified: 2016.02.05 13:40
+﻿/* descript.ion for Windows Explorer v0.4
+Last time modified: 2016.02.07 23:15
 
 Summary: this script let's you get files' comments.
 
@@ -28,10 +28,11 @@ Global dFiles
 #IfWinActive, ahk_exe explorer.exe
 F1::
 	htmlBody := "", currentFolderPath := Explorer_GetFolder()
-	dFiles := getDescription(currentFolderPath, Explorer_GetFileNames())
+	dFiles := getDescription(currentFolderPath, Explorer_GetSelectedFileNames())
 	For k, v In dFiles
 	{
-		htmlBody .= (A_Index == 1 ? "" : "`n") "`n`t`t<b class=""name"">`n`t`t`t" k "`n`t`t</b>`n`t`t<div class=""description"">`n`t`t`t" v "`n`t`t</div>"
+		found := FileExist(currentFolderPath "\" k)
+		htmlBody .= (A_Index == 1 ? "" : "`n") "`n`t`t<b class=""name" (found ? "" : " notfound") """>`n`t`t`t" k "`n`t`t</b>`n`t`t<div class=""description" (found ? "" : " notfound") """>`n`t`t`t" v "`n`t`t</div>"
 		StringReplace, htmlBody, htmlBody, \n, `n`t`t`t<br>`n`t`t`t, All	; '\n' represent new lines, so converting them back.
 		StringReplace, htmlBody, htmlBody, В,, All	; 'В' is usually at the end of the line if description contained at least one '\n'.
 	}
@@ -68,6 +69,10 @@ htmlPage =
 				background-color: white;
 				border: 1px solid #A9B8C2;
 			}
+			.notfound
+			{
+				color: red;
+			}
 			a:hover:after
 			{
 				content: ' > ' attr(href);
@@ -78,7 +83,6 @@ htmlPage =
 	</body>
 </html>
 )
-Clipboard := htmlPage
 		Gui, New, +LastFound -Caption +AlwaysOnTop +ToolWindow
 		Gui, Color, 123456
 		WinSet, TransColor, 123456
@@ -98,11 +102,11 @@ Return
 
 !F1::	; Edit
 	dFiles := name := description := slctdName := slctdDesc := ""
-	selected := Explorer_GetFileNames()
+	selected := Explorer_GetSelectedFileNames()
 	If (selected.Length() == 1)	; Make it work only if 1 file was selected.
 	{
 		currentFolderPath := Explorer_GetFolder()
-		dFiles := getDescription(currentFolderPath, Explorer_GetFileNames(1))
+		dFiles := getDescription(currentFolderPath)
 		For k, v In dFiles
 		{
 			If (k == selected[1])
@@ -220,7 +224,7 @@ Explorer_GetWindow()
 }
 	;}
 	;{ Explorer_GetFileNames(forceAll = 0)	- returns selected (or all, if none were selected) files' names.
-Explorer_GetFileNames(forceAll = 0)
+Explorer_GetSelectedFileNames()
 {
 	fileNames := []
 	If !(window := Explorer_GetWindow())
@@ -230,12 +234,9 @@ Explorer_GetFileNames(forceAll = 0)
 		ControlGet, activeWinHWND, HWND,, SysListView321, ahk_class Progman
 		If !activeWinHWND ; #D mode
 			ControlGet, activeWinHWND, HWND,, SysListView321, A
-		If !forceAll
-			ControlGet, files, List, % "Selected" "Col1",, ahk_id %activeWinHWND%
-		If !files	; If none are selected - get the list of all files.
-			ControlGet, files, List, "Col1",, ahk_id %activeWinHWND%
+		ControlGet, selectedFiles, List, % "Selected" "Col1",, ahk_id %activeWinHWND%
 		folder := SubStr(A_Desktop, 0, 1) == "\" ? SubStr(A_Desktop, 1, -1) : A_Desktop
-		Loop, Parse, files, `n, `r
+		Loop, Parse, selectedFiles, `n, `r
 		{
 			path := folder "\" A_LoopField
 			IfExist %path% ; ignore special icons like Computer (at least for now)	; FIXME: fails on "*.lnk" files.
@@ -245,8 +246,6 @@ Explorer_GetFileNames(forceAll = 0)
 	Else
 	{
 		items := window.document.SelectedItems
-		If !items.item[0].name	; If none are selected - get the list of all files.
-			items := window.document.Folder.Items
 		For item In items	; https://msdn.microsoft.com/en-us/library/ms970456.aspx
 			fileNames.Insert(item.name)
 	}
@@ -254,25 +253,27 @@ Explorer_GetFileNames(forceAll = 0)
 }
 	;}
 	;{ getDescription(folder, filesFilter = 0)	- returns an associative array with files as items, each item is an associative array of file name and file description.
-getDescription(folder, filesFilter = 0)
+getDescription(folder, filesFilter = "")
 {
 	describedFiles := {}
 	IfExist, % folder "\descript.ion"
 	{
 		FileEncoding, cp1251
-		FileRead, descriptionStr, % folder "\descript.ion"
-		If descriptionStr
+		FileRead, ionContentents, % folder "\descript.ion"
+		If ionContentents
 		{
-			Loop, Parse, descriptionStr, `n, `r
+			Loop, Parse, ionContentents, `n, `r
 			{
+				
 				If !(A_LoopField)	; Skip empty lines (like the last one).
 					Continue
 				name := part1 := part2 := part3 := ""
 				RegExMatch(A_LoopField, "Si)^(?:""(.+)""|(\S+?))\s(.*)$", part)
-				If (filesFilter)
+				name := (part1 ? part1 : part2)
+				If filesFilter[1]
 				{
 					For k, v In filesFilter
-						If (v == (name := (part1 ? part1 : part2)))	; Get description only of the files we need (of selected (if exist) or otherwise of all.)
+						If (v == name)	; Get description only of the files we need (of selected (if exist) or otherwise of all.)
 							describedFiles[name] := part3
 				}
 				Else

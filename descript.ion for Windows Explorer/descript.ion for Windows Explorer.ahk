@@ -1,5 +1,5 @@
-﻿/* descript.ion for Windows Explorer v0.4
-Last time modified: 2016.02.07 23:15
+﻿/* descript.ion for Windows Explorer v0.5
+Last time modified: 2016.02.08 04:35
 
 Summary: this script let's you get files' comments.
 
@@ -33,7 +33,7 @@ F1::
 	{
 		found := FileExist(currentFolderPath "\" k)
 		htmlBody .= (A_Index == 1 ? "" : "`n") "`n`t`t<b class=""name" (found ? "" : " notfound") """>`n`t`t`t" k "`n`t`t</b>`n`t`t<div class=""description" (found ? "" : " notfound") """>`n`t`t`t" v "`n`t`t</div>"
-		StringReplace, htmlBody, htmlBody, \n, `n`t`t`t<br>`n`t`t`t, All	; '\n' represent new lines, so converting them back.
+		StringReplace, htmlBody, htmlBody, \n, `n`t`t`t<br>`n`t`t`t, All	; '\n' represents new lines, so converting them back.
 	}
 	htmlBody := RegExReplace(htmlBody, "Si)((https?://)([^\s/]+)\S*)", "<a href=""$1"">$2$3/…</a>")
 	If htmlBody
@@ -88,7 +88,8 @@ htmlPage =
 		Gui, Margin, 0, 0
 		; Gui, Add, Button, gOpenDescription, Open descript.ion
 		Gui, Add, ActiveX, vWB w600 h800 x0 y+0, mshtml:<meta http-equiv="X-UA-Compatible" content="IE=Edge">
-		Gui, Add, Button, x+0 gOpenDescription, .ion
+		Gui, Add, Button, x+0 gOpenIon, .ion
+		Gui, Add, Button, y+0 gClear, Clear
 		ControlFocus, AtlAxWin1	; Otherwise the html element will not be scrollable until clicked.
 		WB.Write(htmlPage)
 		WB.Close()
@@ -137,57 +138,30 @@ Save:
 	setDescription(currentFolderPath, name, description)
 Return
 
+OpenIon:
+	IfExist, %currentFolderPath%\descript.ion
+		Run, %currentFolderPath%\descript.ion
+Return
+
+Clear:
+	dead := grep(htmlBody, "Sim`a)name notfound"">\s++(.+?)$")
+	For k, v In dFiles
+	{
+		For a, b In dead
+			If (k == b)
+				dFiles.Delete(k)
+	}
+	setDescription(currentFolderPath, "", "")
+	Gui, Destroy
+	GoSub, F1
+Return
+
 GuiClose:
 GuiEscape:
 	Gui, Destroy
 Return
 
-OpenDescription:
-	IfExist, %currentFolderPath%\descript.ion
-		Run, %currentFolderPath%\descript.ion
-Return
-
 ;{ Functions
-	;{ setDescription(folder, name, description)
-setDescription(folder, name, description)
-{
-	For k, v In dFiles
-	{
-		If (k == name)	; k or v.name
-		{
-			descriptionExisted := 1
-			If (description)
-				dFiles[k] := description
-			Else
-				dFiles.Delete(k)	; FIXME: what if !description?
-			Break
-		}
-	}
-	For k, v In dFiles
-		dFilesLength++
-	If (description) && !(descriptionExisted)	; input description is not empty, while the descript.ion either lacks the corresponding description yet or doesn't yet exist.
-	{
-		writeMe := (InStr(name, " ") ? """" name """" : name) "`t" description (InStr(description, "\n") ? "В`n" : "`n")
-		FileAppend, % writeMe, % folder "\descript.ion"	;, UTF-8
-		FileSetAttrib, +H, % folder "\descript.ion"
-	}
-	Else If !(description) && (descriptionExisted) && !(dFilesLength)
-		FileDelete, % folder "\descript.ion"
-	Else If (descriptionExisted)	; Modify
-	{
-		For k, v In dFiles
- 			writeMe .= (InStr(k, " ") ? """" k """" : k) "`t" v (InStr(v, "\n") ? "В`n" : "`n")
-		FileDelete, % folder "\descript.ion"
-		FileAppend, % writeMe, % folder "\descript.ion"	;, UTF-8
-		FileSetAttrib, +H, % folder "\descript.ion"
-		;{ Fails
-		; ion := FileOpen(folder "\descript.ion", "rw")
-		; ion.Write(writeMe)
-		; ion.Close()
-		;}
-	}
-}
-	;}
 	;{ Explorer_GetFolder()
 Explorer_GetFolder()
 {
@@ -265,22 +239,74 @@ getDescription(folder, filesFilter = "")
 				
 				If !(A_LoopField)	; Skip empty lines (like the last one).
 					Continue
-				name := part1 := part2 := part3 := ""
-				RegExMatch(A_LoopField, "Si)^(?:""(.+)""|(\S+?))\s(.*)$", part)
+				partname := part1 := part2 := part3 := ""
+				RegExMatch(A_LoopField, "JSi)^(?:""(?P<name>.+)""|(?P<name>\S+?))\s(.*)$", part)
 				StringReplace, part3, part3, В,, All	; 'В' is usually at the end of the line if description contained at least one '\n'.
-				name := (part1 ? part1 : part2)
 				If filesFilter[1]
 				{
 					For k, v In filesFilter
-						If (v == name)	; Get description only of the files we need (of selected (if exist) or otherwise of all.)
-							describedFiles[name] := part3
+						If (v == partname)	; Get description only of the files we need (of selected (if exist) or otherwise of all.)
+							describedFiles[partname] := part3
 				}
 				Else
-					describedFiles[name] := part3
+					describedFiles[partname] := part3
 			}
 			Return describedFiles
 		}
 	}
+}
+	;}
+	;{ setDescription(folder, name, description)
+setDescription(folder, name, description)
+{
+	For k, v In dFiles
+	{
+		If (k == name)	; k or v.name
+		{
+			descriptionExisted := 1
+			If (description)
+				dFiles[k] := description
+			Else
+				dFiles.Delete(k)
+			Break
+		}
+	}
+	For k, v In dFiles
+		dFilesLength++
+	If (description) && !(descriptionExisted)	; input description is not empty, while the descript.ion either lacks the corresponding description yet or doesn't yet exist.
+	{
+		writeMe := (InStr(name, " ") ? """" name """" : name) "`t" description (InStr(description, "\n") ? "В`n" : "`n")
+		FileAppend, % writeMe, % folder "\descript.ion"	;, UTF-8
+		FileSetAttrib, +H, % folder "\descript.ion"
+	}
+	Else If !(description) && (descriptionExisted) && !(dFilesLength)
+		FileDelete, % folder "\descript.ion"
+	Else If (descriptionExisted) || !(name)	; Modify
+		writeModified(folder)
+}
+	;}
+	;{
+writeModified(folder)
+{
+	For k, v In dFiles
+		writeMe .= (InStr(k, " ") ? """" k """" : k) "`t" v (InStr(v, "\n") ? "В`n" : "`n")
+	FileDelete, % folder "\descript.ion"
+	FileAppend, % writeMe, % folder "\descript.ion"	;, UTF-8
+	FileSetAttrib, +H, % folder "\descript.ion"
+	;{ Fails
+	; ion := FileOpen(folder "\descript.ion", "rw")
+	; ion.Write(writeMe)
+	; ion.Close()
+	;}
+}
+	;}
+	;{ grep()
+grep(haystack, needle)
+{
+   output := []
+   While (pos := RegExMatch(haystack, needle, match, (pos >= 1 ? pos : 1) + StrLen(match)))
+      output.Insert(match1)
+   Return output
 }
 	;}
 ;}

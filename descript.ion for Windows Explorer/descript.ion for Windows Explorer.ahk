@@ -151,7 +151,7 @@ Clear:
 			If (k == b)
 				dFiles.Delete(k)
 	}
-	setDescription(currentFolderPath, "", "")
+	writeModified(currentFolderPath)
 	Gui, Destroy
 	GoSub, F1
 Return
@@ -281,7 +281,7 @@ setDescription(folder, name, description)
 	}
 	Else If !(description) && (descriptionExisted) && !(dFilesLength)
 		FileDelete, % folder "\descript.ion"
-	Else If (descriptionExisted) || !(name)	; Modify
+	Else If (descriptionExisted)	; Modify
 		writeModified(folder)
 }
 	;}

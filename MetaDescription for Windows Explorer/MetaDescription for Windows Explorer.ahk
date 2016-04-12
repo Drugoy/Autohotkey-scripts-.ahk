@@ -1,5 +1,5 @@
-﻿/* MetaDescription for Windows Explorer v0.1
-Last time modified: 2016.04.12 17:30
+﻿/* MetaDescription for Windows Explorer v0.2
+Last time modified: 2016.04.13 02:15
 
 Summary: this script let's you get files' comments.
 
@@ -32,7 +32,7 @@ F1::
 	htmlBody := ""
 	dFiles := getDescription()
 	For k, v In dFiles
-		htmlBody .= (A_Index == 1 ? "" : "`n") "`n`t`t<b class=""name"">`n`t`t`t" k "`n`t`t</b>`n`t`t<div class=""description"">`n`t`t`t" RegExReplace(v, "Si)\n", "<br>") "`n`t`t</div>"
+		htmlBody .= (A_Index == 1 ? "" : "`n") "`n`t`t<b class=""name"">`n`t`t`t" k "`n`t`t</b>`n`t`t<div class=""description"">`n`t`t`t" RegExReplace(RegExReplace(v, "Si)""""", """"), "Si)\n", "<br>") "`n`t`t</div>"
 	; htmlBody := RegExReplace(htmlBody, "Si)((https?://)([^\s/]+)\S*)", "<a href=""$1"">$2$3/…</a>")
 	If htmlBody
 	{
@@ -107,7 +107,7 @@ Return
 		Gui, Margin, 1, 1
 		Gui, Add, Edit, +ReadOnly vname, % RegExReplace(selected[1], ".+\\(.+)", "$1")
 		For k, v in (describedFile.GetCapacity() ? describedFile : {"":""})
-			Gui, Add, Edit, Wrap y+0 w600 h400 +Multi vdescription, % v
+			Gui, Add, Edit, Wrap y+0 w600 h400 +Multi vdescription, % StrReplace(v, """""", """")
 		Gui, Add, Button, y+0 x547 gSave, Save
 		ControlFocus, Edit2
 		Gui, Show
@@ -199,17 +199,9 @@ setDescription(file, description)
 comspecEscape(input)
 {
 	output := input
-	StringReplace, output, output, ^, ^^, A
-	StringReplace, output, output, \, ^\, A
-	StringReplace, output, output, <, ^<, A
-	StringReplace, output, output, >, ^>, A
-	StringReplace, output, output, |, ^|, A
-	StringReplace, output, output, &, ^&, A
-	StringReplace, output, output, (, ^(, A
-	StringReplace, output, output, ), ^), A
-	StringReplace, output, output, ", ^", A
-	StringReplace, output, output, `n, % "&echo.&<nul set/p=", A	; Makes proper handling of newline characters.
-	output := "(<nul set/p=" output ")"	; "set/p=text" - prompt user input and sets ErrorLevel equal the text to the right; "<nul" - redirect prompted input from NUL, thus do not wait for user input.
+	StringReplace, output, output, ", "", A	; Due to some internal bug in cmd.exe - it's impossible to escape a single double_quote char in 'set/p z="…"' construction. So we double all the double_quot chars there to make sure their total number is never odd. Later (when using F1/Alt+F1) we have to replace the doubled double_quote chars back to single double_quote char.
+	StringReplace, output, output, `n, % """&echo.&<nul set/p z=""", A	; Makes proper handling of newline characters.
+	output := "(<nul set/p z=""" output """)"	; "set/p=text" - prompt user input and sets ErrorLevel equal the text to the right; "<nul" - redirect prompted input from NUL, thus do not wait for user input.
 	Return output
 }
 	;}

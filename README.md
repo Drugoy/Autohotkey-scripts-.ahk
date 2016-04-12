@@ -54,6 +54,13 @@ Very short script that just demonstrates the idea of how to combine multiple sho
 ##### [Libraries](Libraries)
 These are the libs, which may be required by some of the scripts.
 
+##### [MetaDescription for Windows Explorer](MetaDescription for Windows Explorer)
+This script lets you add commentaries (in simple text or HTML syntax) to the files. The commentaries will be stored in an alternative data stream hooked right to the file you add comments to. The commented file stays unmodified.
+Usage:
+	Add/modify description: in Windows Explorer select any file and hit "Alt+F1" hotkey. A window will show up with a input field where you can put a description. Write in something and hit 'Save' button.
+	Show description: in Windows Explorer either select one or multiple files or don't select anything, then hit and hold "F1" key: a window with previously added description will show up.
+This script is an alternative to [descript.ion for Windows Explorer](descript.ion for Windows Explorer) and now you may move files however you like (on NTFS disk) and not worry about also moving the description.
+
 ##### [MoveOut](MoveOut)
 Make rules to move files automatically. Use it to make a rule that moves files from the desktop to a subfolder, based on file type, part of a filename, or whatever. Have it ask to replace existing files, or rename them. It can also ignore files. Features:
 - Rightclick the tray icon to configure

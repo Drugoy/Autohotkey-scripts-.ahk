@@ -1,6 +1,6 @@
 ﻿/* Meta Shortcut
-Version: 8
-Last time modified: 2016.04.24 23:32
+Version: 9
+Last time modified: 2016.04.25 00:36
 
 Summary: a single file that can store multiple shortcuts and provides access to them via dropdown menu.
 
@@ -62,9 +62,10 @@ If (%0% == 0)	; User wanted to access the already stored shortcuts.
 				Else	; There's no path to the icon stored in the registry (example is .pdf being handled by "SumatraPDF portable")
 				{
 					RegRead, icoPath, HKCR, %temp%\shell\open\command
-					thisIconLibPath := chopString(icoPath, """", 2)	; Might be unreliable. Usually the path is like '"C:\path\to\file.exe" "%1"'
 					thisIconNumberInLib := 1
 				}
+				If InStr(thisIconLibPath, """")
+					thisIconLibPath := chopString(icoPath, """", 2)	; Might be unreliable. Usually the path is like '"C:\path\to\file.exe" "%1"' or just '"C:\path\to\file.exe"' and it has to be normalized for further use.
 				Menu, ShortcutsList, Icon, %A_Index%. %singleRecordPart1%, %thisIconLibPath%, %thisIconNumberInLib%
 			}
 			paths.Insert(A_Index ". " singleRecordPart1, singleRecordPart2)	; Here we do bindings (using array) so we'll know later what to run.

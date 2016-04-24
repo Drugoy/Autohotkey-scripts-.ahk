@@ -1,6 +1,6 @@
 ﻿/* Meta Shortcut
-Version: 7
-Last time modified: 2015.07.21 11:15
+Version: 8
+Last time modified: 2016.04.24 23:32
 
 Summary: a single file that can store multiple shortcuts and provides access to them via dropdown menu.
 
@@ -87,7 +87,10 @@ Else	; User did drag'n'drop at least one file.
 				If (urlPath == "ERROR")	; Safe check against incorrect URLs.
 					MsgBox, % "There was a problem retrieving the URL from the file, so the shortcut to that URL was not saved."
 				Else
+				{
 					FileAppend, % (settingsExist ? "`n" : "") A_LoopFileName "|" urlPath, %settingstxt%
+					settingsExist := 1
+				}
 			}
 			Else
 				FileAppend, % (settingsExist ? "`n" : "") A_LoopFileName (isFileNotFolder ? "" : "\") "|" A_LoopFileLongPath, %settingstxt%

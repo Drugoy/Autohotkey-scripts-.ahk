@@ -1,5 +1,5 @@
-﻿/* MetaDescription for Windows Explorer v0.2
-Last time modified: 2016.04.13 02:15
+﻿/* MetaDescription for Windows Explorer v0.3
+Last time modified: 2016.05.06 22:41
 
 Summary: this script let's you get files' comments.
 
@@ -189,20 +189,15 @@ getDescription()
 	;{ setDescription(file, description)
 setDescription(file, description)
 {
-	If (description)
-		RunWait, % ComSpec " /c " comspecEscape(description) ">""" file ":description""",, Hide
-	Else
-		FileDelete, %file%:description
-}
-	;}
-	;{ comspecEscape(input)
-comspecEscape(input)
-{
-	output := input
-	StringReplace, output, output, ", "", A	; Due to some internal bug in cmd.exe - it's impossible to escape a single double_quote char in 'set/p z="…"' construction. So we double all the double_quot chars there to make sure their total number is never odd. Later (when using F1/Alt+F1) we have to replace the doubled double_quote chars back to single double_quote char.
-	StringReplace, output, output, `n, % """&echo.&<nul set/p z=""", A	; Makes proper handling of newline characters.
-	output := "(<nul set/p z=""" output """)"	; "set/p=text" - prompt user input and sets ErrorLevel equal the text to the right; "<nul" - redirect prompted input from NUL, thus do not wait for user input.
-	Return output
+	FileRead, oldDescription, % file ":description"
+	StringReplace, description, description, `n, `r`n, A
+	If (oldDescription != description)
+	{
+		If (oldDescription)
+			FileDelete, % file ":description"
+		If (description)
+			FileAppend, % description, % file ":description"
+	}
 }
 	;}
 ;}

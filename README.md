@@ -16,6 +16,9 @@ Usage: hit the hotkey (default is F10) to open the context menu.
 Adds hotkeys (that work only in browsers) to quickly put selected text into the corresponding BBCode tags.
 Usage: in a browser select any text in a text field and use any hotkey to put the selected text into the corresponding BBCode tags.
 
+##### [Capitalize](Capitalize)
+Automatically capitalizes letters after hitting Enter or typing dot, exclamation mark or question mark or triple dots.
+
 ##### [DetachVideo](DetachVideo)
 Detach a flash container's frame from a browser into a separate window (in Windows). Doesn't play well with Firefox.
 Usage: in a browser open a page with flash container, mouse over it and hit the hotkey (default is F12).

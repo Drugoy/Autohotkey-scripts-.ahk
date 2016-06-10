@@ -1,5 +1,5 @@
-﻿/* Capitalize
-Last time modified: 2016.06.05 00:00
+﻿/* Capitalize v1.1
+Last time modified: 2016.06.10 03:40
 
 Summary: automatically capitalizes letters after hitting Enter or typing dot, exclamation mark or question mark or triple dots.
 
@@ -39,7 +39,7 @@ SendLevel, 2
 Loop	; Listen to input keys, look for 'endChars' to be sent, to set a token 'capNextChar' to capitalize next char.
 {
 	Input, key, C E L1 V, % endChars
-	capNextChar := (key == " " ? capNextChar : InStr(ErrorLevel, "EndKey:"))
+	capNextChar := (key == " " ? capNextChar : (InStr(ErrorLevel, "EndKey:Enter") ? 2 : InStr(ErrorLevel, "EndKey:")))
 }
 
 capitalize(input = "")	; The function that decides whether to and how to transform the input keys.

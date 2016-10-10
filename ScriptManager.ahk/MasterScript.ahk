@@ -1,5 +1,5 @@
 ﻿/* MasterScript.ahk
-Version: 4.0
+Version: 4.1
 Last time modified: 2016.10.05 14:20
 Compatible with AHK: 1.1.24.01.
 
@@ -631,6 +631,7 @@ addEditPA()
 	Global settings_O, thisPAEnabled_B, actUponOccurence_B, actUponDeath_B, bindAllToAll_B, persistent_B, trigger_S, dependentsTopText_P, addDependent_P, dependent_S, affects_P
 	GoSub, addEditPAGUI
 	Gui, addEditPA: Show,, New rule
+	ruleToEdit_N := ""
 	Return
 			;{+ Labels
 				;{ addEditPAGUI	- creates a window to add/edit a Process Assistant.
@@ -688,19 +689,19 @@ addEditPA()
 				;{ addTrigger, addDependent_P	- G-Labels of buttons that open Explorer Window.
 	addTrigger:	; gLabel of left "+" button in the 'New/edit rule' window.
 	addDependent_P:	; gLabel of right "+" button in the 'New/edit rule' window.
-		FileSelectFile, this, MS,, Select executables or ahk-scripts, Processes or scripts (*.exe; *.ahk)	; M option makes the output have stupid format.
+		FileSelectFile, selectedFiles_S, MS,, Select executables or ahk-scripts, Processes or scripts (*.exe; *.ahk)	; M option makes the output have stupid format.
 		If (ErrorLevel)	; In case user canceled file selection.
 			Return
 		If (A_ThisLabel = "addTrigger")
 		{
 			GuiControlGet, trigger_S
-			trigger_S .= fixFSFOutput(this)
+			trigger_S .= fixFSFOutput(selectedFiles_S)
 			GuiControl, addEditPA:, trigger_S, %trigger_S%
 		}
 		Else
 		{
 			GuiControlGet, dependent_S
-			dependent_S .= fixFSFOutput(this)
+			dependent_S .= fixFSFOutput(selectedFiles_S)
 			GuiControl, addEditPA:, dependent_S, %dependent_S%
 		}
 	Return
@@ -710,18 +711,18 @@ addEditPA()
 		Gui, 1: ListView, assistantsLV
 		If !(LV_GetCount("Selected"))	; If no assistant is selected.
 			LV_Modify(1, "Select")	; Forcefully select 1st one.
-		this := ""
-		While !(this)	; Find rule number by getting 1st column's value (and move upwards if it's blank).
-			LV_GetText(this, LV_GetNext() + 1 - A_Index, 1)	; this will contain the number of the rule related to the selected row.
+		ruleToEdit_N := ""
+		While !(ruleToEdit_N)	; Find rule number by getting 1st column's value (and move upwards if it's blank).
+			LV_GetText(ruleToEdit_N, LV_GetNext() + 1 - A_Index, 1)	; ruleToEdit_N will contain the number of the rule related to the selected row.
 		GoSub, addEditPAGUI
-		GuiControl, addEditPA:, thisPAEnabled_B, % settings_O.assistants[this].enabled
-		GuiControl, addEditPA:, actUponOccurence_B, % settings_O.assistants[this].actUponOccurence
-		GuiControl, addEditPA:, actUponDeath_B, % settings_O.assistants[this].actUponDeath
-		GuiControl, addEditPA:, bindAllToAll_B, % settings_O.assistants[this].bindAllToAll
-		GuiControl, addEditPA:, persistent_B, % settings_O.assistants[this].persistent
-		GuiControl, addEditPA:, trigger_S, % arr2ASV(settings_O.assistants[this].TCg, "`n")
-		GuiControl, addEditPA:, dependent_S, % arr2ASV(settings_O.assistants[this].TAg, "`n")
-		Gui, addEditPA: Show,, Edit rule #%this%
+		GuiControl, addEditPA:, thisPAEnabled_B, % settings_O.assistants[ruleToEdit_N].enabled
+		GuiControl, addEditPA:, actUponOccurence_B, % settings_O.assistants[ruleToEdit_N].actUponOccurence
+		GuiControl, addEditPA:, actUponDeath_B, % settings_O.assistants[ruleToEdit_N].actUponDeath
+		GuiControl, addEditPA:, bindAllToAll_B, % settings_O.assistants[ruleToEdit_N].bindAllToAll
+		GuiControl, addEditPA:, persistent_B, % settings_O.assistants[ruleToEdit_N].persistent
+		GuiControl, addEditPA:, trigger_S, % arr2ASV(settings_O.assistants[ruleToEdit_N].TCg, "`n")
+		GuiControl, addEditPA:, dependent_S, % arr2ASV(settings_O.assistants[ruleToEdit_N].TAg, "`n")
+		Gui, addEditPA: Show,, Edit rule #%ruleToEdit_N%
 	Return
 				;}
 				;{ savePA	- gLabel of the 'save' button in the 'New/edit rule' window.
@@ -758,7 +759,7 @@ addEditPA()
 		Gui, 1: Default
 		Gui, ListView, assistantsLV
 		trigger_A := ASV2Arr(trigger_S, "`n"), dependent_A := ASV2Arr(dependent_S, "`n")
-		If !(this)	; If user added new rule.
+		If !(ruleToEdit_N)	; If user added new rule.
 		{
 			settings_O.assistants.Push({"enabled": thisPAEnabled_B, "actUponOccurence": actUponOccurence_B, "actUponDeath": actUponDeath_B, "bindAllToAll": bindAllToAll_B, "persistent": persistent_B, "TCg": trigger_A, "TAg": dependent_A})
 			Loop, % (trigger_A.MaxIndex() > dependent_A.MaxIndex() ? trigger_A.MaxIndex() : dependent_A.MaxIndex())
@@ -770,7 +771,7 @@ addEditPA()
 			}
 		}
 		Else
-			settings_O.assistants[this] := {"enabled": thisPAEnabled_B, "actUponOccurence": actUponOccurence_B, "actUponDeath": actUponDeath_B, "bindAllToAll": bindAllToAll_B, "persistent": persistent_B, "TCg": trigger_A, "TAg": dependent_A}, fillAssistantsLV()
+			settings_O.assistants[ruleToEdit_N] := {"enabled": thisPAEnabled_B, "actUponOccurence": actUponOccurence_B, "actUponDeath": actUponDeath_B, "bindAllToAll": bindAllToAll_B, "persistent": persistent_B, "TCg": trigger_A, "TAg": dependent_A}, fillAssistantsLV()
 		;}
 	Return
 				;}
@@ -2077,7 +2078,6 @@ writeSettings(oldSettings_O, settings_O, settingsPath)
 	For objName, objVal In [settings_O.autoruns, oldSettings_O.autoruns]
 		For k, v In objVal
 			(objName < 2 ? autoruns_A : oldAutoruns_A).Push(v.enabled v.trayIcon "`t" v.path (v.parameters ? "`t" v.parameters : ""))
-	;}
 	If (!ifArraysMatch(oldAutoruns_A, autoruns_A))
 	{
 

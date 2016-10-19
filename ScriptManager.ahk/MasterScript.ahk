@@ -408,6 +408,7 @@ fillAutorunsLV()
 			{
 				While !(arRuleHWND)
 					WinGet, arRuleHWND, ID, ahk_class AutoHotkey ahk_pid %arRulePID%
+				While !(TrayIcon_Remove(arRuleHWND) || A_Index == 5 || !arRuleWasNotRunning)
 					Sleep, 10
 			}
 		}

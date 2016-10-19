@@ -1,6 +1,6 @@
 ﻿/* MasterScript.ahk
-Version: 4.1
-Last time modified: 2016.10.05 14:20
+Version: 4.2
+Last time modified: 2016.10.19 23:20
 Compatible with AHK: 1.1.24.01.
 
 Summary: a script manager for AHK scripts with bookmarks, autostart and process assistance support.
@@ -399,16 +399,16 @@ fillAutorunsLV()
 				WinGet, arRulePID, PID, % "Si)^\Q" arRule.path "\E\s-\sAutoHotkey\sv[\d\.]+$ ahk_class AutoHotkey"	; This will catch uncompiled .ahk script processes.
 				SetTitleMatchMode, % currentTMM
 			}
-
 			If ((!arRulePID || settings_O.forceExecAutostarts) && (FileExist(arRule.path)))
+			{
+				arRuleWasNotRunning := 1
 				Run, % arRule.path " " arRule.parameters,,, arRulePID
+			}
 			If !(arRule.trayIcon)
 			{
 				While !(arRuleHWND)
 					WinGet, arRuleHWND, ID, ahk_class AutoHotkey ahk_pid %arRulePID%
-					; arRuleHWND := WinExist("ahk_pid " arRulePID)
-
-				TrayIcon_Remove(arRuleHWND)
+					Sleep, 10
 			}
 		}
 		arRulePID := arRuleHWND := ""

@@ -376,7 +376,6 @@ fillAutorunsLV()
 {
 	Global settings_O, autorunsLVHWND
 	Critical, On
-
 	If !(settings_O.autoruns.Length())
 	{
 		Critical, Off
@@ -399,19 +398,20 @@ fillAutorunsLV()
 				WinGet, arRulePID, PID, % "Si)^\Q" arRule.path "\E\s-\sAutoHotkey\sv[\d\.]+$ ahk_class AutoHotkey"	; This will catch uncompiled .ahk script processes.
 				SetTitleMatchMode, % currentTMM
 			}
-
 			If ((!arRulePID || settings_O.forceExecAutostarts) && (FileExist(arRule.path)))
+			{
+				arRuleWasNotRunning := 1
 				Run, % arRule.path " " arRule.parameters,,, arRulePID
+			}
 			If !(arRule.trayIcon)
 			{
 				While !(arRuleHWND)
 					WinGet, arRuleHWND, ID, ahk_class AutoHotkey ahk_pid %arRulePID%
-					; arRuleHWND := WinExist("ahk_pid " arRulePID)
-
-				TrayIcon_Remove(arRuleHWND)
+				While !(TrayIcon_Remove(arRuleHWND) || A_Index == 5 || !arRuleWasNotRunning)
+					Sleep, 10
 			}
 		}
-		arRulePID := arRuleHWND := ""
+		arRulePID := arRuleHWND := arRuleWasNotRunning := ""
 	}
 
 	Critical, Off

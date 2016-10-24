@@ -1274,7 +1274,7 @@ ASV2Arr(input_S, separator_S := "|")
 ;	Functions: writeSettings().
 ifArraysMatch(comparandA_A, comparandB_A)
 {
-	copyA_A := comparandA_A, copyB_A := comparandB_A, idxA := idxB := 0
+	copyA_A := comparandA_A.Clone(), copyB_A := comparandB_A.Clone(), idxA := idxB := 0
 	For k, v In copyA_A
 		idxA++
 	For k, v In copyB_A

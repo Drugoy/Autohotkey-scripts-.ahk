@@ -1,6 +1,6 @@
 ﻿/* pgTable.ahk
-Version: 1.0
-Last time modified: 2015.04.12 14:54
+Version: 1.1
+Last time modified: 2018.10.23 14:48
 
 Description: a script to draw a pseudo-graphical borders to the copied table.
 
@@ -17,14 +17,17 @@ SetWorkingDir, %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 ;{ Settings
 	;{ Available border styles
-	borderThin := "─│┌┬┐├┼┤└┴┘"
-	borderDouble := "═║╔╦╗╠╬╣╚╩╝"
-	border21 := "─║╓╥╖╟╫╢╙╨╜"
-	border12 := "═│╒╤╕╞╪╡╘╧╛"
+	borderThin := "─│┌┬┐├┼┤└┴┘─│"
+	borderThick := "━┃┏┳┓┣╋┫┗┻┛━┃"
+	borderThickThin := "━┃┏┯┓┠┼┨┗┷┛─│"
+	borderDouble := "═║╔╦╗╠╬╣╚╩╝═║"
+	borderDoubleSingle := "═║╔╤╗╟┼╢╚╧╝─│"
+	border21 := "─║╓╥╖╟╫╢╙╨╜─║"
+	border12 := "═│╒╤╕╞╪╡╘╧╛═│"
 	;}
-border := borderThin	; Specify the choice of border style here
+border := borderThickThin	; Specify the choice of border style here
 useTopBorder := 1	; Choose whether to add a top border to the table
-useRowSeparatingBorders := 1	; Choose whether to use horizontal borders betweel rows
+useRowSeparatingBorders := 1	; Choose whether to use horizontal borders between rows
 useBottomBorder := 1	; Choose whether to add a bottom border to the table
 horizontalCellPadding := 0	; Choose the number of spaces to be added as horizontal paddings (to the left and to the right from each cell's value)
 textAlign := 0	; Choose how to align text in cells: left/center/right = -1/0/1
@@ -77,7 +80,7 @@ F12::
 					If (A_Index == 1)
 						rowSeparator .= SubStr(border, 6, 1)	; ├
 					Loop, % thisColMaxWidth + 2 * horizontalCellPadding
-						rowSeparator .= SubStr(border, 1, 1)	; ─
+						rowSeparator .= SubStr(border, 12, 1)	; ─
 					If (A_Index != columns)
 						rowSeparator .= SubStr(border, 7, 1)	; ┼
 					Else	; Parsing rightmost cell.
@@ -116,7 +119,7 @@ F12::
 			Loop, % cellRightSpacing
 				(A_Index = 1 ? cellRightSpacing := " " : cellRightSpacing .= " ")
 			;}
-			output .= (cellLeftSpacing ? cellLeftSpacing : "") inputArray[A_Index, thisRow] (cellRightSpacing ? cellRightSpacing : "") SubStr(border, 2, 1)	; │
+			output .= (cellLeftSpacing ? cellLeftSpacing : "") inputArray[A_Index, thisRow] (cellRightSpacing ? cellRightSpacing : "") SubStr(border, (A_Index == columns ? 2 : 13), 1) 	; │
 		}
 		If (useRowSeparatingBorders) && (A_Index != rows)	; Concatenate a row separating border to the currently formed row.
 			output .= "`n" rowSeparator

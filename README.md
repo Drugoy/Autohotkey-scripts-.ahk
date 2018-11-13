@@ -8,7 +8,7 @@ To download AutoHotkey visit http://www.autohotkey.com/
 <hr>
 #### Scripts in alphabetical order
  
-##### [AltTab FingerTips](AltTab FingerTips)
+##### [AltTab FingerTips](AltTab%20FingerTips)
 Adds a hotkey that opens a context menu (at the cursor's current position) with all the opened windows listed as menuitems.
 Usage: hit the hotkey (default is F10) to open the context menu.
 
@@ -51,13 +51,13 @@ Recover closed applications. Features:
 - Doubleclick the tray icon to recover all applications
 - If not restored, it is gone in 60 seconds
 
-##### [Icon Menu Launcher](Icon Menu Launcher)
+##### [Icon Menu Launcher](Icon%20Menu%20Launcher)
 Very short script that just demonstrates the idea of how to combine multiple shortcuts into a single one that opens a context menu, where each menuitem runs a corresponding shortcut.
 
 ##### [Libraries](Libraries)
 These are the libs, which may be required by some of the scripts.
 
-##### [MetaDescription for Windows Explorer](MetaDescription for Windows Explorer)
+##### [MetaDescription for Windows Explorer](MetaDescription%20for%20Windows%20Explorer)
 This script lets you add commentaries (in simple text or HTML syntax) to the files. The commentaries will be stored in an alternative data stream hooked right to the file you add comments to. The commented file stays unmodified.
 Usage:
 	Add/modify description: in Windows Explorer select any file and hit "Alt+F1" hotkey. A window will show up with a input field where you can put a description. Write in something and hit 'Save' button.
@@ -70,7 +70,7 @@ Make rules to move files automatically. Use it to make a rule that moves files f
 - Choose Settings to change rules and options
 - Choose Enable to Start or Stop all the rules
 
-##### [Meta Shortcut](Meta Shortcut)
+##### [Meta Shortcut](Meta%20Shortcut)
 An improved version of "[Icon Menu Launcher](Icon Menu Launcher)" script.
 Shows a list of menuitems: if you click any of them - they act as shortcuts to the files previously drag'n'dropped onto it. The script supports drag'n'drop of multiple files at once.
 
@@ -89,7 +89,7 @@ The whole script could be cut down to just a few lines, if you'd use <a href="ht
 ##### [QuickSaveThisScript](QuickSaveThisScript)
 A script that reacts to a hotkey and quickly saves selected text to an *.ahk file and opens it in your text editor.
 
-##### [Remap ALT+F4 to CTRL+W](Remap ALT+F4 to CTRL+W)
+##### [Remap ALT+F4 to CTRL+W](Remap%20ALT%2BF4%20to%20CTRL%2BW)
 Makes "Ctrl+W" hotkey work as "Alt+F4" for lots of different programs and system windows. I like Ctrl+W more than Alt+F4, as it's keys are closer to each other.
 
 ##### [SOT2ST](SOT2ST)
@@ -138,7 +138,7 @@ Adds pseudo-virtual desktops: first, hit "Win+Shift+0/1/2/3" to bind windows to 
 ##### [WinTraymin](WinTraymin)
 Right click the "minimize" button to minimize a window into a trayicon. Left/Middle/Right click on the trayicon will restore the window. And if the window is activated via other means the corresponding trayicon will be removed too.
 
-##### [descript.ion for Windows Explorer](descript.ion for Windows Explorer)
+##### [descript.ion for Windows Explorer](descript.ion%20for%20Windows%20Explorer)
 This script let's you get files' comments.
 If any files are selected - the comments will be shown only for them, otherwise - for all files in the folder.
 Comments get taken from the descript.ion file that should be present in the folder.

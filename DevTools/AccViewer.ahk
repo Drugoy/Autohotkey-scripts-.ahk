@@ -1,6 +1,30 @@
-﻿; Accessible Info Viewer
+; Accessible Info Viewer
 ; http://www.autohotkey.com/board/topic/77888-accessible-info-viewer-alpha-release-2012-09-20/
 ; https://dl.dropbox.com/u/47573473/Accessible%20Info%20Viewer/AccViewer%20Source.ahk
+
+#SingleInstance force
+
+_colTextW := 55
+_col2W := 120
+_col4W := 51
+
+_margin := 10
+
+_offset1 := _margin
+_offset2 := _colTextW + 2*_margin              ; 2 times the margin
+_offset3 := _offset2 + _col2W  + _margin
+_offset4 := _offset3 + _colTextW + _margin
+
+_fullW := _offset4 + _col4W - (_margin/2)
+
+_guiWidth := _fullW + _fullW/2.5
+_guiHeight := 410
+_maxHeight := _guiHeight + 80
+_minHeight := _guiHeight - 80
+
+
+
+
 {
 	WM_ACTIVATE := 0x06
 	WM_KILLFOCUS := 0x08
@@ -21,65 +45,81 @@
 	Win.Main := hwnd
 	Gui, Add, Button, x160 y8 w105 h20 vShowStructure gShowStructure, Show Acc Structure
 	{
-		Gui, Add, Text, x10 y3 w25 h26 Border gCrossHair ReadOnly HWNDh8 Border
+		Gui, Add, Text, x10 y3 w%_colTextW% h26 Border gCrossHair ReadOnly HWNDh8 Border
 		CColor(h8, "White")
-		Gui, Add, Text, x10 y3 w25 h4 HWNDh9 Border
+		Gui, Add, Text, x10 y3 w%_colTextW% h4 HWNDh9 Border
 		CColor(h9, "0046D5")
 		Gui, Add, Text, x13 y17 w19 h1 Border vHBar
 		Gui, Add, Text, x22 y8 w1 h19 Border vVBar
 	}
 	{
 		Gui, Font, bold
-		Gui, Add, GroupBox, x2 y32 w275 h130 vWinCtrl, Window/Control Info
+		Gui, Add, GroupBox, x2 y32 w%_fullW% h130 vWinCtrl, Window/Control Info
 		Gui, Font
-		Gui, Add, Text, x7 y49 w42 h20 Right, WinTitle:
-		Gui, Add, Edit, x51 y47 w221 h20 vWinTitle ,
-		Gui, Add, Text, x7 y71 w42 h20 Right, Text:
-		Gui, Add, Edit, x51 y69 w221 h20 vText ,
-		Gui, Add, Text, x7 y93 w42 h20 Right, Hwnd:
-		Gui, Add, Edit, x51 y91 w72 h20 vHwnd,
-		Gui, Add, Text, x126 y93 w51 h20 vClassText Right, Class(NN):
-		Gui, Add, Edit, x178 y91 w94 h20 vClass,
-		Gui, Add, Text, x7 y115 w42 h20 Right, Position:
-		Gui, Add, Edit, x51 y113 w72 h20 vPosition,
-		Gui, Add, Text, x126 y115 w51 h20 Right, Process:
-		Gui, Add, Edit, x178 y113 w94 h20 vProcess,
-		Gui, Add, Text, x7 y137 w42 h20 Right, Size:
-		Gui, Add, Edit, x51 y135 w72 h20 vSize,
-		Gui, Add, Text, x126 y137 w51 h20 Right, Proc ID:
-		Gui, Add, Edit, x178 y135 w94 h20 vProcID,
+		Gui, Add, Text, x%_offset1% y49 w%_colTextW% h20 Right, WinTitle:
+		Gui, Add, Edit, x%_offset2% y47 w%_fullW% h20 vWinTitle ,
+    
+		Gui, Add, Text, x%_offset1% y71 w%_colTextW% h20 Right, Text:
+		Gui, Add, Edit, x%_offset2% y69 w%_fullW% h20 vText ,
+    
+    ; Row 3
+		Gui, Add, Text, x%_offset1% y93 w%_colTextW% h20 Right, Hwnd:
+		Gui, Add, Edit, x%_offset2% y91 w%_col2W% h20 vHwnd,    
+		Gui, Add, Text, x%_offset3% y93 w%_colTextW% h20 vClassText Right, Class(NN):
+		Gui, Add, Edit, x%_offset4% y91 w%_col2W% h20 vClass,
+    
+    ; Row 4
+		Gui, Add, Text, x%_offset1% y115 w%_colTextW% h20 Right, Position:
+		Gui, Add, Edit, x%_offset2% y113 w%_col2W% h20 vPosition,    
+		Gui, Add, Text, x%_offset3% y115 w%_colTextW% h20 Right, Process:
+		Gui, Add, Edit, x%_offset4% y113 w%_col2W% h20 vProcess,
+    
+    ; Row 5
+		Gui, Add, Text, x%_offset1% y137 w%_colTextW% h20 Right, Size:
+		Gui, Add, Edit, x%_offset2% y135 w%_col2W% h20 vSize,    
+		Gui, Add, Text, x%_offset3% y137 w%_colTextW% h20 Right, Proc ID:
+		Gui, Add, Edit, x%_offset4% y135 w%_col2W% h20 vProcID,
 	}
 	{
 		Gui, Font, bold
-		Gui, Add, GroupBox, x2 y165 w275 h240 vAcc, Accessible Info
+		Gui, Add, GroupBox, x2 y165 w525 h240 vAcc, Accessible Info
 		Gui, Font
-		Gui, Add, Text, x7 y182 w42 h20 Right, Name:
-		Gui, Add, Edit, x51 y180 w221 h20 vAccName ,
-		Gui, Add, Text, x7 y204 w42 h20 Right, Value:
-		Gui, Add, Edit, x51 y202 w221 h20 vAccValue ,
-		Gui, Add, Text, x7 y226 w42 h20 Right, Role:
-		Gui, Add, Edit, x51 y224 w72 h20 vAccRole,
-		Gui, Add, Text, x126 y226 w55 h20 Right, ChildCount:
-		Gui, Add, Edit, x182 y224 w90 h20 vAccChildCount,
-		Gui, Add, Text, x7 y248 w42 h20 Right, State:
-		Gui, Add, Edit, x51 y246 w72 h20 vAccState,
-		Gui, Add, Text, x126 y248 w55 h20 Right, Selection:
-		Gui, Add, Edit, x182 y246 w90 h20 vAccSelection,
-		Gui, Add, Text, x7 y270 w42 h20 Right, Action:
-		Gui, Add, Edit, x51 y268 w72 h20 vAccAction,
-		Gui, Add, Text, x126 y270 w55 h20 Right, Focus:
-		Gui, Add, Edit, x182 y268 w90 h20 vAccFocus,
+    
+		Gui, Add, Text, x%_offset1% y182 w%_colTextW% h20 Right, Name:
+		Gui, Add, Edit, x%_offset2% y180 w%_fullW% h20 vAccName ,
+    
+		Gui, Add, Text, x%_offset1% y204 w%_colTextW% h20 Right, Value:
+		Gui, Add, Edit, x%_offset2% y202 w%_fullW% h20 vAccValue ,
+    
+    
+    ; Row 3
+		Gui, Add, Text, x%_offset1% y226 w%_colTextW% h20 Right, Role:
+		Gui, Add, Edit, x%_offset2% y224 w%_col2W% h20 vAccRole,
+		Gui, Add, Text, x%_offset3% y226 w%_colTextW% h20 Right, ChildCount:
+		Gui, Add, Edit, x%_offset4% y224 w%_col2W% h20 vAccChildCount,
+    
+    ; Row 4
+		Gui, Add, Text, x%_offset1% y248 w%_colTextW% h20 Right, State:
+		Gui, Add, Edit, x%_offset2% y246 w%_col2W% h20 vAccState,
+		Gui, Add, Text, x%_offset3% y248 w%_colTextW% h20 Right, Selection:
+		Gui, Add, Edit, x%_offset4% y246 w%_col2W% h20 vAccSelection,
+    
+    ; Row 5
+		Gui, Add, Text, x%_offset1% y270 w%_colTextW% h20 Right, Action:
+		Gui, Add, Edit, x%_offset2% y268 w%_col2W% h20 vAccAction,
+		Gui, Add, Text, x%_offset3% y270 w%_colTextW% h20 Right, Focus:
+		Gui, Add, Edit, x%_offset4% y268 w%_col2W% h20 vAccFocus,
 		{
-			Gui, Add, Text, x7 y292 w55 h20 Right vAccLocationText, Location:
-			Gui, Add, Edit, x65 y290 w207 h20 vAccLocation ,
-			Gui, Add, Text, x7 y314 w55 h20 Right, Description:
-			Gui, Add, Edit, x65 y312 w207 h20 vAccDescription ,
-			Gui, Add, Text, x7 y336 w55 h20 Right, Keyboard:
-			Gui, Add, Edit, x65 y334 w207 h20 vAccKeyboard ,
-			Gui, Add, Text, x7 y358 w55 h20 Right, Help:
-			Gui, Add, Edit, x65 y356 w207 h20 vAccHelp ,
-			Gui, Add, Text, x7 y380 w55 h20 Right, HelpTopic:
-			Gui, Add, Edit, x65 y378 w207 h20 vAccHelpTopic ,
+			Gui, Add, Text, x%_offset1% y292 w%_colTextW% h20 Right vAccLocationText, Location:
+			Gui, Add, Edit, x%_offset2% y290 w%_fullW% h20 vAccLocation ,
+			Gui, Add, Text, x%_offset1% y314 w%_colTextW% h20 Right, Description:
+			Gui, Add, Edit, x%_offset2% y312 w%_fullW% h20 vAccDescription ,
+			Gui, Add, Text, x%_offset1% y336 w%_colTextW% h20 Right, Keyboard:
+			Gui, Add, Edit, x%_offset2% y334 w%_fullW% h20 vAccKeyboard ,
+			Gui, Add, Text, x%_offset1% y358 w%_colTextW% h20 Right, Help:
+			Gui, Add, Edit, x%_offset2% y356 w%_fullW% h20 vAccHelp ,
+			Gui, Add, Text, x%_offset1% y380 w%_colTextW% h20 Right, HelpTopic:
+			Gui, Add, Edit, x%_offset2% y378 w%_fullW% h20 vAccHelpTopic ,
 		}
 	}
 	{
@@ -120,26 +160,26 @@ ShowMainGui:
 			GuiControl, Show, AccLocation
 			GuiControl, Show, AccLocationText
 			{
-				height := 319
-				while height<428 {
+				height := _guiHeight
+				while height < _maxHeight {
 					height += 10
-					Gui, Show, w280 h%height%
+					Gui, Show, w%_guiWidth% h%height%
 					Sleep, 20
 				}
 			}
-			Gui, Show, w280 h428
+			Gui, Show, w%_guiWidth% h%_maxHeight%
 			ShowingLess := false
 		}
 		else {
 			if (ShowingLess != "") {
-				height := 428
-				while height>319 {
+				height := %_maxHeight%
+				while height > %_minHeight% {
 					height -= 10
-					Gui, Show, w280 h%height%
+					Gui, Show, w%_guiWidth% h%height%
 					Sleep, 20
 				}
 			}
-			Gui, Show, w280 h319
+			Gui, Show, w%_guiWidth% h%_minHeight%
 			GuiControl, Hide, AccDescription
 			GuiControl, Hide, AccLocation
 			GuiControl, Hide, AccLocationText
@@ -502,7 +542,7 @@ class Outline {
 		Gui, +HWNDdefault
 		Loop, 4 {
 			Gui, New, -Caption +ToolWindow HWNDhwnd
-			Gui, Color, %color%
+			Gui, Color, w%_color%
 			this[A_Index] := hwnd
 		}
 		this.visible := false
@@ -552,7 +592,7 @@ class Outline {
 	Color(color) {
 		Gui, +HWNDdefault
 		Loop, 4
-			Gui, % this[A_Index] ": Color" , %color%
+			Gui, % this[A_Index] ": Color" , w%_color%
 		self.color := color
 		Gui, %default%: Default
 	}
@@ -667,7 +707,7 @@ CrossHair(OnOff=1) {
 	Acc_ObjectFromWindow(hWnd, idObject = 0)
 	{
 		Acc_Init()
-		If	DllCall("oleacc\AccessibleObjectFromWindow", "Ptr", hWnd, "UInt", idObject&=0xFFFFFFFF, "Ptr", -VarSetCapacity(IID,16)+NumPut(idObject==0xFFFFFFF0?0x46000000000000C0:0x719B3800AA000C81,NumPut(idObject==0xFFFFFFF0?0x0000000000020400:0x11CF3C3D618736E0,IID,"Int64"),"Int64"), "Ptr*", pacc)=0
+		If	DllCall("oleacc\AccessibleObjectFromWindow", "Ptr", hWnd, "UInt", idObject&=0xFFFFFFFF, "Ptr", -VarSetCapacity(IID,16)+NumPut(idObject==0xFFFFFFF0?0x46000000000000C0:0x%_offset1%19B3800AA000C81,NumPut(idObject==0xFFFFFFF0?0x0000000000020400:0x11CF3C3D618736E0,IID,"Int64"),"Int64"), "Ptr*", pacc)=0
 		Return	ComObjEnwrap(9,pacc,1)
 	}
 	Acc_WindowFromObject(pacc)

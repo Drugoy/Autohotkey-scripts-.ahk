@@ -85,7 +85,19 @@ return
 
 SetHotKeys:
 	if AltTabFingertipsHK
+	{
 		Hotkey,%AltTabFingertipsHK%,AltTabFingertips, ON
+		if InStr(AltTabFingertipsHK,"&")
+		{
+			prefix := StrSplit(AltTabFingertipsHK, A_Space)[1]
+			Hotkey,%prefix%,prefix_fix, ON
+		}
+	}
+return
+
+prefix_fix:
+    ; Allows retaining the prefix button functionality when pressed separately
+    Send {%prefix%}
 return
 
 CheckUpdate:
